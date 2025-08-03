@@ -20,13 +20,13 @@ export class BadgeService {
         matches: statsData.matches || 0,
         events: statsData.events || 0,
         leaders: statsData.leaders || 0,
-        totalProfit: statsData.totalProfit || 0,
-        packagesSold: statsData.packagesSold || 0,
+        totalProfit: statsData.totalprofit || 0,
+        packagesSold: statsData.packagessold || 0,
         engagement: statsData.engagement || 0,
-        pioneerRank: statsData.pioneerRank || 0,
-        top10Classes: statsData.top10Classes || 0,
-        top5Classes: statsData.top5Classes || 0,
-        top3Classes: statsData.top3Classes || 0
+        pioneerRank: statsData.pioneerrank || 0,
+        top10Classes: statsData.top10classes || 0,
+        top5Classes: statsData.top5classes || 0,
+        top3Classes: statsData.top3classes || 0
       }
     }
 
@@ -378,13 +378,13 @@ export class BadgeService {
         matches: stats.matches,
         events: stats.events,
         leaders: stats.leaders,
-        totalProfit: stats.totalProfit,
-        packagesSold: stats.packagesSold,
+        totalprofit: stats.totalProfit,
+        packagessold: stats.packagesSold,
         engagement: stats.engagement,
-        pioneerRank: stats.pioneerRank,
-        top10Classes: stats.top10Classes,
-        top5Classes: stats.top5Classes,
-        top3Classes: stats.top3Classes,
+        pioneerrank: stats.pioneerRank,
+        top10classes: stats.top10Classes,
+        top5classes: stats.top5Classes,
+        top3classes: stats.top3Classes,
         updated_at: new Date().toISOString()
       })
 

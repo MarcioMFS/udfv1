@@ -88,7 +88,7 @@ export function useInstructorStats(): UseInstructorStatsReturn {
       // Try to get from instructor_stats table first
       const { data: statsData, error: statsError } = await supabase
         .from('instructor_stats')
-        .select('classes, students, matches, events, leaders, totalProfit, packagesSold, engagement, pioneerRank, top10Classes, top5Classes, top3Classes')
+        .select('*')
         .eq('instructor_id', user.id)
         .single()
 
@@ -99,13 +99,13 @@ export function useInstructorStats(): UseInstructorStatsReturn {
           matches: statsData.matches || 0,
           events: statsData.events || 0,
           leaders: statsData.leaders || 0,
-          totalProfit: statsData.totalProfit || 0,
-          packagesSold: statsData.packagesSold || 0,
+          totalProfit: statsData.totalprofit || 0,
+          packagesSold: statsData.packagessold || 0,
           engagement: statsData.engagement || 0,
-          pioneerRank: statsData.pioneerRank || 0,
-          top10Classes: statsData.top10Classes || 0,
-          top5Classes: statsData.top5Classes || 0,
-          top3Classes: statsData.top3Classes || 0
+          pioneerRank: statsData.pioneerrank || 0,
+          top10Classes: statsData.top10classes || 0,
+          top5Classes: statsData.top5classes || 0,
+          top3Classes: statsData.top3classes || 0
         })
       } else {
         // Show zeros when table is empty or no data found
