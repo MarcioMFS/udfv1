@@ -1,9 +1,21 @@
 // src/pages/ProfilePage.tsx
+import { BadgeCard } from '@/components/Levels/BadgeCard'
 import { useAuth } from '../contexts/AuthContext'
 import { User, Mail, Shield } from 'lucide-react'
+import { createBadgeCardData } from '@/utils/badgeUtils'
+import { useInstructorStats } from '@/hooks'
 
 export function ProfilePage() {
   const { user } = useAuth()
+  const { 
+      stats: instructorStats, 
+      isLoading, 
+      error,
+      refetch
+    } = useInstructorStats()
+  
+
+  const badges = createBadgeCardData(instructorStats)
 
   // Estado de formulário (comentado por não estar em uso agora)
   /*
@@ -126,6 +138,16 @@ export function ProfilePage() {
             )}
           </div>
           */}
+        </div>
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">
+            Todas as conquistas
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {badges.map((badge) => (
+              <BadgeCard key={badge.id} badge={badge} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom'
-import { Users, Calendar, BookOpen, Activity } from 'lucide-react'
+import { Users, Calendar, BookOpen, Activity, ChevronRight } from 'lucide-react'
 
 import { useInstructorStats } from '../hooks/useInstructorStats'
 import { useAuth } from '../contexts/AuthContext'
@@ -70,7 +70,73 @@ export function DashboardPage() {
     )
   }
 
-  const badges = createBadgeCardData(instructorStats)
+  const allBadges = createBadgeCardData(instructorStats)
+  
+  // Calculate progress percentage for each badge
+  const badgesWithProgress = allBadges.map(badge => {
+    const { current, stages, title } = badge
+    const isInverseBadge = title === 'Pioneiro'
+    
+    let progress = 0
+    let currentStageIndex = 0
+    
+    if (isInverseBadge) {
+      // For inverse badges (lower is better)
+      for (let i = 0; i < stages.length; i++) {
+        if (current <= stages[i]) {
+          currentStageIndex = i + 1
+        }
+      }
+      if (currentStageIndex > stages.length) {
+        currentStageIndex = stages.length
+      }
+      
+      if (currentStageIndex < stages.length) {
+        const nextTarget = stages[currentStageIndex]
+        const previousTarget = currentStageIndex > 0 ? stages[currentStageIndex - 1] : stages[stages.length - 1]
+        progress = Math.min(100, Math.round(((previousTarget - current) / (previousTarget - nextTarget)) * 100))
+      } else {
+        progress = 100
+      }
+    } else {
+      // For normal badges (higher is better)
+      for (let i = 0; i < stages.length; i++) {
+        if (current >= stages[i]) {
+          currentStageIndex = i + 1
+        } else {
+          break
+        }
+      }
+      if (currentStageIndex > stages.length) {
+        currentStageIndex = stages.length
+      }
+      
+      if (currentStageIndex < stages.length) {
+        const nextTarget = stages[currentStageIndex]
+        const previousTarget = currentStageIndex > 0 ? stages[currentStageIndex - 1] : 0
+        progress = Math.min(100, Math.round(((current - previousTarget) / (nextTarget - previousTarget)) * 100))
+      } else {
+        progress = 100
+      }
+    }
+    
+    // Calculate overall progress (stage completion + current stage progress)
+    const stageProgress = currentStageIndex * 20 // Each stage is worth 20%
+    const withinStageProgress = progress * 0.2 // Current stage progress contributes 20%
+    const totalProgress = Math.min(100, stageProgress + withinStageProgress)
+    
+    return {
+      ...badge,
+      calculatedProgress: totalProgress,
+      hasAnyProgress: current > 0 || (isInverseBadge && current > 0)
+    }
+  })
+  
+  // Show the 2 badges with highest progress that have some activity
+  const dashboardBadges = badgesWithProgress
+    .filter(badge => badge.hasAnyProgress) // Only show badges with some progress
+    .sort((a, b) => b.calculatedProgress - a.calculatedProgress) // Sort by progress descending
+    .slice(0, 2) // Take top 2
 
   return (
     <ErrorBoundary>
@@ -133,11 +199,21 @@ export function DashboardPage() {
             </div>
 
             <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">
-                Minhas conquistas
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {badges.map((badge) => (
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Minhas conquistas
+                </h3>
+                <Link 
+                  to="/profile"
+                  className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+                >
+                  Ver mais
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <p className='text-x text-gray-500 mb-3' >Conquistas mais avançadas</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {dashboardBadges.map((badge) => (
                   <BadgeCard key={badge.id} badge={badge} />
                 ))}
               </div>
