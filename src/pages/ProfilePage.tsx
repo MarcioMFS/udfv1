@@ -10,8 +10,7 @@ export function ProfilePage() {
   const { 
       stats: instructorStats, 
       isLoading, 
-      error,
-      refetch
+      error
     } = useInstructorStats()
   
 
