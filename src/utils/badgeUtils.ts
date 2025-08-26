@@ -65,16 +65,16 @@ export interface BadgeCardData {
 
 // Badge image mapping - add your images here
 const BADGE_IMAGES: Record<string, string> = {
-  'formador-de-turmas': '/src/assets/badges/formador-de-turmas.png',
-  'construtor-de-líderes': '/src/assets/badges/construtor-de-lideres.png',
-  'mestre-de-alunos': '/src/assets/badges/mestre-de-alunos.png',
-  'fontes-abundantes': '/src/assets/badges/fontes-abundantes.png',
-  'vendedor-nato': '/src/assets/badges/vendedor-nato.png',
-  'líder-carismático': '/src/assets/badges/lider-carismatico.png',
-  'pioneiro': '/src/assets/badges/pioneiro.png',
-  'turma-top-10': '/src/assets/badges/turma-top-10.png',
-  'turma-top-5': '/src/assets/badges/turma-top-5.png',
-  'turma-top-3': '/src/assets/badges/turma-top-3.png'
+  'formador-de-turmas': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/formador-de-turmas.png',
+  'construtor-de-líderes': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/construtor-de-lideres.png',
+  'mestre-de-alunos': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/mestre-de-alunos.png',
+  'fontes-abundantes': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/fontes-abundantes.png',
+  'vendedor-nato': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/vendedor-nato.png',
+  'líder-carismático': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/lider-carismatico.png',
+  'pioneiro': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/pioneiro.png',
+  'turma-top-10': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/turma-top-10.png',
+  'turma-top-5': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/turma-top-5.png',
+  'turma-top-3': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/turma-top-3.png'
 }
 
 // Badge descriptions - explanations for each badge
