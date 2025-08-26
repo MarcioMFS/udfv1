@@ -8,9 +8,7 @@ import { useInstructorStats } from '@/hooks'
 export function ProfilePage() {
   const { user } = useAuth()
   const { 
-      stats: instructorStats, 
-      isLoading, 
-      error
+      stats: instructorStats
     } = useInstructorStats()
   
 
