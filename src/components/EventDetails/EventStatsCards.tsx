@@ -4,8 +4,6 @@ import {
   TrendingUp, 
   DollarSign, 
   Activity, 
-  Target,
-  Calendar,
   Zap,
   HelpCircle
 } from 'lucide-react'
