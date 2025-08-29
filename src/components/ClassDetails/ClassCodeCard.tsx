@@ -1,28 +1,6 @@
 // src/components/ClassDetails/ClassCodeCard.tsx
 import { Copy } from 'lucide-react'
-
-interface Class {
-  id: string
-  code: string
-  description: string | null
-  instructor_id: string | null
-  influencer_id: string | null
-  event_id: string | null
-  start_date: string | null
-  end_date: string | null
-  created_at: string
-  updated_at: string
-  event_type: 'training' | 'course'
-  schedule: Array<{ 'initial-time': string; 'end-time': string }> | null
-  event?: {
-    name: string
-    subject: string
-  }
-  influencer?: {
-    name: string
-    email: string
-  }
-}
+import { Class } from '../../types'
 
 interface ClassCodeCardProps {
   classData: Class

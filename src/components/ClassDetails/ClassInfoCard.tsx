@@ -2,32 +2,7 @@
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Info } from 'lucide-react'
-
-interface Class {
-  id: string
-  code: string
-  description: string | null
-  instructor_id: string | null
-  influencer_id: string | null
-  event_id: string | null
-  start_date: string | null
-  end_date: string | null
-  created_at: string
-  updated_at: string
-  event_type: 'training' | 'course'
-  schedule: Array<{ 'initial-time': string; 'end-time': string }> | null
-  event?: {
-    name: string
-    subject: string
-  }
-  influencer?: {
-    name: string
-    email: string
-  }
-  instructor?: {
-    name: string
-  }
-}
+import { Class } from '../../types'
 
 interface ClassInfoCardProps {
   classData: Class | null
@@ -61,10 +36,10 @@ export function ClassInfoCard({
           <strong>Instrutor:</strong> {classData.instructor?.name || 'N/A'}
         </p>
         <p className="text-sm text-gray-600">
-          <strong>Evento:</strong> {classData.event?.name || 'N/A'}
+          <strong>Evento:</strong> {classData.events?.[0]?.name || 'N/A'}
         </p>
         <p className="text-sm text-gray-600">
-          <strong>Assunto:</strong> {classData.event?.subject || 'N/A'}
+          <strong>Assunto:</strong> {classData.events?.[0]?.subject || 'N/A'}
         </p>
         <p className="text-sm text-gray-600">
           <strong>Início:</strong> {classData.start_date ? format(new Date(classData.start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}

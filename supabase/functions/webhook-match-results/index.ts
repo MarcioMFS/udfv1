@@ -1,13 +1,12 @@
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
+// Cabeçalhos CORS para permitir requisições de qualquer origem
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
-
-// Lógica de cálculo dos resultados (copiada do webhook-match-results)
 var ARCode;
+// --- INÍCIO DA LÓGICA DE DESSERIALIZAÇÃO E CÁLCULO ---
 (function(ARCode) {
   ARCode[ARCode["HOME"] = 0] = "HOME";
   ARCode[ARCode["A"] = 1] = "A";
@@ -19,38 +18,26 @@ var ARCode;
   ARCode[ARCode["G"] = 7] = "G";
   ARCode[ARCode["H"] = 8] = "H";
 })(ARCode || (ARCode = {}));
-
+// Função de validação para garantir que um número corresponde a um ARCode válido
 function isValidARCode(value) {
   return value >= ARCode.HOME && value <= ARCode.H;
 }
-
 class DeliveryManifest {
   source = ARCode.HOME;
-  destination = ARCode.HOME;
   satisfaction = false;
   value = 0;
-  bonusValue = 0;
-  deliveryTime = 0;
   deserialize(serial) {
     const parts = serial.split(';');
-    if (parts.length < 7) return;
+    if (parts.length < 5) return;
     const parsedSource = parseInt(parts[0], 10);
-    const parsedDestination = parseInt(parts[1], 10);
     if (!isValidARCode(parsedSource)) {
       throw new Error(`Código ARCode inválido na entrega: ${parts[0]}`);
     }
-    if (!isValidARCode(parsedDestination)) {
-      throw new Error(`Código ARCode inválido na entrega: ${parts[1]}`);
-    }
     this.source = parsedSource;
-    this.destination = parsedDestination;
     this.satisfaction = parts[2].toLowerCase() === 'true';
     this.value = parseInt(parts[4], 10) || 0;
-    this.bonusValue = parseInt(parts[5], 10) || 0;
-    this.deliveryTime = parseFloat(parts[6]) || 0;
   }
 }
-
 class GameDataManifest {
   deliveries = [];
   travelLog = [];
@@ -215,12 +202,7 @@ class GameDataManifest {
     }
     return totalBonus;
   }
-  get result() {
-    if (this.revenue === 0) return 0;
-    return Math.round(100 * this.profit / this.revenue);
-  }
 }
-
 function deserializeAppSerial(serial) {
   if (!serial) {
     throw new Error("app_serial não pode ser nulo.");
@@ -233,134 +215,65 @@ function deserializeAppSerial(serial) {
     bonus: manifest.bonus
   };
 }
+// Função principal do servidor da Edge Function
 serve(async (req)=>{
+  // Trata a requisição OPTIONS para CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: corsHeaders
     });
   }
   try {
-    const body = await req.json();
-    const { "player-email": playerEmail, "event-code": eventCode, "app-serial": appSerial, "match-number": matchNumber } = body;
-    if (!playerEmail || !eventCode || !appSerial || matchNumber == null) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Campos obrigatórios ausentes: player-email, event-code, match-number, app-serial'
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 400
-      });
+    const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+    const payload = await req.json();
+    const { 'player-udf-id': playerUdfId, 'player-email': playerEmail, 'event-code': eventCode, 'match-number': matchNumber } = payload;
+    
+    if ((!playerUdfId && !playerEmail) || !eventCode || matchNumber === undefined) {
+      throw new Error('Campos obrigatórios ausentes no payload: (player-udf-id OU player-email), event-code, match-number');
     }
-    const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    const { data: players, error: playerError } = await supabase.from('players').select('id, email').eq('email', playerEmail);
-    if (playerError || !players || players.length === 0) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Jogador com email '${playerEmail}' não encontrado.`
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 404
-      });
+    
+    // 1. Busca IDs do jogador e do evento - aceita tanto udf_id quanto email
+    let playerData, playerError;
+    if (playerUdfId) {
+      ({ data: playerData, error: playerError } = await supabaseClient.from('players').select('id').eq('udf_id', playerUdfId).single());
+    } else {
+      ({ data: playerData, error: playerError } = await supabaseClient.from('players').select('id').eq('email', playerEmail).single());
     }
-    const player = players[0];
-    // Buscar evento com informações da turma
-    const { data: eventData, error: eventError } = await supabase
-      .from('events')
-      .select('id, class_id')
-      .eq('code', eventCode)
-      .single();
-
-    if (eventError || !eventData) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Evento com código '${eventCode}' não encontrado.`
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 404
-      });
+    
+    if (playerError || !playerData) {
+      const identifier = playerUdfId || playerEmail;
+      const field = playerUdfId ? 'udf_id' : 'email';
+      throw new Error(`Player com ${field} ${identifier} não encontrado`);
     }
-
-    // Verificar se o player está inscrito na turma deste evento
-    const { data: classPlayer, error: classPlayerError } = await supabase
-      .from('class_players')
-      .select('id')
-      .eq('class_id', eventData.class_id)
-      .eq('player_id', player.id)
-      .single();
-
-    if (classPlayerError || !classPlayer) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Jogador '${playerEmail}' não está inscrito na turma deste evento.`
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 403
-      });
-    }
-
-    const { data: match, error: matchError } = await supabase.from('matches').insert({
-      player_id: player.id,
+    
+    const { data: eventData, error: eventError } = await supabaseClient.from('events').select('id, class_id').eq('code', eventCode).single();
+    if (eventError || !eventData) throw new Error(`Evento com código ${eventCode} não encontrado`);
+    
+    // 2. Busca o app_serial bruto da tabela de partidas (usando event_id)
+    const { data: matchEntry, error: matchEntryError } = await supabaseClient.from('matches').select('app_serial, event_id').eq('player_id', playerData.id).eq('event_id', eventData.id).eq('match_number', matchNumber).single();
+    if (matchEntryError || !matchEntry) throw new Error(`Partida não encontrada para os critérios fornecidos.`);
+    // 3. Desserializa e Calcula os resultados
+    const { lucro, satisfacao, bonus } = deserializeAppSerial(matchEntry.app_serial);
+    // 4. Salva os resultados calculados
+    const { data: matchResultData, error: matchResultError } = await supabaseClient.from('match_results').upsert({
+      player_id: playerData.id,
       event_id: eventData.id,
       match_number: matchNumber,
-      app_serial: appSerial,
-      match_date: new Date().toISOString()
+      lucro: lucro,
+      satisfacao: satisfacao,
+      bonus: bonus,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'player_id,event_id,match_number'
     }).select().single();
-    if (matchError || !match) {
-      throw new Error(`Erro ao salvar match: ${matchError?.message}`);
-    }
-
-    // Calcular resultados diretamente
-    try {
-      console.log('Iniciando cálculo dos resultados...');
-      console.log('App serial recebido:', appSerial);
-      
-      const { lucro, satisfacao, bonus } = deserializeAppSerial(appSerial);
-      console.log('Resultados calculados - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus);
-      
-      // Salvar resultados na tabela match_results
-      console.log('Salvando resultados em match_results...');
-      const { data: matchResultData, error: matchResultError } = await supabase
-        .from('match_results')
-        .insert({
-          player_id: player.id,
-          event_id: eventData.id,
-          match_number: matchNumber,
-          lucro: lucro,
-          satisfacao: satisfacao,
-          bonus: bonus,
-          updated_at: new Date().toISOString()
-        })
-        .select().single();
-        
-      if (matchResultError) {
-        console.error('Erro ao salvar match_results:', matchResultError);
-        throw matchResultError;
-      }
-      
-      console.log('Resultados salvos com sucesso:', matchResultData);
-      
-    } catch (calcError) {
-      console.error('Erro completo ao calcular resultados:', calcError);
-      console.error('Stack trace:', calcError.stack);
-    }
-
+    if (matchResultError) throw matchResultError;
+    // 5. Atualiza as estatísticas agregadas do jogador
+    await updatePlayerStats(supabaseClient, playerData.id, eventData.class_id, eventData.id);
+    console.log('Resultado da partida salvo com sucesso:', matchResultData);
     return new Response(JSON.stringify({
       success: true,
-      match_id: match.id,
-      player_id: player.id,
-      message: 'Partida registrada e resultados calculados'
+      message: 'Resultado da partida processado e salvo com sucesso.',
+      matchResult: matchResultData
     }), {
       headers: {
         ...corsHeaders,
@@ -368,17 +281,51 @@ serve(async (req)=>{
       },
       status: 200
     });
-  } catch (err) {
-    console.error('Erro no webhook:', err);
+  } catch (error) {
+    console.error('Erro no processamento do webhook:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: err instanceof Error ? err.message : String(err)
+      error: error.message
     }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
       },
-      status: 500
+      status: 400
     });
   }
 });
+async function updatePlayerStats(supabaseClient, playerId, classId, eventId) {
+  try {
+    // Buscar results do evento específico
+    const { data: results, error: resultsError } = await supabaseClient
+      .from('match_results')
+      .select('lucro, satisfacao, bonus')
+      .eq('player_id', playerId)
+      .eq('event_id', eventId);
+    
+    if (resultsError) throw resultsError;
+    if (!results?.length) return;
+    
+    const totalMatches = results.length;
+    const totalScore = results.reduce((sum, result) => 
+      sum + (result.lucro || 0) + (result.satisfacao || 0) + (result.bonus || 0), 0
+    );
+    const avgScore = totalScore / totalMatches;
+    
+    // Atualizar estatísticas do jogador na turma
+    const { error: updateError } = await supabaseClient
+      .from('class_players')
+      .update({
+        total_matches: totalMatches,
+        avg_score: Math.round(avgScore)
+      })
+      .eq('player_id', playerId)
+      .eq('class_id', classId);
+    
+    if (updateError) throw updateError;
+    console.log(`Estatísticas atualizadas para player ${playerId} no evento ${eventId}`);
+  } catch (error) {
+    console.error('Erro na função updatePlayerStats:', error);
+  }
+}

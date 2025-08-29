@@ -15,17 +15,18 @@ export interface Class {
   description: string | null
   instructor_id: string | null
   influencer_id: string | null
-  event_id: string | null
   start_date: string | null
   end_date: string | null
   created_at: string
   updated_at: string
   event_type: EventType
   schedule: Array<{ 'initial-time': string; 'end-time': string }> | null
-  event?: {
+  events?: {
+    id: string
     name: string
     subject: string
-  }
+    code: string
+  }[]
   influencer?: {
     name: string
     email: string
@@ -34,6 +35,24 @@ export interface Class {
     name: string
     email: string
   }
+}
+
+export interface Event {
+  id: string
+  name: string | null
+  code: string
+  description: string | null
+  subject: string | null
+  difficulty: string
+  time_limit: number
+  max_players: number
+  instructions: string | null
+  start_date: string | null
+  end_date: string | null
+  instructor_id: string | null
+  class_id: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Student {

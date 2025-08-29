@@ -1,0 +1,298 @@
+// src/components/EventDetails/EventDetailedReport.tsx
+import { useState } from 'react'
+import { FileText, Download, TrendingUp, Users, DollarSign } from 'lucide-react'
+import { Event } from '../../types'
+
+interface EventMatch {
+  id: string
+  match_date: string
+  match_number: number
+  player_id: string
+  player_name: string
+  player_email: string
+  class_code: string
+  app_serial: string
+}
+
+interface EventPlayer {
+  id: string
+  name: string
+  email: string
+  total_matches: number
+  avg_lucro: number
+  avg_satisfaction: number
+  avg_bonus: number
+  total_profit: number
+  last_match: string
+}
+
+interface EventStats {
+  total_matches: number
+  unique_players: number
+  total_profit: number
+  avg_satisfaction: number
+  avg_bonus: number
+  classes_count: number
+  completion_rate: number
+  best_player_total: number
+  avg_matches_per_player: number
+  engagement_rate: number
+  total_days_active: number
+}
+
+interface EventDetailedReportProps {
+  eventData: Event
+  matches: EventMatch[]
+  players: EventPlayer[]
+  stats: EventStats
+}
+
+export function EventDetailedReport({ 
+  eventData, 
+  matches, 
+  players, 
+  stats 
+}: EventDetailedReportProps) {
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
+
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true)
+    
+    try {
+      // Create detailed report content
+      const reportContent = generateReportContent()
+      
+      // Create and download file
+      const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `relatorio-evento-${eventData.code}-${new Date().toISOString().split('T')[0]}.txt`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error)
+    } finally {
+      setIsGeneratingReport(false)
+    }
+  }
+
+  const generateReportContent = () => {
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(value)
+    }
+
+    const formatDate = (date: string) => {
+      return new Date(date).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    return `
+RELATÓRIO DETALHADO DO EVENTO
+============================
+
+INFORMAÇÕES GERAIS
+------------------
+Nome: ${eventData.name}
+Código: ${eventData.code}
+Matéria: ${eventData.subject}
+Dificuldade: ${eventData.difficulty}
+Tempo Limite: ${eventData.time_limit} minutos
+Criado em: ${formatDate(eventData.created_at)}
+
+ESTATÍSTICAS GERAIS
+-------------------
+Total de Partidas: ${stats.total_matches}
+Jogadores Únicos: ${stats.unique_players}
+Lucro Total: ${formatCurrency(stats.total_profit)}
+Satisfação Média: ${stats.avg_satisfaction}%
+Bônus Médio: ${stats.avg_bonus}
+Melhor Total: ${stats.best_player_total}
+Média de Partidas por Jogador: ${stats.avg_matches_per_player.toFixed(1)}
+Taxa de Engajamento: ${stats.engagement_rate}%
+Dias Ativos: ${stats.total_days_active}
+Turmas Participantes: ${stats.classes_count}
+
+RANKING DE JOGADORES
+--------------------
+${players.map((player, index) => 
+  `${index + 1}. ${player.name}
+   Email: ${player.email}
+   Partidas: ${player.total_matches}
+   Lucro Médio: ${player.avg_lucro}
+   Bônus Médio: ${player.avg_bonus}
+   Satisfação Média: ${player.avg_satisfaction}%
+   Lucro Total: ${formatCurrency(player.total_profit)}
+   Última Partida: ${formatDate(player.last_match)}
+`).join('\n')}
+
+HISTÓRICO DE PARTIDAS
+---------------------
+${matches.map(match => 
+  `Partida #${match.match_number}
+   Data: ${formatDate(match.match_date)}
+   Jogador: ${match.player_name} (${match.player_email})
+   Turma: ${match.class_code}
+   Serial do App: ${match.app_serial}
+`).join('\n')}
+
+Relatório gerado em: ${formatDate(new Date().toISOString())}
+    `.trim()
+  }
+
+  const topPerformers = players.slice(0, 3)
+  const avgProfitPerPlayer = stats.unique_players > 0 ? stats.total_profit / stats.unique_players : 0
+  
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Relatório Detalhado</h3>
+              <p className="text-sm text-gray-600">Análise completa do desempenho do evento</p>
+            </div>
+          </div>
+          <button
+            onClick={handleGenerateReport}
+            disabled={isGeneratingReport}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            {isGeneratingReport ? 'Gerando...' : 'Baixar Relatório'}
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {/* Performance Summary */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-blue-200 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+              </div>
+              <h4 className="font-semibold text-blue-800">Performance Geral</h4>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-blue-700">Bônus Médio:</span>
+                <span className="font-medium text-blue-800">{stats.avg_bonus}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-blue-700">Melhor Total:</span>
+                <span className="font-medium text-blue-800">{stats.best_player_total}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-blue-700">Satisfação:</span>
+                <span className="font-medium text-blue-800">{stats.avg_satisfaction}%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Engagement Summary */}
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-green-200 rounded-lg flex items-center justify-center">
+                <Users className="w-4 h-4 text-green-600" />
+              </div>
+              <h4 className="font-semibold text-green-800">Engajamento</h4>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-green-700">Total de Partidas:</span>
+                <span className="font-medium text-green-800">{stats.total_matches}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-green-700">Jogadores Únicos:</span>
+                <span className="font-medium text-green-800">{stats.unique_players}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-green-700">Média/Jogador:</span>
+                <span className="font-medium text-green-800">{stats.avg_matches_per_player.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Financial Summary */}
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-yellow-200 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-yellow-600" />
+              </div>
+              <h4 className="font-semibold text-yellow-800">Resultados</h4>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-yellow-700">Lucro Total:</span>
+                <span className="font-medium text-yellow-800">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(stats.total_profit)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-yellow-700">Média/Jogador:</span>
+                <span className="font-medium text-yellow-800">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(avgProfitPerPlayer)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-yellow-700">Turmas:</span>
+                <span className="font-medium text-yellow-800">{stats.classes_count}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Performers */}
+        {topPerformers.length > 0 && (
+          <div>
+            <h4 className="font-semibold text-gray-800 mb-4">🏆 Melhores Performers</h4>
+            <div className="space-y-3">
+              {topPerformers.map((player, index) => (
+                <div key={player.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-600'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{player.name}</p>
+                    <p className="text-sm text-gray-600">{player.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-800">Lucro: R$ {player.avg_lucro}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(player.total_profit)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

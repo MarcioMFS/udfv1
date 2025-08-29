@@ -5,6 +5,7 @@ import {
   User,
   LogOut,
   Home,
+  Calendar,
   X
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -35,6 +36,7 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/classes', icon: Users, label: 'Turmas' },
+    { href: '/my-events', icon: Calendar, label: 'Eventos' },
     {
       href: '/reports',
       icon: BarChart3,

@@ -9,6 +9,7 @@ import { ClassesPage } from './pages/ClassesPage'
 import { ClassDetailsPage } from './pages/ClassDetailsPage'
 import { MyEventsPage } from './pages/MyEventsPage'
 import { CreateEventPage } from './pages/CreateEventPage'
+import { EventDetailsPage } from './pages/EventDetailsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -32,6 +33,7 @@ function App() {
                   <Route path="/classes/:id" element={<ClassDetailsPage />} />
                   <Route path="/my-events" element={<MyEventsPage />} />
                   <Route path="/events/create" element={<CreateEventPage />} />
+                  <Route path="/events/:id" element={<EventDetailsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Routes>

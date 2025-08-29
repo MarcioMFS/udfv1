@@ -36,12 +36,21 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
         .from('classes')
         .select(`
           *,
-          events:event_id (name, subject, difficulty),
           influencers:influencer_id (name, email)
         `)
         .eq('id', classId)
         .eq('instructor_id', user.id)
         .single()
+
+      // Load events associated with this class
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('id, name, subject, difficulty, code')
+        .eq('class_id', classId)
+
+      if (eventsError) {
+        console.warn('Error loading events for class:', eventsError)
+      }
 
       if (classError) {
         throw new Error('Erro ao carregar dados da turma')
@@ -63,9 +72,10 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
         .from('match_results')
         .select(`
           *,
-          players:player_id (name, email, purpose)
+          players:player_id (name, email, purpose),
+          events!inner(class_id)
         `)
-        .eq('class_id', classId)
+        .eq('events.class_id', classId)
 
       if (matchResultsError) {
         throw new Error('Erro ao carregar resultados das partidas')
@@ -104,7 +114,7 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
 
       setClassData({
         ...classData,
-        event: Array.isArray(classData.events) ? classData.events[0] : classData.events,
+        events: eventsData || [],
         influencer: Array.isArray(classData.influencers) ? classData.influencers[0] : classData.influencers,
         instructor: {
           name: (user as any)?.user_metadata?.name || user.email || 'Instrutor',

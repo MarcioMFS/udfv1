@@ -137,8 +137,8 @@ export function ReportsPage() {
         const classEngagements = await Promise.all(
           classIds.map(async classId => {
             const { data: classMatchResults } = await supabase
-              .from('match_results').select('match_number, player_id')
-              .eq('class_id', classId)
+              .from('match_results').select('match_number, player_id, events!inner(class_id)')
+              .eq('events.class_id', classId)
               .gte('created_at', startDate.toISOString())
               .lte('created_at', endDate.toISOString())
 
@@ -190,14 +190,23 @@ export function ReportsPage() {
     try {
       const classIds = classes.map(c => c.id)
 
-      const { data: classesWithEvents } = await supabase
+      // Get classes data
+      const { data: classesData } = await supabase
         .from('classes')
-        .select(`
-          id,
-          code,
-          events:event_id (subject)
-        `)
+        .select('id, code')
         .in('id', classIds)
+
+      // Get events for these classes
+      const { data: eventsData } = await supabase
+        .from('events')
+        .select('class_id, subject')
+        .in('class_id', classIds)
+
+      // Combine class and event data
+      const classesWithEvents = (classesData || []).map(cls => ({
+        ...cls,
+        events: eventsData?.find(evt => evt.class_id === cls.id)
+      }))
 
       if (!classesWithEvents) return
 
@@ -205,8 +214,8 @@ export function ReportsPage() {
         classesWithEvents.map(async (classItem) => {
           const { data: results } = await supabase
             .from('match_results')
-            .select('lucro, satisfacao, bonus')
-            .eq('class_id', classItem.id)
+            .select('lucro, satisfacao, bonus, events!inner(class_id)')
+            .eq('events.class_id', classItem.id)
 
           const { count: matchesCount } = await supabase
             .from('matches')
@@ -327,8 +336,8 @@ export function ReportsPage() {
 
           const { data: matchResults } = await supabase
             .from('match_results')
-            .select('match_number, player_id')
-            .eq('class_id', classId)
+            .select('match_number, player_id, events!inner(class_id)')
+            .eq('events.class_id', classId)
             .gte('created_at', startDate.toISOString())
             .lte('created_at', endDate.toISOString())
 

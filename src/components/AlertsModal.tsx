@@ -105,8 +105,8 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
           .in('class_id', classIds),
         supabase
           .from('match_results')
-          .select('*')
-          .in('class_id', classIds),
+          .select('*, events!inner(class_id)')
+          .in('events.class_id', classIds),
         supabase
           .from('teams')
           .select('*')
@@ -226,7 +226,7 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold text-gray-800">
-            Notificações ({totalItems})
+            Notificações
           </h2>
           <button
             onClick={onClose}

@@ -57,14 +57,27 @@ export function ClassesPage() {
 
     setIsLoading(true)
     try {
+      // Primeiro buscar o instrutor baseado no email do usuário autenticado
+      const { data: instructorData, error: instructorError } = await supabase
+        .from('instructors')
+        .select('id')
+        .eq('email', user.email)
+        .single()
+
+      if (instructorError || !instructorData) {
+        console.error('Instrutor não encontrado:', instructorError)
+        setIsLoading(false)
+        return
+      }
+
+      // Agora buscar as turmas usando o ID do instrutor
       const { data, error } = await supabase
         .from('classes')
         .select(`
           *,
-          events:event_id (name, subject, difficulty, time_limit, max_players),
           influencers:influencer_id (name)
         `)
-        .eq('instructor_id', user.id)
+        .eq('instructor_id', instructorData.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -80,10 +93,18 @@ export function ClassesPage() {
             .select('*', { count: 'exact', head: true })
             .eq('class_id', classItem.id)
 
+          // Load events for this class
+          const { data: eventsData } = await supabase
+            .from('events')
+            .select('name, subject, difficulty, time_limit, max_players')
+            .eq('class_id', classItem.id)
+            .limit(1)
+            .single()
+
           return {
             ...classItem,
             studentsCount: count || 0,
-            event: Array.isArray(classItem.events) ? classItem.events[0] : classItem.events,
+            event: eventsData,
             influencer: Array.isArray(classItem.influencers) ? classItem.influencers[0] : classItem.influencers
           }
         })

@@ -114,9 +114,9 @@ export function MatchResultsChart({ selectedPeriod }: MatchResultsChartProps) {
         .select(`
           *,
           players:player_id (name, email),
-          classes:class_id (code, description)
+          events!inner(class_id, classes(code, description))
         `)
-        .in('class_id', classIds)
+        .in('events.class_id', classIds)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .order('created_at', { ascending: false })
@@ -129,7 +129,7 @@ export function MatchResultsChart({ selectedPeriod }: MatchResultsChartProps) {
       const formattedResults = (results || []).map(result => ({
         ...result,
         player: Array.isArray(result.players) ? result.players[0] : result.players,
-        class: Array.isArray(result.classes) ? result.classes[0] : result.classes
+        class: result.events?.classes || null
       }))
 
       setMatchResults(formattedResults)

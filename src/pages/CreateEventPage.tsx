@@ -1,7 +1,7 @@
 // src/pages/CreateEventPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Save, Calendar, Users, Clock, BookOpen } from 'lucide-react'
+import { ArrowLeft, Save, Calendar, BookOpen } from 'lucide-react'
 import { CreateEventModal } from '../components/modal/CreateEventModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -15,6 +15,7 @@ interface EventFormData {
   time_limit: number
   max_players: number
   instructions: string
+  class_id: string
 }
 
 export function CreateEventPage() {
@@ -27,6 +28,7 @@ export function CreateEventPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [eventCode, setEventCode] = useState('')
+  const [classes, setClasses] = useState<Array<{id: string, code: string, description: string | null}>>([])
   const [formData, setFormData] = useState<EventFormData>({
     name: '',
     description: '',
@@ -34,14 +36,32 @@ export function CreateEventPage() {
     difficulty: 'medium',
     time_limit: 30,
     max_players: 50,
-    instructions: ''
+    instructions: '',
+    class_id: ''
   })
 
   useEffect(() => {
+    loadClasses()
     if (isEditing && editId) {
       loadEventForEdit(editId)
     }
   }, [isEditing, editId])
+
+  const loadClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, code, description')
+        .eq('instructor_id', user?.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setClasses(data || [])
+    } catch (error) {
+      console.error('Error loading classes:', error)
+      toast.error('Erro ao carregar turmas')
+    }
+  }
 
   const loadEventForEdit = async (eventId: string) => {
     try {
@@ -66,7 +86,8 @@ export function CreateEventPage() {
         difficulty: eventData.difficulty || 'medium',
         time_limit: eventData.time_limit || 30,
         max_players: eventData.max_players || 50,
-        instructions: eventData.instructions || ''
+        instructions: eventData.instructions || '',
+        class_id: eventData.class_id || ''
       })
     } catch (error) {
       console.error('Error loading event for edit:', error)
@@ -76,12 +97,9 @@ export function CreateEventPage() {
   }
 
   const generateEventCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let result = ''
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return result
+    // Generate a UUID and take first 8 characters (similar to C# Guid.NewGuid().ToString().Substring(0, 8))
+    const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
+    return uuid.substring(0, 8)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,6 +120,7 @@ export function CreateEventPage() {
             time_limit: formData.time_limit,
             max_players: formData.max_players,
             instructions: formData.instructions,
+            class_id: formData.class_id || null,
             updated_at: new Date().toISOString()
           })
           .eq('id', editId)
@@ -125,7 +144,8 @@ export function CreateEventPage() {
             time_limit: formData.time_limit,
             max_players: formData.max_players,
             instructions: formData.instructions,
-            instructor_id: user.id
+            instructor_id: user.id,
+            class_id: formData.class_id || null
           })
 
         if (error) throw error
@@ -178,8 +198,6 @@ export function CreateEventPage() {
                 <BookOpen className="w-5 h-5" />
                 Informações Básicas
               </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nome do Evento *
@@ -189,23 +207,29 @@ export function CreateEventPage() {
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Matemática Básica - 6º Ano"
+                    placeholder="Evento do Jogo"
                     required
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Matéria
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.subject}
-                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Matemática, Português, História"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Turma (Opcional)
+                </label>
+                <select
+                  value={formData.class_id}
+                  onChange={(e) => handleInputChange('class_id', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Selecione uma turma (opcional)</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.code} {cls.description ? `- ${cls.description}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Se selecionada, este evento ficará associado à turma escolhida
+                </p>
               </div>
 
               <div>
@@ -222,61 +246,12 @@ export function CreateEventPage() {
               </div>
             </div>
 
-            {/* Configurações */}
+            {/* Adicionais */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Configurações
+                Adicionais
               </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dificuldade
-                  </label>
-                  <select
-                    value={formData.difficulty}
-                    onChange={(e) =>
-                      handleInputChange('difficulty', e.target.value as 'easy' | 'medium' | 'hard')
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="easy">Fácil</option>
-                    <option value="medium">Médio</option>
-                    <option value="hard">Difícil</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    Tempo Limite (min)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.time_limit}
-                    onChange={(e) => handleInputChange('time_limit', parseInt(e.target.value))}
-                    min="5"
-                    max="120"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    Máx. Jogadores
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.max_players}
-                    onChange={(e) => handleInputChange('max_players', parseInt(e.target.value))}
-                    min="1"
-                    max="200"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
             </div>
 
             {/* Instruções */}

@@ -21,6 +21,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
+import { Class } from '../../types'
 
 interface Student {
   id: string
@@ -55,33 +56,6 @@ interface Team {
   members: Student[]
 }
 
-interface Class {
-  id: string
-  code: string
-  description: string | null
-  instructor_id: string | null
-  influencer_id: string | null
-  event_id: string | null
-  start_date: string | null
-  end_date: string | null
-  created_at: string
-  updated_at: string
-  event_type: 'training' | 'course'
-  schedule: Array<{ 'initial-time': string; 'end-time': string }> | null
-  event?: {
-    name: string
-    subject: string
-    expected_matches?: number
-  }
-  influencer?: {
-    name: string
-    email: string
-  }
-  instructor?: {
-    name: string
-    email: string
-  }
-}
 
 interface DetailedReportProps {
   classData: Class
@@ -332,7 +306,7 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
       avgMatchesPerPlayer: uniquePlayers > 0 ? Math.round(totalMatchesPlayed / uniquePlayers) : 0,
       classEngagement,
     }
-  }, [processedStudents, matchResults, students, teams, classData.event?.expected_matches])
+  }, [processedStudents, matchResults, students, teams, classData.events?.[0]])
 
   const paginatedPerformanceStudents = useMemo(() => {
     const startIndex = (performanceCurrentPage - 1) * performanceItemsPerPage
@@ -345,7 +319,7 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
   const exportReport = () => {
     const summarySection = `Relatório Detalhado da Turma: ${classData.code}
 Descrição: ${classData.description || 'N/A'}
-Evento: ${classData.event?.name || 'N/A'} (${classData.event?.subject || 'N/A'})
+Evento: ${classData.events?.[0]?.name || 'N/A'} (${classData.events?.[0]?.subject || 'N/A'})
 Status: ${getStatusLabel(classData.start_date, classData.end_date)}
 Data de Início: ${classData.start_date ? format(new Date(classData.start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
 Data de Fim: ${classData.end_date ? format(new Date(classData.end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
@@ -469,7 +443,7 @@ Engajamento da Turma: ${classStats.classEngagement}%
               <h4 className="font-semibold text-gray-700">Detalhes da Turma</h4>
               <p className="text-sm text-gray-600"><strong>Código da Turma:</strong> {classData.code}</p>
               <p className="text-sm text-gray-600"><strong>Descrição:</strong> {classData.description || 'N/A'}</p>
-              <p className="text-sm text-gray-600"><strong>Evento:</strong> {classData.event?.name || 'N/A'} ({classData.event?.subject || 'N/A'})</p>
+              <p className="text-sm text-gray-600"><strong>Evento:</strong> {classData.events?.[0]?.name || 'N/A'} ({classData.events?.[0]?.subject || 'N/A'})</p>
               <p className="text-sm text-gray-600"><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(classData.start_date, classData.end_date)}`}>{getStatusLabel(classData.start_date, classData.end_date)}</span></p>
               <p className="text-sm text-gray-600"><strong>Data de Início:</strong> {classData.start_date ? format(new Date(classData.start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
               <p className="text-sm text-gray-600"><strong>Data de Fim:</strong> {classData.end_date ? format(new Date(classData.end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>

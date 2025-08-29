@@ -1,7 +1,7 @@
 // src/pages/MyEventsPage.tsx
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, Calendar, Users, Activity, Edit, Trash2 } from 'lucide-react'
+import { Plus, Search, Calendar, Users, Edit, Trash2, BarChart3 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
@@ -32,7 +32,6 @@ export function MyEventsPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [difficultyFilter, setDifficultyFilter] = useState<string>('all')
   const [isLoading, setIsLoading] = useState(true)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null)
@@ -60,12 +59,9 @@ export function MyEventsPage() {
       )
     }
 
-    if (difficultyFilter !== 'all') {
-      filtered = filtered.filter(event => event.difficulty === difficultyFilter)
-    }
 
     setFilteredEvents(filtered)
-  }, [events, searchTerm, difficultyFilter])
+  }, [events, searchTerm])
 
   const loadEvents = async () => {
     if (!user) {
@@ -92,14 +88,15 @@ export function MyEventsPage() {
 
       const eventsWithCounts = await Promise.all(
         (data || []).map(async (event) => {
-          const { count } = await supabase
-            .from('classes')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id)
+          // Count classes associated with this event
+          let classCount = 0
+          if (event.class_id) {
+            classCount = 1 // If event has a class_id, it's associated with 1 class
+          }
 
           return {
             ...event,
-            classesCount: count || 0
+            classesCount: classCount
           }
         })
       )
@@ -142,28 +139,11 @@ export function MyEventsPage() {
     }
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'hard': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getDifficultyLabel = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'Fácil'
-      case 'medium': return 'Médio'
-      case 'hard': return 'Difícil'
-      default: return difficulty
-    }
-  }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Meus Eventos</h1>
           <p className="text-gray-600 mt-1">
@@ -197,20 +177,6 @@ export function MyEventsPage() {
             </div>
           </div>
 
-          {/* Difficulty Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <select
-              value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todas as Dificuldades</option>
-              <option value="easy">Fácil</option>
-              <option value="medium">Médio</option>
-              <option value="hard">Difícil</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -226,15 +192,15 @@ export function MyEventsPage() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-800 mb-2">
-            {searchTerm || difficultyFilter !== 'all' ? 'Nenhum evento encontrado' : 'Nenhum evento criado'}
+            {searchTerm ? 'Nenhum evento encontrado' : 'Nenhum evento criado'}
           </h3>
           <p className="text-gray-600 mb-6">
-            {searchTerm || difficultyFilter !== 'all' 
+            {searchTerm 
               ? 'Tente ajustar os filtros de busca.' 
               : 'Comece criando seu primeiro evento educacional.'
             }
           </p>
-          {!searchTerm && difficultyFilter === 'all' && (
+          {!searchTerm && (
             <Link
               to="/events/create"
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -249,50 +215,29 @@ export function MyEventsPage() {
           {filteredEvents.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               {/* Card Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-2 break-words">
                     {event.name}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-2">{event.subject}</p>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(event.difficulty)}`}>
-                      {getDifficultyLabel(event.difficulty)}
-                    </span>
-                  </div>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-1 break-words">{event.subject}</p>
                 </div>
               </div>
 
               {/* Event Code */}
               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                 <p className="text-xs text-gray-600 mb-1">Código do Evento</p>
-                <p className="text-lg font-bold text-gray-800 tracking-wider">{event.code}</p>
+                <p className="text-lg font-bold text-gray-800 tracking-wider break-all">{event.code}</p>
               </div>
 
               {/* Statistics */}
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 gap-2 sm:gap-4 mb-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <Users className="w-4 h-4 text-blue-600" />
-                    <span className="text-lg font-bold text-gray-800">{event.classesCount}</span>
+                    <span className="text-sm sm:text-lg font-bold text-gray-800">{event.classesCount}</span>
                   </div>
-                  <p className="text-xs text-gray-600">Turmas</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Activity className="w-4 h-4 text-green-600" />
-                    <span className="text-lg font-bold text-gray-800">{event.max_players}</span>
-                  </div>
-                  <p className="text-xs text-gray-600">Máx. Players</p>
-                </div>
-
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Calendar className="w-4 h-4 text-purple-600" />
-                    <span className="text-lg font-bold text-gray-800">{event.time_limit}</span>
-                  </div>
-                  <p className="text-xs text-gray-600">Min. Limite</p>
+                  <p className="text-xs text-gray-600 line-clamp-2">Turmas Vinculadas</p>
                 </div>
               </div>
 
@@ -302,20 +247,27 @@ export function MyEventsPage() {
               </p>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => handleDeleteEvent(event)}
-                  className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Excluir
+                  <span className="hidden sm:inline">Excluir</span>
                 </button>
                 <Link
+                  to={`/events/${event.id}`}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 flex-1"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Ver Dados</span>
+                </Link>
+                <Link
                   to={`/events/create?edit=${event.id}`}
-                  className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Edit className="w-4 h-4" />
-                  Editar
+                  <span className="hidden sm:inline">Editar</span>
                 </Link>
               </div>
             </div>
