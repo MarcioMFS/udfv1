@@ -256,12 +256,14 @@ serve(async (req)=>{
     const { lucro, satisfacao, bonus } = deserializeAppSerial(matchEntry.app_serial);
     // 4. Salva os resultados calculados
     const { data: matchResultData, error: matchResultError } = await supabaseClient.from('match_results').upsert({
+      id: crypto.randomUUID(),
       player_id: playerData.id,
       event_id: eventData.id,
       match_number: matchNumber,
       lucro: lucro,
       satisfacao: satisfacao,
       bonus: bonus,
+      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }, {
       onConflict: 'player_id,event_id,match_number'

@@ -334,12 +334,14 @@ serve(async (req)=>{
       const { data: matchResultData, error: matchResultError } = await supabase
         .from('match_results')
         .insert({
+          id: crypto.randomUUID(),
           player_id: player.id,
           event_id: eventData.id,
           match_number: matchNumber,
           lucro: lucro,
           satisfacao: satisfacao,
           bonus: bonus,
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .select().single();

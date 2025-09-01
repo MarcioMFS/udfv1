@@ -60,10 +60,8 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
     
     setIsLoading(true)
     try {
-      // Buscar turmas do instrutor (ou apenas uma específica)
       let classes
       if (classId) {
-        // Modal sendo usado para uma turma específica
         const { data } = await supabase
           .from('classes')
           .select('id')
@@ -92,7 +90,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
       let totalEngagementSum = 0
       let classesWithData = 0
 
-      // Buscar todos os dados de uma vez para eliminar N+1 queries
       const classIds = classes.map(c => c.id)
       
       const [playersResponse, matchResultsResponse, teamsResponse] = await Promise.all([
@@ -113,7 +110,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
           .in('class_id', classIds)
       ])
 
-      // Agrupar dados por turma
       const playersDataByClass = new Map()
       const matchResultsDataByClass = new Map()
       const teamsDataByClass = new Map()
@@ -126,10 +122,13 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
       })
 
       matchResultsResponse.data?.forEach(result => {
-        if (!matchResultsDataByClass.has(result.class_id)) {
-          matchResultsDataByClass.set(result.class_id, [])
+        const classId = result.events?.class_id
+        if (classId) {
+          if (!matchResultsDataByClass.has(classId)) {
+            matchResultsDataByClass.set(classId, [])
+          }
+          matchResultsDataByClass.get(classId).push(result)
         }
-        matchResultsDataByClass.get(result.class_id).push(result)
       })
 
       teamsResponse.data?.forEach(team => {
@@ -139,7 +138,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
         teamsDataByClass.get(team.class_id).push(team)
       })
 
-      // Processar cada turma com os dados já carregados
       for (const classItem of classes) {
         const currentClassId = classItem.id
         const playersData = playersDataByClass.get(currentClassId) || []
@@ -152,25 +150,20 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
 
         classesWithData++
         
-        // Transformar dados para o formato esperado pela função de cálculo
         const students = playersData.map((p: any) => p.players).filter(Boolean)
         const matchResults = matchResultsData
         
-        // Populate team members manually like ClassDetailsPage does
         const teams = teamsData.map((team: any) => ({
           ...team,
           members: students.filter((student: any) => student.team_id === team.id)
         }))
 
-        // Usar a função compartilhada para calcular alertas
         const alerts = calculateStudentAlerts(students, matchResults, teams)
         
-        // Agregar resultados
         allCriticalStudents.push(...alerts.criticalStudents)
         allLowPerformanceStudents.push(...alerts.lowPerformanceStudents)
         allInactiveStudents.push(...alerts.inactiveStudents)
 
-        // Encontrar melhor performer (baseado no maior score combinado)
         alerts.criticalStudents.concat(alerts.lowPerformanceStudents).forEach(student => {
           if (student.value > bestPerformerScore) {
             bestPerformer = student.name
@@ -178,7 +171,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
           }
         })
         
-        // Calcular engajamento desta turma
         const classPlayers = students.length
         const classParticipations = matchResults.length
         const uniqueMatchNumbers = [...new Set(matchResults.map((r: any) => r.match_number))]
@@ -190,7 +182,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
         }
       }
 
-      // Calcular engajamento médio entre todas as turmas
       const avgEngagementRate = classesWithData > 0 ? Math.round(totalEngagementSum / classesWithData) : 0
       
       setAlertData({
@@ -212,10 +203,8 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
   }
 
 
-  // Contagem total de alertas (todos são problemas que precisam atenção)
   const totalAlerts = alertData.criticalCount + alertData.lowPerformanceCount + alertData.inactiveCount
   
-  // Adicionar alerta de engajamento baixo se necessário
   const hasLowEngagement = alertData.engagementRate < 70
   const totalItems = totalAlerts + (hasLowEngagement ? 1 : 0)
 
@@ -243,7 +232,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
             </div>
           ) : (
             <>
-              {/* Melhor Performer */}
               {alertData.bestPerformer && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center mb-2">
@@ -256,7 +244,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
                 </div>
               )}
 
-              {/* Engajamento Baixo */}
               {hasLowEngagement && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <div className="flex items-center mb-2">
@@ -270,7 +257,6 @@ export function AlertsModal({ isOpen, onClose, classId }: AlertsModalProps) {
                 </div>
               )}
 
-              {/* Alertas críticos e de baixo desempenho com lista de estudantes */}
               {alertData.criticalCount > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <div className="flex items-center mb-2">

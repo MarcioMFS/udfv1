@@ -11,7 +11,8 @@ const tabs = [
   { id: 'ranking' as TabType, label: 'Ranking' },
   { id: 'indicators' as TabType, label: 'Indicadores' },
   { id: 'growth' as TabType, label: 'Crescimento' },
-  { id: 'detailed-report' as TabType, label: 'Relatório Detalhado' }
+  { id: 'detailed-report' as TabType, label: 'Relatório Detalhado' },
+  { id: 'instructors' as TabType, label: 'Instrutores' }
 ]
 
 export function ClassDetailsNavigation({ activeTab, onTabChange }: ClassDetailsNavigationProps) {

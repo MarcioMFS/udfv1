@@ -71,11 +71,19 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
       const { data: matchResultsData, error: matchResultsError } = await supabase
         .from('match_results')
         .select(`
-          *,
+          player_id,
+          event_id,
+          match_number,
+          lucro,
+          satisfacao,
+          bonus,
+          created_at,
           players:player_id (name, email, purpose),
           events!inner(class_id)
         `)
         .eq('events.class_id', classId)
+        .not('player_id', 'is', null)
+
 
       if (matchResultsError) {
         throw new Error('Erro ao carregar resultados das partidas')

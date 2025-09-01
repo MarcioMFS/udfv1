@@ -2,6 +2,7 @@
 import { Trophy, Medal, Crown, User, TrendingUp, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { CustomTooltip } from '../ui/CustomTooltip'
 
 interface EventPlayer {
   id: string
@@ -13,6 +14,8 @@ interface EventPlayer {
   avg_bonus: number
   total_profit: number
   last_match: string
+  class_code: string
+  class_description: string
 }
 
 interface EventPlayerRankingProps {
@@ -82,54 +85,64 @@ export function EventPlayerRanking({ players }: EventPlayerRankingProps) {
                   key={player.id} 
                   className={`rounded-lg border p-4 transition-all hover:shadow-md ${getRankColor(position)}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-10 h-10">
-                        {getRankIcon(position)}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{player.name}</h3>
-                        <p className="text-sm text-gray-600">{player.email}</p>
-                        
-                        <div className="flex items-center gap-4 mt-2">
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <DollarSign className="w-3 h-3" />
-                            {formatCurrency(player.total_profit)}
-                          </div>
-                          
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <TrendingUp className="w-3 h-3" />
-                            {player.avg_satisfaction}% satisfação
-                          </div>
-                        </div>
+                  <div className="flex items-start gap-3">
+                    {/* Rank Icon */}
+                    <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
+                      {getRankIcon(position)}
+                    </div>
+                    
+                    {/* Player Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-2">
+                        <CustomTooltip content={player.name}>
+                          <h3 className="font-semibold text-gray-800 truncate cursor-help">{player.name}</h3>
+                        </CustomTooltip>
+                        <CustomTooltip content={player.email}>
+                          <p className="text-sm text-gray-600 truncate cursor-help">{player.email}</p>
+                        </CustomTooltip>
+                        <CustomTooltip content={`Turma: ${player.class_code} - ${player.class_description || 'Sem descrição'}`}>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1 cursor-help">
+                            {player.class_code}
+                          </span>
+                        </CustomTooltip>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-gray-800">
-                        R$ {player.avg_lucro}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {player.total_matches} partidas
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Última: {format(new Date(player.last_match), 'dd/MM/yyyy', { locale: ptBR })}
-                      </div>
+                    {/* Stats Column */}
+                    <div className="text-right flex-shrink-0 min-w-[120px]">
+                      <CustomTooltip content={`Lucro total: ${formatCurrency(player.total_profit)}`}>
+                        <div className="text-base font-bold text-gray-800 break-words cursor-help">
+                          {formatCurrency(player.total_profit)}
+                        </div>
+                      </CustomTooltip>
+                      <CustomTooltip content={`Total de ${player.total_matches} partidas jogadas`}>
+                        <div className="text-sm text-gray-600 whitespace-nowrap cursor-help">
+                          {player.total_matches} partidas
+                        </div>
+                      </CustomTooltip>
+                      <CustomTooltip content={`Última partida: ${format(new Date(player.last_match), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`}>
+                        <div className="text-xs text-gray-500 whitespace-nowrap cursor-help">
+                          {format(new Date(player.last_match), 'dd/MM/yy', { locale: ptBR })}
+                        </div>
+                      </CustomTooltip>
                     </div>
                   </div>
 
-                  {/* Progress bar for satisfaction */}
-                  <div className="mt-3">
-                    <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
-                      <span>Satisfação</span>
-                      <span>{player.avg_satisfaction}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(player.avg_satisfaction, 100)}%` }}
-                      ></div>
+                  {/* Stats Footer */}
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm">
+                      <CustomTooltip content={`Satisfação média: ${player.avg_satisfaction}%`}>
+                        <div className="flex items-center gap-1 text-gray-600 cursor-help">
+                          <TrendingUp className="w-3 h-3" />
+                          {player.avg_satisfaction}% satisfação
+                        </div>
+                      </CustomTooltip>
+                      <CustomTooltip content={`Lucro médio por partida: ${formatCurrency(player.avg_lucro)}`}>
+                        <div className="flex items-center gap-1 text-gray-600 cursor-help">
+                          <DollarSign className="w-3 h-3" />
+                          Média: {formatCurrency(player.avg_lucro)}
+                        </div>
+                      </CustomTooltip>
                     </div>
                   </div>
                 </div>

@@ -16,6 +16,11 @@ interface EventFormData {
   max_players: number
   instructions: string
   class_id: string
+  event_type: 'training' | 'group'
+  schedule: Array<{
+    'initial-time': string
+    'end-time': string
+  }>
 }
 
 export function CreateEventPage() {
@@ -37,7 +42,9 @@ export function CreateEventPage() {
     time_limit: 30,
     max_players: 50,
     instructions: '',
-    class_id: ''
+    class_id: '',
+    event_type: 'training',
+    schedule: []
   })
 
   useEffect(() => {
@@ -46,6 +53,16 @@ export function CreateEventPage() {
       loadEventForEdit(editId)
     }
   }, [isEditing, editId])
+
+  // Ensure schedule is always an array
+  useEffect(() => {
+    if (!Array.isArray(formData.schedule)) {
+      setFormData(prev => ({
+        ...prev,
+        schedule: []
+      }))
+    }
+  }, [formData.schedule])
 
   const loadClasses = async () => {
     try {
@@ -87,7 +104,9 @@ export function CreateEventPage() {
         time_limit: eventData.time_limit || 30,
         max_players: eventData.max_players || 50,
         instructions: eventData.instructions || '',
-        class_id: eventData.class_id || ''
+        class_id: eventData.class_id || '',
+        event_type: eventData.event_type || 'training',
+        schedule: eventData.schedule || []
       })
     } catch (error) {
       console.error('Error loading event for edit:', error)
@@ -106,6 +125,12 @@ export function CreateEventPage() {
     e.preventDefault()
     if (!user) return
 
+    // Validação obrigatória da turma
+    if (!formData.class_id) {
+      toast.error('Por favor, selecione uma turma para o evento')
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -120,7 +145,9 @@ export function CreateEventPage() {
             time_limit: formData.time_limit,
             max_players: formData.max_players,
             instructions: formData.instructions,
-            class_id: formData.class_id || null,
+            class_id: formData.class_id,
+            event_type: formData.event_type,
+            schedule: formData.schedule,
             updated_at: new Date().toISOString()
           })
           .eq('id', editId)
@@ -145,7 +172,9 @@ export function CreateEventPage() {
             max_players: formData.max_players,
             instructions: formData.instructions,
             instructor_id: user.id,
-            class_id: formData.class_id || null
+            class_id: formData.class_id,
+            event_type: formData.event_type,
+            schedule: formData.schedule
           })
 
         if (error) throw error
@@ -161,7 +190,7 @@ export function CreateEventPage() {
     }
   }
 
-  const handleInputChange = (field: keyof EventFormData, value: string | number) => {
+  const handleInputChange = (field: keyof EventFormData, value: string | number | Array<any>) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -213,14 +242,15 @@ export function CreateEventPage() {
                 </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Turma (Opcional)
+                  Turma *
                 </label>
                 <select
                   value={formData.class_id}
                   onChange={(e) => handleInputChange('class_id', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
                 >
-                  <option value="">Selecione uma turma (opcional)</option>
+                  <option value="">Selecione uma turma</option>
                   {classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
                       {cls.code} {cls.description ? `- ${cls.description}` : ''}
@@ -228,7 +258,7 @@ export function CreateEventPage() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Se selecionada, este evento ficará associado à turma escolhida
+                  Este evento será aplicado à turma selecionada
                 </p>
               </div>
 
@@ -246,12 +276,94 @@ export function CreateEventPage() {
               </div>
             </div>
 
-            {/* Adicionais */}
+            {/* Configurações do Evento */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Adicionais
+                Configurações do Evento
               </h2>
+              
+              {/* Event Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo do Evento *
+                </label>
+                <select
+                  value={formData.event_type}
+                  onChange={(e) => handleInputChange('event_type', e.target.value as 'training' | 'group')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="training">Training (Individual)</option>
+                  <option value="group">Group (Em Equipe)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Training: Jogadores individuais | Group: Jogadores organizados em equipes
+                </p>
+              </div>
+
+              {/* Schedule */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cronograma (Opcional)
+                </label>
+                <div className="space-y-2">
+                  {Array.isArray(formData.schedule) ? formData.schedule.map((meeting, index) => (
+                    <div key={index} className="flex gap-2 items-center p-3 border border-gray-200 rounded-lg">
+                      <div className="flex-1">
+                        <input
+                          type="datetime-local"
+                          value={meeting['initial-time']}
+                          onChange={(e) => {
+                            const newSchedule = [...(formData.schedule || [])]
+                            newSchedule[index]['initial-time'] = e.target.value
+                            handleInputChange('schedule', newSchedule)
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          placeholder="Data/hora inicial"
+                        />
+                      </div>
+                      <span className="text-gray-400">até</span>
+                      <div className="flex-1">
+                        <input
+                          type="datetime-local"
+                          value={meeting['end-time']}
+                          onChange={(e) => {
+                            const newSchedule = [...(formData.schedule || [])]
+                            newSchedule[index]['end-time'] = e.target.value
+                            handleInputChange('schedule', newSchedule)
+                          }}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          placeholder="Data/hora final"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSchedule = (formData.schedule || []).filter((_, i) => i !== index)
+                          handleInputChange('schedule', newSchedule)
+                        }}
+                        className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-sm"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  )) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSchedule = [...(formData.schedule || []), { 'initial-time': '', 'end-time': '' }]
+                      handleInputChange('schedule', newSchedule)
+                    }}
+                    className="px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors text-sm"
+                  >
+                    + Adicionar Horário
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Defina os horários programados para este evento (opcional)
+                </p>
+              </div>
             </div>
 
             {/* Instruções */}

@@ -17,53 +17,10 @@ serve(async (req)=>{
     if (!nome || !email || !idUdf || !codigoTurma) {
       throw new Error('Campos obrigatórios ausentes: nome, email, udf-id, class-code');
     }
-    // Buscar turma e verificar tipo
-    const { data: turmaData, error: turmaError } = await supabaseClient.from('classes').select('id, event_type').eq('code', codigoTurma).single();
+    // Buscar turma
+    const { data: turmaData, error: turmaError } = await supabaseClient.from('classes').select('id').eq('code', codigoTurma).single();
     if (turmaError || !turmaData) {
       throw new Error(`Turma com código ${codigoTurma} não encontrada: ${turmaError?.message}`);
-    }
-    const isTraining = turmaData.event_type === 'training';
-    let authUserId = null;
-    if (isTraining) {
-      // Verificar se usuário já existe no Auth
-      const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(user => user.email === email);
-      
-      if (existingUser) {
-        // Usuário já existe, usar o ID existente
-        authUserId = existingUser.id;
-        console.log('Usuário já existe no Auth, reutilizando ID:', authUserId);
-      } else {
-        // Criar novo usuário
-        const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
-          email,
-          user_metadata: {
-            name: nome,
-            role: 'instructor'
-          },
-          email_confirm: true
-        });
-        if (authError) {
-          console.error('Erro ao criar usuário no Auth:', authError);
-          throw new Error(`Erro ao criar usuário no Auth: ${authError.message}`);
-        }
-        authUserId = authData.user.id;
-        console.log('Novo usuário criado no Auth:', authUserId);
-      }
-      const { data: instructorData, error: instructorError } = await supabaseClient.from('instructors').upsert({
-        id: authUserId,
-        name: nome,
-        email,
-        udf_id: idUdf,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'udf_id'
-      }).select();
-      if (instructorError) {
-        console.error('Erro ao criar/atualizar instructor:', instructorError);
-        throw new Error(`Erro ao criar/atualizar instructor: ${instructorError.message}`);
-      }
     }
     const { data: playerData, error: playerError } = await supabaseClient.from('players').upsert({
       udf_id: idUdf,
@@ -101,13 +58,7 @@ serve(async (req)=>{
       success: true,
       player: playerRow,
       classPlayer: classPlayerRow,
-      ...isTraining ? {
-        instructor: {
-          id: authUserId,
-          email
-        }
-      } : {},
-      message: isTraining ? 'Instrutor e player criados e vinculados à turma com sucesso' : 'Player vinculado à turma com sucesso'
+      message: 'Player vinculado à turma com sucesso'
     }), {
       headers: {
         ...corsHeaders,

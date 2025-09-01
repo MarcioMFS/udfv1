@@ -51,6 +51,11 @@ export interface Event {
   end_date: string | null
   instructor_id: string | null
   class_id: string | null
+  event_type: 'training' | 'group'
+  schedule: Array<{
+    'initial-time': string
+    'end-time': string
+  }>
   created_at: string
   updated_at: string
 }
@@ -77,7 +82,8 @@ export interface Team {
 
 export interface MatchResult {
   player_id: string
-  class_id: string
+  class_id?: string
+  event_id?: string
   match_number: number
   lucro: number | null
   satisfacao: number | null
@@ -171,4 +177,4 @@ export interface BaseComponentProps extends LoadingState, ErrorState {
   className?: string
 }
 
-export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report'
+export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report' | 'instructors'

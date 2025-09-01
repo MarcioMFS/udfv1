@@ -85,24 +85,22 @@ export function EventStatsCards({ stats }: EventStatsCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
       {statCards.map((card, index) => (
-        <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 group relative">
+        <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative">
+          <div className="absolute top-4 right-4 group">
+            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max max-w-[200px] sm:max-w-xs px-3 py-1.5 text-xs sm:text-sm font-medium text-white bg-gray-800 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50">
+              {card.tooltip}
+            </div>
+          </div>
+          
           <div className="flex items-center gap-3 mb-2">
             <div className={`w-10 h-10 ${card.bgColor} rounded-lg flex items-center justify-center`}>
               <card.icon className={`w-5 h-5 ${card.textColor}`} />
-            </div>
-            <div className="ml-auto">
-              <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
             </div>
           </div>
           <div>
             <p className="text-xl lg:text-2xl font-bold text-gray-800 mb-1 break-words">{card.value}</p>
             <p className="text-xs lg:text-sm text-gray-600 line-clamp-2">{card.label}</p>
-          </div>
-          
-          {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 w-64 text-center">
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
-            {card.tooltip}
           </div>
         </div>
       ))}

@@ -4,6 +4,8 @@ import { ClassInfoCard } from './ClassInfoCard'
 import { ClassRankingChart } from './ClassRankingChart'
 import { ClassStudentsList } from './ClassStudentsList'
 import { ClassIndicators } from './ClassIndicators'
+import { ClassInstructors } from './ClassInstructors'
+import { ClassEventsCalendar } from './ClassEventsCalendar'
 import StudentGrowth from './ClassGrowthChart'
 import { EmptyState } from '../ui'
 
@@ -62,6 +64,7 @@ export function ClassDetailsContent({
         return (
           <>
             <ClassOverview studentIndicators={studentIndicators} stats={classStats} />
+            <ClassEventsCalendar classId={classData.id} />
             <ClassInfoCard
               classData={classData}
               getEventTypeLabel={(eventType: string) => getEventTypeLabel(eventType as EventType)}
@@ -114,6 +117,11 @@ export function ClassDetailsContent({
             matchResults={matchResults}
             teams={teams}
           />
+        )
+
+      case 'instructors':
+        return (
+          <ClassInstructors classId={classData.id} />
         )
 
       default:

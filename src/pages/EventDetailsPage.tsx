@@ -1,24 +1,33 @@
 // src/pages/EventDetailsPage.tsx
 import { useParams, Link } from 'react-router-dom'
+import { useState } from 'react'
 import { 
   ArrowLeft, 
   Calendar, 
   Users, 
+  Target,
+  Settings,
   Clock,
-  Target
+  BarChart3,
+  FileText,
+  UserCheck
 } from 'lucide-react'
 import { useEventData } from '../hooks/useEventData'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
-import { EventStatsCards } from '../components/EventDetails/EventStatsCards'
+import { EventDashboard } from '../components/EventDetails/EventDashboard'
 import { EventMatchesList } from '../components/EventDetails/EventMatchesList'
-import { EventPlayerRanking } from '../components/EventDetails/EventPlayerRanking'
+import { EventRankingFiltered } from '../components/EventDetails/EventRankingFiltered'
 import { EventDetailedReport } from '../components/EventDetails/EventDetailedReport'
+import { EventParticipants } from '../components/EventDetails/EventParticipants'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+type TabType = 'overview' | 'participants' | 'ranking' | 'report'
+
 export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>()
+  const [activeTab, setActiveTab] = useState<TabType>('overview')
   const { eventData, matches, players, stats, isLoading, error, refetch } = useEventData(id)
 
   if (isLoading) {
@@ -58,24 +67,6 @@ export function EventDetailsPage() {
     )
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'  
-      case 'hard': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getDifficultyLabel = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'Fácil'
-      case 'medium': return 'Médio'
-      case 'hard': return 'Difícil'
-      default: return difficulty
-    }
-  }
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -91,16 +82,11 @@ export function EventDetailsPage() {
             <h1 className="text-2xl font-bold text-gray-800">{eventData.name}</h1>
             <p className="text-gray-600">{eventData.subject}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(eventData.difficulty)}`}>
-              {getDifficultyLabel(eventData.difficulty)}
-            </span>
-          </div>
         </div>
 
         {/* Event Info Bar */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Target className="w-5 h-5 text-blue-600" />
@@ -112,22 +98,12 @@ export function EventDetailsPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Clock className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Tempo Limite</p>
-                <p className="font-semibold text-gray-800">{eventData.time_limit} min</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Users className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Dificuldade</p>
-                <p className="font-semibold text-gray-800">{getDifficultyLabel(eventData.difficulty)}</p>
+                <p className="text-sm text-gray-600">Participantes</p>
+                <p className="font-semibold text-gray-800">{stats.unique_players}</p>
               </div>
             </div>
 
@@ -142,32 +118,146 @@ export function EventDetailsPage() {
                 </p>
               </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <Settings className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Tipo do Evento</p>
+                <p className="font-semibold text-gray-800">
+                  {eventData.event_type === 'training' ? 'Training (Individual)' : 'Group (Em Equipe)'}
+                </p>
+              </div>
+            </div>
+
+            {eventData.schedule && eventData.schedule.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Cronograma</p>
+                  <p className="font-semibold text-gray-800">
+                    {eventData.schedule.length} horário{eventData.schedule.length > 1 ? 's' : ''} programado{eventData.schedule.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <EventStatsCards stats={stats} />
+      {/* Enhanced Dashboard */}
+      <EventDashboard 
+        eventId={eventData.id}
+        classId={eventData.class_id!}
+        stats={{
+          total_matches: stats.total_matches,
+          unique_players: stats.unique_players,
+          total_profit: stats.total_profit,
+          avg_satisfaction: stats.avg_satisfaction,
+          avg_bonus: stats.avg_bonus,
+          engagement_rate: stats.engagement_rate,
+          avg_matches_per_player: stats.avg_matches_per_player
+        }}
+      />
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Matches List */}
-          <EventMatchesList matches={matches} />
-          
-          {/* Detailed Report */}
+      {/* Tabs Navigation */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Visão Geral
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('participants')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'participants'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4" />
+                Participantes
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('ranking')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'ranking'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Ranking
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'report'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Relatório
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="mb-6">
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <EventMatchesList matches={matches} />
+            </div>
+            <div className="lg:col-span-1">
+              <EventRankingFiltered players={players} />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'participants' && (
+          <EventParticipants 
+            eventId={eventData.id}
+            classId={eventData.class_id!}
+            eventType={eventData.event_type as 'training' | 'group'}
+          />
+        )}
+
+        {activeTab === 'ranking' && (
+          <div className="grid grid-cols-1 max-w-2xl mx-auto">
+            <EventRankingFiltered players={players} />
+          </div>
+        )}
+
+        {activeTab === 'report' && (
           <EventDetailedReport 
             eventData={eventData} 
             matches={matches} 
             players={players} 
             stats={stats} 
           />
-        </div>
-        
-        <div className="lg:col-span-1">
-          {/* Player Ranking */}
-          <EventPlayerRanking players={players} />
-        </div>
+        )}
       </div>
     </div>
   )

@@ -25,6 +25,8 @@ interface EventPlayer {
   avg_bonus: number
   total_profit: number
   last_match: string
+  class_code: string
+  class_description: string
 }
 
 interface EventStats {
@@ -109,8 +111,11 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
             name,
             email
           ),
-          classes:class_id (
-            code
+          events!inner(
+            class_id,
+            classes:class_id (
+              code
+            )
           )
         `)
         .eq('event_id', eventId)
@@ -127,7 +132,7 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
         player_id: match.player_id,
         player_name: (match.players as any)?.name || 'Jogador',
         player_email: (match.players as any)?.email || '',
-        class_code: (match.classes as any)?.code || 'N/A',
+        class_code: (match.events as any)?.classes?.code || 'N/A',
         app_serial: match.app_serial
       }))
 
@@ -142,12 +147,16 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
           satisfacao,
           bonus,
           created_at,
+          match_number,
+          event_id,
           players:player_id (
             name,
             email
           )
         `)
         .eq('event_id', eventId)
+        .not('player_id', 'is', null)
+
 
       if (resultsError) {
         console.warn('Error loading match results:', resultsError)
@@ -163,7 +172,25 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
         total_satisfaction: number
         total_bonus: number
         last_match: string
+        class_code: string
+        class_description: string
       }>()
+
+      // Get class info for this event
+      const { data: eventClassData } = await supabase
+        .from('events')
+        .select(`
+          class_id,
+          classes:class_id (
+            code,
+            description
+          )
+        `)
+        .eq('id', eventId)
+        .single()
+
+      const eventClassCode = eventClassData?.classes?.code || 'N/A'
+      const eventClassDescription = eventClassData?.classes?.description || ''
 
       // Process results
       ;(resultsData || []).forEach(result => {
@@ -180,7 +207,9 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
             total_profit: 0,
             total_satisfaction: 0,
             total_bonus: 0,
-            last_match: result.created_at
+            last_match: result.created_at,
+            class_code: eventClassCode,
+            class_description: eventClassDescription
           })
         }
 
@@ -204,7 +233,9 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
         avg_satisfaction: stats.matches > 0 ? Math.round(stats.total_satisfaction / stats.matches) : 0,
         avg_bonus: stats.matches > 0 ? Math.round(stats.total_bonus / stats.matches) : 0,
         total_profit: stats.total_profit,
-        last_match: stats.last_match
+        last_match: stats.last_match,
+        class_code: stats.class_code,
+        class_description: stats.class_description
       })).sort((a, b) => b.total_profit - a.total_profit)
 
       setPlayers(formattedPlayers)

@@ -21,12 +21,38 @@ export function calculateStudentAlerts(
   matchResults: MatchResult[], 
   teams: Team[]
 ): AlertCounts {
+  console.log('🔍 DEBUG ALERTS - Input data:', {
+    studentsCount: students.length,
+    matchResultsCount: matchResults.length,
+    teamsCount: teams.length,
+    studentsNames: students.map(s => s.name),
+    matchResultsPlayerIds: matchResults.map(r => r.player_id)
+  })
+
   const criticalStudents: AlertStudent[] = []
   const lowPerformanceStudents: AlertStudent[] = []
   const inactiveStudents: { name: string }[] = []
   
+  // Calcular o número máximo de partidas que qualquer aluno jogou
+  // Isso representa o "potencial máximo" de engajamento
+  const maxMatchesPerStudent = Math.max(
+    1, // Mínimo 1 para evitar divisão por zero
+    ...students.map(student => 
+      matchResults.filter(result => result.player_id === student.id).length
+    )
+  )
+  
+  console.log('🔍 DEBUG ALERTS - maxMatchesPerStudent:', maxMatchesPerStudent)
+  
   const indicators = students.map(student => {
     const studentResults = matchResults.filter(result => result.player_id === student.id)
+    
+    console.log('🔍 DEBUG ALERTS - Student processing:', {
+      name: student.name,
+      id: student.id,
+      studentResultsCount: studentResults.length,
+      hasParticipated: studentResults.length > 0
+    })
 
     const totalLucro = studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
 
@@ -40,10 +66,10 @@ export function calculateStudentAlerts(
       team.members.some(member => member.id === student.id)
     )
 
-    const totalUniqueMatches = [...new Set(matchResults.map(r => r.match_number))].length
-    const individualEngagement = totalUniqueMatches > 0 
-      ? Math.min(100, Math.round((studentResults.length / totalUniqueMatches) * 100))
-      : 0
+    // Engajamento baseado nas partidas que o aluno jogou vs o máximo da turma
+    const individualEngagement = Math.min(100, Math.round((studentResults.length / maxMatchesPerStudent) * 100))
+
+    const hasParticipated = studentResults.length > 0
 
     return {
       id: student.id,
@@ -53,7 +79,7 @@ export function calculateStudentAlerts(
       totalBonus,
       purpose: student.purpose,
       groupPurpose: studentTeam?.group_purpose || null,
-      hasParticipated: studentResults.length > 0,
+      hasParticipated,
       individualEngagement
     }
   })
@@ -65,10 +91,25 @@ export function calculateStudentAlerts(
     bonus: participatingStudents.length > 0 ? participatingStudents.reduce((sum, s) => sum + s.totalBonus, 0) / participatingStudents.length : 0,
   }
 
+  console.log('🔍 DEBUG ALERTS - Class averages:', classAverages)
+  console.log('🔍 DEBUG ALERTS - Participating students:', participatingStudents.length)
+
   indicators.forEach(indicator => {
+    console.log('🔍 DEBUG ALERTS - Processing indicator:', {
+      name: indicator.name,
+      hasParticipated: indicator.hasParticipated,
+      purpose: indicator.purpose,
+      groupPurpose: indicator.groupPurpose,
+      individualEngagement: indicator.individualEngagement,
+      totalLucro: indicator.totalLucro,
+      avgSatisfacao: indicator.avgSatisfacao,
+      totalBonus: indicator.totalBonus
+    })
+
     const purpose = indicator.purpose || indicator.groupPurpose
 
     if (!indicator.hasParticipated) {
+      console.log('🔍 DEBUG ALERTS - Adding to inactive:', indicator.name)
       inactiveStudents.push({
         name: indicator.name || 'Sem nome'
       })
@@ -76,7 +117,23 @@ export function calculateStudentAlerts(
     }
 
     let performancePercentage = 0
-    if (purpose && classAverages[purpose] > 0) {
+    
+    // Se não tem propósito definido, usar a melhor métrica do aluno
+    if (!purpose) {
+      const lucroPercentage = classAverages.lucro > 0 ? (indicator.totalLucro / classAverages.lucro) * 100 : 0
+      const satisfacaoPercentage = classAverages.satisfacao > 0 ? (indicator.avgSatisfacao / classAverages.satisfacao) * 100 : 0
+      const bonusPercentage = classAverages.bonus > 0 ? (indicator.totalBonus / classAverages.bonus) * 100 : 0
+      
+      // Usar a melhor performance entre as três métricas
+      performancePercentage = Math.max(lucroPercentage, satisfacaoPercentage, bonusPercentage)
+      
+      console.log('🔍 DEBUG ALERTS - No purpose defined, using best metric:', {
+        lucroPercentage,
+        satisfacaoPercentage, 
+        bonusPercentage,
+        bestPerformance: performancePercentage
+      })
+    } else if (classAverages[purpose] > 0) {
       let currentValue = 0
       switch (purpose) {
         case 'lucro':
@@ -113,6 +170,15 @@ export function calculateStudentAlerts(
       statusColor
     }
 
+    console.log('🔍 DEBUG ALERTS - Alert student:', {
+      name: alertStudent.name,
+      purpose: alertStudent.purpose,
+      value: alertStudent.value,
+      statusColor: alertStudent.statusColor,
+      performancePercentage,
+      combinedScore
+    })
+
     if (statusColor === 'red') {
       criticalStudents.push(alertStudent)
     } else if (statusColor === 'yellow') {
@@ -120,7 +186,7 @@ export function calculateStudentAlerts(
     }
   })
 
-  return {
+  const result = {
     criticalCount: criticalStudents.length,
     lowPerformanceCount: lowPerformanceStudents.length,
     inactiveCount: inactiveStudents.length,
@@ -128,6 +194,15 @@ export function calculateStudentAlerts(
     lowPerformanceStudents,
     inactiveStudents
   }
+
+  console.log('🔍 DEBUG ALERTS - Final result:', {
+    criticalCount: result.criticalCount,
+    lowPerformanceCount: result.lowPerformanceCount,
+    inactiveCount: result.inactiveCount,
+    inactiveStudents: result.inactiveStudents.map(s => s.name)
+  })
+
+  return result
 }
 
 export function getTotalAlertsCount(alertCounts: AlertCounts): number {

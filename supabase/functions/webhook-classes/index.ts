@@ -12,25 +12,16 @@ serve(async (req)=>{
   }
   try {
     const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-    const { "event-type": eventType, "class-code": classCode, "class-name": className, schedule, "instructor-email": instructorEmail, "co-instructor-email": coInstructorEmail, influencer } = await req.json();
+    const { "class-code": classCode, "class-name": className, "instructor-email": instructorEmail, "co-instructor-email": coInstructorEmail, influencer } = await req.json();
     console.log('Payload recebido:', {
-      eventType,
       classCode,
       className,
-      schedule,
       instructorEmail,
       coInstructorEmail,
       influencer
     });
-    if (!eventType || !classCode || !schedule || !instructorEmail) {
-      throw new Error('Campos obrigatórios ausentes: event-type, class-code, schedule, instructor-email');
-    }
-    const validEventTypes = [
-      'training',
-      'group'
-    ];
-    if (!validEventTypes.includes(eventType)) {
-      throw new Error(`Tipo de evento inválido: ${eventType}. Deve ser 'training' ou 'group'.`);
+    if (!classCode || !instructorEmail) {
+      throw new Error('Campos obrigatórios ausentes: class-code, instructor-email');
     }
     const { data: instructorData, error: instructorError } = await supabaseClient.from('instructors').select('id').eq('email', instructorEmail).single();
     if (instructorError || !instructorData) {
@@ -49,25 +40,12 @@ serve(async (req)=>{
         console.warn(`Influencer com e-mail ${influencer} não encontrado. Ignorando.`);
       }
     }
-    let startDate = null;
-    let endDate = null;
-    if (Array.isArray(schedule) && schedule.length > 0) {
-      const sorted = [
-        ...schedule
-      ].sort((a, b)=>new Date(a['initial-time']).getTime() - new Date(b['initial-time']).getTime());
-      startDate = sorted[0]['initial-time'];
-      endDate = sorted[sorted.length - 1]['end-time'];
-    }
-    // 1. Criar apenas a TURMA (sem evento)
+    // 1. Criar apenas a TURMA (container de alunos - sem event_type nem schedule)
     const { data: classData, error: classError } = await supabaseClient.from('classes').upsert({
       code: classCode, // Código da turma (UX)
-      event_type: eventType,
       description: className || classCode,
-      schedule,
       instructor_id: instructorId,
       influencer_id: influencerId,
-      start_date: startDate,
-      end_date: endDate,
       updated_at: new Date().toISOString()
     }, {
       onConflict: 'code'
