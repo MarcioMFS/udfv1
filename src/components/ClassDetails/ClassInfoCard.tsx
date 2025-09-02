@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Info, Calendar, Clock, Users } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Class } from '../../types'
 import { calculateClassDynamicInfo, getEventTypeLabel, getStatusColor, ClassEvent, ClassDynamicInfo } from '../../utils/eventUtils'
@@ -14,7 +14,7 @@ interface ClassInfoCardProps {
 }
 
 export function ClassInfoCard({ classData }: ClassInfoCardProps) {
-  const [events, setEvents] = useState<ClassEvent[]>([])
+  const [, setEvents] = useState<ClassEvent[]>([])
   const [dynamicInfo, setDynamicInfo] = useState<ClassDynamicInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

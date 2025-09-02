@@ -65,12 +65,7 @@ export function ClassDetailsContent({
           <>
             <ClassOverview studentIndicators={studentIndicators} stats={classStats} />
             <ClassEventsCalendar classId={classData.id} />
-            <ClassInfoCard
-              classData={classData}
-              getEventTypeLabel={(eventType: string) => getEventTypeLabel(eventType as EventType)}
-              getStatusColor={(start: string | null, end: string | null) => getClassStatus(start, end).color}
-              getStatusLabel={(start: string | null, end: string | null) => getClassStatus(start, end).label}
-            />
+            <ClassInfoCard classData={classData} />
             <ClassStudentsList students={students} matchResults={matchResults} />
           </>
         )

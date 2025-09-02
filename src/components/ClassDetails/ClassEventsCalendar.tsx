@@ -1,6 +1,6 @@
 // src/components/ClassDetails/ClassEventsCalendar.tsx
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { Calendar, Clock, MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { ErrorMessage } from '../ui/ErrorMessage'

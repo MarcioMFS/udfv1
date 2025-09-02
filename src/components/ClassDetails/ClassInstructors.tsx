@@ -79,7 +79,7 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
     // Get match counts for each candidate
     const candidatesWithMatches = await Promise.all(
       (data || []).map(async (candidate) => {
-        const { data: matchData, error: matchError } = await supabase
+        const { data: matchData } = await supabase
           .from('match_results')
           .select('id')
           .eq('player_id', candidate.player_id)
