@@ -16,9 +16,11 @@ interface EventMatch {
 }
 
 interface EventPlayer {
-  id: string
-  name: string
-  email: string
+  player_id: string
+  player?: {
+    name: string
+    email: string
+  }
   total_matches: number
   avg_lucro: number
   avg_satisfaction: number
@@ -189,8 +191,8 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
         .eq('id', eventId)
         .single()
 
-      const eventClassCode = eventClassData?.classes?.code || 'N/A'
-      const eventClassDescription = eventClassData?.classes?.description || ''
+      const eventClassCode = (eventClassData as any)?.classes?.code || 'N/A'
+      const eventClassDescription = (eventClassData as any)?.classes?.description || ''
 
       // Process results
       ;(resultsData || []).forEach(result => {
@@ -225,9 +227,11 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
       })
 
       const formattedPlayers: EventPlayer[] = Array.from(playerStats.values()).map(stats => ({
-        id: stats.id,
-        name: stats.name,
-        email: stats.email,
+        player_id: stats.id,
+        player: {
+          name: stats.name,
+          email: stats.email
+        },
         total_matches: stats.matches,
         avg_lucro: stats.matches > 0 ? Math.round(stats.total_profit / stats.matches) : 0,
         avg_satisfaction: stats.matches > 0 ? Math.round(stats.total_satisfaction / stats.matches) : 0,

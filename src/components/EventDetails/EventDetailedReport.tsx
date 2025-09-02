@@ -120,8 +120,8 @@ export function EventDetailedReport({
     const playersHeaders = ['Posição', 'Nome', 'Email', 'Total Partidas', 'Lucro Total', 'Lucro Médio', 'Satisfação Média', 'Bônus Médio', 'Última Partida']
     const playersRows = players.map((player, index) => [
       index + 1,
-      player.name,
-      player.email,
+      player.player?.name || 'N/A',
+      player.player?.email || 'N/A',
       player.total_matches,
       formatCurrency(player.total_profit),
       formatCurrency(player.avg_lucro),
@@ -275,15 +275,15 @@ export function EventDetailedReport({
             <h4 className="font-semibold text-gray-800 mb-4">🏆 Melhores Performers</h4>
             <div className="space-y-3">
               {topPerformers.map((player, index) => (
-                <div key={player.player_id || player.id || index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div key={player.player_id || index} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
                     index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-600'
                   }`}>
                     {index + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-800">{player.name}</p>
-                    <p className="text-sm text-gray-600">{player.email}</p>
+                    <p className="font-medium text-gray-800">{player.player?.name || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">{player.player?.email || 'N/A'}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-800">Lucro: R$ {player.avg_lucro}</p>

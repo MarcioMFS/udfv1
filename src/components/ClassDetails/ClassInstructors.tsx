@@ -83,14 +83,14 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
           .from('match_results')
           .select('id')
           .eq('player_id', candidate.player_id)
-          .eq('event_id', candidate.events.id)
+          .eq('event_id', (candidate.events as any)?.id)
 
         return {
           player_id: candidate.player_id,
-          player_name: candidate.players.name || 'Nome não disponível',
-          player_email: candidate.players.email || 'Email não disponível',
-          event_name: candidate.events.name || 'Evento sem nome',
-          event_id: candidate.events.id,
+          player_name: (candidate.players as any)?.name || 'Nome não disponível',
+          player_email: (candidate.players as any)?.email || 'Email não disponível',
+          event_name: (candidate.events as any)?.name || 'Evento sem nome',
+          event_id: (candidate.events as any)?.id || '',
           total_matches: matchData?.length || 0,
           participated_at: candidate.participated_at
         }

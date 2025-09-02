@@ -6,9 +6,11 @@ import { ptBR } from 'date-fns/locale'
 import { CustomTooltip } from '../ui/CustomTooltip'
 
 interface EventPlayer {
-  id: string
-  name: string
-  email: string
+  player_id: string
+  player?: {
+    name: string
+    email: string
+  }
   total_matches: number
   avg_lucro: number
   avg_satisfaction: number
@@ -188,7 +190,7 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
               
               return (
                 <div 
-                  key={player.id} 
+                  key={player.player_id} 
                   className={`rounded-lg border p-4 transition-all hover:shadow-md ${getRankColor(position)}`}
                 >
                   <div className="flex items-start gap-3">
@@ -200,11 +202,11 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
                     {/* Player Info */}
                     <div className="flex-1 min-w-0">
                       <div className="mb-2">
-                        <CustomTooltip content={player.name}>
-                          <h3 className="font-semibold text-gray-800 truncate cursor-help">{player.name}</h3>
+                        <CustomTooltip content={player.player?.name || 'N/A'}>
+                          <h3 className="font-semibold text-gray-800 truncate cursor-help">{player.player?.name || 'N/A'}</h3>
                         </CustomTooltip>
-                        <CustomTooltip content={player.email}>
-                          <p className="text-sm text-gray-600 truncate cursor-help">{player.email}</p>
+                        <CustomTooltip content={player.player?.email || 'N/A'}>
+                          <p className="text-sm text-gray-600 truncate cursor-help">{player.player?.email || 'N/A'}</p>
                         </CustomTooltip>
                       </div>
                       

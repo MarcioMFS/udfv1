@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, Target, Trophy, LayoutGrid, Users, Search, Filter, X } from 'lucide-react'
+import { MatchResult } from '../../types'
 
 
 type Indicator = 'lucro' | 'satisfacao' | 'bonus' | 'geral'
@@ -22,13 +23,7 @@ interface Student {
   team_id: string | null
 }
 
-interface MatchResult {
-  player_id: string
-  match_number: number
-  lucro: number | null
-  satisfacao: number | null
-  bonus: number | null
-}
+// Using global MatchResult type from types/index.ts
 
 interface Team {
   id: string

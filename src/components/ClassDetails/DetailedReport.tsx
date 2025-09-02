@@ -1,5 +1,6 @@
 // src/components/ClassDetails/DetailedReport.tsx
 import { useState, useMemo } from 'react'
+import { MatchResult } from '../../types'
 import {
   FileText,
   Download,
@@ -34,19 +35,7 @@ interface Student {
   team_id: string | null
 }
 
-interface MatchResult {
-  player_id: string
-  class_id: string
-  match_number: number
-  lucro: number | null
-  satisfacao: number | null
-  bonus: number | null
-  created_at: string
-  player?: {
-    name: string | null
-    email: string | null
-  }
-}
+// Using global MatchResult type from types/index.ts
 
 interface Team {
   id: string

@@ -3,6 +3,7 @@ import { Users, Trophy, TrendingUp, Target, ChevronLeft, ChevronRight } from 'lu
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
+import { MatchResult } from '../../types'
 
 interface Student {
   id: string
@@ -15,19 +16,7 @@ interface Student {
   team_id: string | null
 }
 
-interface MatchResult {
-  player_id: string
-  class_id: string
-  match_number: number
-  lucro: number | null
-  satisfacao: number | null
-  bonus: number | null
-  created_at: string
-  player?: {
-    name: string | null
-    email: string | null
-  }
-}
+// Using global MatchResult type from types/index.ts
 
 interface ClassStudentsListProps {
   students: Student[]

@@ -17,10 +17,8 @@ import {
   MatchResult, 
   RankingData, 
   StudentIndicator, 
-  ClassStats,
-  EventType 
+  ClassStats
 } from '../../types'
-import { getEventTypeLabel, getClassStatus } from '../../utils'
 import { Crown, Medal, Trophy } from 'lucide-react'
 
 interface ClassDetailsContentProps {

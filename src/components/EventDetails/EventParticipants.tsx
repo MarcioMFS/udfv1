@@ -86,9 +86,9 @@ export function EventParticipants({ eventId, classId, eventType }: EventParticip
       const available = (data || [])
         .filter(cp => !existingPlayerIds.has(cp.player_id))
         .map(cp => ({
-          id: cp.players.id,
-          name: cp.players.name || 'Nome não disponível',
-          email: cp.players.email || 'Email não disponível'
+          id: (cp.players as any)?.id || '',
+          name: (cp.players as any)?.name || 'Nome não disponível',
+          email: (cp.players as any)?.email || 'Email não disponível'
         }))
 
       setAvailableStudents(available)
@@ -158,7 +158,7 @@ export function EventParticipants({ eventId, classId, eventType }: EventParticip
 
     try {
       // Call the edge function to promote to instructor
-      const { data, error } = await supabase.functions.invoke('promote-to-instructor', {
+      const { error } = await supabase.functions.invoke('promote-to-instructor', {
         body: {
           player_name: participant.player_name,
           player_email: participant.player_email,
