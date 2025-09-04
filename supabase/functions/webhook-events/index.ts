@@ -63,9 +63,34 @@ serve(async (req) => {
       .single();
 
     if (existingClass) {
-      classData = existingClass;
-      console.log('Classe existente encontrada:', classData.id);
+      // Calcular datas de início e fim baseadas no schedule
+      const startDate = schedule.length > 0 ? schedule[0]['initial-time'] : null;
+      const endDate = schedule.length > 0 ? schedule[schedule.length - 1]['end-time'] : null;
+      
+      // Atualizar datas da classe existente se necessário
+      const { data: updatedClass, error: updateError } = await supabaseClient
+        .from('classes')
+        .update({
+          start_date: startDate,
+          end_date: endDate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingClass.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.warn('Erro ao atualizar datas da classe:', updateError);
+        classData = existingClass;
+      } else {
+        classData = updatedClass;
+      }
+      console.log('Classe existente encontrada e atualizada:', classData.id);
     } else {
+      // Calcular datas de início e fim baseadas no schedule
+      const startDate = schedule.length > 0 ? schedule[0]['initial-time'] : null;
+      const endDate = schedule.length > 0 ? schedule[schedule.length - 1]['end-time'] : null;
+      
       // Criar nova classe
       const { data: newClass, error: classError } = await supabaseClient
         .from('classes')
@@ -73,6 +98,8 @@ serve(async (req) => {
           code: eventCode,
           description: `Classe para evento: ${eventName}`,
           event_type: eventType,
+          start_date: startDate,
+          end_date: endDate,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

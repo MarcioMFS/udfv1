@@ -2,6 +2,7 @@
 import { ClassScheduleCalendar } from './ClassScheduleCalendar'
 import { ClassCodeCard } from './ClassCodeCard'
 import { ClassSidebar } from './ClassSidebar'
+import { ClassEventsCalendar } from './ClassEventsCalendar'
 import toast from 'react-hot-toast'
 
 import { Class, Student, Team, ScheduledDateInfo } from '../../types'
@@ -14,7 +15,6 @@ interface ClassDetailsSidebarProps {
   scheduledDatesMap: Map<string, ScheduledDateInfo>
   currentMonth: Date
   onMonthChange: (month: Date) => void
-  onShowTooltip: (info: ScheduledDateInfo | null, rect: DOMRect | null) => void
   onViewDetailedReport: () => void
 }
 
@@ -25,7 +25,6 @@ export function ClassDetailsSidebar({
   scheduledDatesMap,
   currentMonth,
   onMonthChange,
-  onShowTooltip,
   onViewDetailedReport
 }: ClassDetailsSidebarProps) {
 
@@ -53,9 +52,10 @@ export function ClassDetailsSidebar({
           scheduledDatesMap={scheduledDatesMap}
           currentMonth={currentMonth}
           setCurrentMonth={onMonthChange}
-          onShowTooltip={onShowTooltip}
         />
       )}
+
+      <ClassEventsCalendar classId={classData.id} />
 
       <ClassCodeCard
         classData={classData}

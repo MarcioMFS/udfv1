@@ -1,5 +1,5 @@
 // src/components/ClassDetails/ClassScheduleCalendar.tsx
-import { CalendarDays, ChevronLeft, ChevronRight, CalendarCheck } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -9,20 +9,21 @@ interface ScheduledDateInfo {
   endTime: string
   description: string
   index: number
+  eventId?: string
+  eventName?: string
+  eventSubject?: string
 }
 
 interface ClassScheduleCalendarProps {
   scheduledDatesMap: Map<string, ScheduledDateInfo>
   currentMonth: Date
   setCurrentMonth: (month: Date) => void
-  onShowTooltip: (info: ScheduledDateInfo | null, rect: DOMRect | null) => void
 }
 
 export function ClassScheduleCalendar({ 
   scheduledDatesMap, 
   currentMonth, 
-  setCurrentMonth,
-  onShowTooltip
+  setCurrentMonth
 }: ClassScheduleCalendarProps) {
   const endOfCurrentMonth = endOfMonth(currentMonth)
   const daysInMonth = eachDayOfInterval({ start: currentMonth, end: endOfCurrentMonth })
@@ -45,14 +46,6 @@ export function ClassScheduleCalendar({
 
   const totalScheduledEvents = scheduledDatesMap.size
 
-  const handleMouseEnter = (scheduledInfo: ScheduledDateInfo, e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    onShowTooltip(scheduledInfo, rect)
-  }
-
-  const handleMouseLeave = () => {
-    onShowTooltip(null, null)
-  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -100,17 +93,17 @@ export function ClassScheduleCalendar({
               return (
                 <div
                   key={index}
-                  className={`relative flex items-center justify-center w-full aspect-square rounded-md transition-all duration-200 cursor-pointer text-xs sm:text-sm min-h-[36px] sm:min-h-[44px]
+                  className={`relative flex items-center justify-center w-full aspect-square rounded-md transition-all duration-200 text-xs sm:text-sm min-h-[36px] sm:min-h-[44px]
                     ${day ? 'bg-white text-gray-800' : 'bg-gray-50 text-gray-400 cursor-not-allowed'}
-                    ${isScheduled ? 'bg-blue-500 text-white font-semibold shadow-md hover:scale-105' : 'hover:bg-gray-100'}
+                    ${isScheduled ? 'bg-blue-500 text-white font-semibold shadow-md hover:scale-105 cursor-pointer' : 'hover:bg-gray-100 cursor-default'}
+                    ${!day ? 'cursor-not-allowed' : ''}
                   `}
-                  onMouseEnter={isScheduled && scheduledInfo ? (e) => handleMouseEnter(scheduledInfo, e) : undefined}
-                  onMouseLeave={isScheduled ? handleMouseLeave : undefined}
-                  onClick={isScheduled && scheduledInfo ? (e) => handleMouseEnter(scheduledInfo, e) : undefined}
+                  title={isScheduled && scheduledInfo ? scheduledInfo.eventName || scheduledInfo.description : undefined}
+                  onClick={isScheduled && scheduledInfo?.eventId ? () => window.open(`/events/${scheduledInfo.eventId}`, '_blank') : undefined}
                 >
                   {day ? format(day, 'd') : ''}
                   {isScheduled && (
-                    <CalendarCheck className="absolute inset-0 w-full h-full text-cyan-700 p-0.5 sm:p-1 pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-2 h-2 bg-green-400 rounded-full"></div>
                   )}
                 </div>
               )

@@ -97,7 +97,6 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
       })
     )
 
-    // Filter out candidates who are already instructors
     const { data: existingInstructors } = await supabase
       .from('instructors')
       .select('email')
@@ -111,7 +110,6 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
   }
 
   const loadCurrentInstructors = async () => {
-    // Get current instructors from this class
     const { data, error } = await supabase
       .from('instructors')
       .select('id, name, email, created_at')
@@ -126,7 +124,6 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
 
     setIsPromoting(candidate.player_id)
     try {
-      // Use supabase.functions.invoke (método correto)
       const { data, error } = await supabase.functions.invoke('promote-to-instructor', {
         body: {
           player_name: candidate.player_name,

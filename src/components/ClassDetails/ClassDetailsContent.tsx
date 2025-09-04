@@ -5,7 +5,6 @@ import { ClassRankingChart } from './ClassRankingChart'
 import { ClassStudentsList } from './ClassStudentsList'
 import { ClassIndicators } from './ClassIndicators'
 import { ClassInstructors } from './ClassInstructors'
-import { ClassEventsCalendar } from './ClassEventsCalendar'
 import StudentGrowth from './ClassGrowthChart'
 import { EmptyState } from '../ui'
 
@@ -62,7 +61,6 @@ export function ClassDetailsContent({
         return (
           <>
             <ClassOverview studentIndicators={studentIndicators} stats={classStats} />
-            <ClassEventsCalendar classId={classData.id} />
             <ClassInfoCard classData={classData} />
             <ClassStudentsList students={students} matchResults={matchResults} />
           </>

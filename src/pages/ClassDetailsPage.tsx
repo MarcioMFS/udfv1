@@ -14,7 +14,6 @@ import { ClassDetailsNavigation } from '../components/ClassDetails/ClassDetailsN
 import { ClassDetailsContent } from '../components/ClassDetails/ClassDetailsContent'
 import { ClassDetailsSidebar } from '../components/ClassDetails/ClassDetailsSidebar'
 import { TeamFormationModal } from '../components/ClassDetails/TeamFormationModal'
-import { FloatingTooltip } from '../components/common/FloatingTooltip'
 
 export function ClassDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -29,8 +28,6 @@ export function ClassDetailsPage() {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(new Date()))
   const [scheduledDatesMap, setScheduledDatesMap] = useState<Map<string, ScheduledDateInfo>>(new Map())
   
-  const [tooltipInfo, setTooltipInfo] = useState<ScheduledDateInfo | null>(null)
-  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -48,56 +45,71 @@ export function ClassDetailsPage() {
   }, [students, matchResults, teams, studentIndicators])
 
   useEffect(() => {
-    if (!classData?.schedule || !Array.isArray(classData.schedule)) return
+    if (!classData?.events || !Array.isArray(classData.events)) return
 
     const scheduleMap = new Map<string, ScheduledDateInfo>()
     
-    const validMeetings = classData.schedule.filter(meeting => 
-      meeting &&
-      meeting['initial-time'] &&
-      typeof meeting['initial-time'] === 'string' &&
-      meeting['initial-time'].trim() !== '' &&
-      meeting['end-time'] &&
-      typeof meeting['end-time'] === 'string' &&
-      meeting['end-time'].trim() !== ''
-    )
+    // Process events and their schedules
+    classData.events.forEach(event => {
+      if (event.schedule && Array.isArray(event.schedule)) {
+        const validMeetings = event.schedule.filter(meeting => 
+          meeting &&
+          meeting['initial-time'] &&
+          typeof meeting['initial-time'] === 'string' &&
+          meeting['initial-time'].trim() !== '' &&
+          meeting['end-time'] &&
+          typeof meeting['end-time'] === 'string' &&
+          meeting['end-time'].trim() !== ''
+        )
 
-    const sortedMeetings = validMeetings.sort((a, b) => {
-      const dateA = parseISO(a['initial-time'])
-      const dateB = parseISO(b['initial-time'])
-      return dateA.getTime() - dateB.getTime()
-    })
-
-    sortedMeetings.forEach((meeting, index) => {
-      try {
-        const initialTime = parseISO(meeting['initial-time'])
-        const endTime = parseISO(meeting['end-time'])
-
-        let description = ''
-        if (index === 0) {
-          description = 'Primeiro encontro'
-        } else if (index === sortedMeetings.length - 1) {
-          description = 'Último encontro'
-        } else {
-          description = `${index + 1}º encontro`
-        }
-        
-        scheduleMap.set(format(initialTime, 'yyyy-MM-dd'), {
-          date: initialTime,
-          initialTime: format(initialTime, 'HH:mm', { locale: ptBR }),
-          endTime: format(endTime, 'HH:mm', { locale: ptBR }),
-          description,
-          index: index + 1
+        const sortedMeetings = validMeetings.sort((a, b) => {
+          const dateA = parseISO(a['initial-time'])
+          const dateB = parseISO(b['initial-time'])
+          return dateA.getTime() - dateB.getTime()
         })
-      } catch (parseError) {
-        console.warn('Error parsing schedule date for meeting:', meeting, parseError)
+
+        sortedMeetings.forEach((meeting, index) => {
+          try {
+            const initialTime = parseISO(meeting['initial-time'])
+            const endTime = parseISO(meeting['end-time'])
+            const dateKey = format(initialTime, 'yyyy-MM-dd')
+
+            let description = event.name || 'Evento'
+            if (sortedMeetings.length > 1) {
+              if (index === 0) {
+                description += ' - Primeiro encontro'
+              } else if (index === sortedMeetings.length - 1) {
+                description += ' - Último encontro'
+              } else {
+                description += ` - ${index + 1}º encontro`
+              }
+            }
+            
+            const scheduleInfo = {
+              date: initialTime,
+              initialTime: format(initialTime, 'HH:mm', { locale: ptBR }),
+              endTime: format(endTime, 'HH:mm', { locale: ptBR }),
+              description,
+              index: index + 1,
+              eventId: event.id,
+              eventName: event.name,
+              eventSubject: event.subject
+            }
+            
+            scheduleMap.set(dateKey, scheduleInfo)
+          } catch (parseError) {
+            console.warn('Error parsing schedule date for event:', event.name, meeting, parseError)
+          }
+        })
       }
     })
 
-    if (sortedMeetings.length > 0) {
+    // Set current month to the first event date if available
+    if (scheduleMap.size > 0) {
       try {
-        const firstMeetingDate = parseISO(sortedMeetings[0]['initial-time'])
-        setCurrentMonth(startOfMonth(firstMeetingDate))
+        const dates = Array.from(scheduleMap.values()).map(info => info.date)
+        const earliestDate = dates.sort((a, b) => a.getTime() - b.getTime())[0]
+        setCurrentMonth(startOfMonth(earliestDate))
       } catch (parseError) {
         console.warn('Error parsing first meeting date:', parseError)
       }
@@ -106,18 +118,6 @@ export function ClassDetailsPage() {
     setScheduledDatesMap(scheduleMap)
   }, [classData])
 
-  const handleShowTooltip = (info: ScheduledDateInfo | null, rect: DOMRect | null) => {
-    if (info && rect) {
-      setTooltipInfo(info)
-      setTooltipPosition({
-        top: rect.top,
-        left: rect.left + rect.width / 2
-      })
-    } else {
-      setTooltipInfo(null)
-      setTooltipPosition(null)
-    }
-  }
 
   if (isLoading) {
     return <PageLoading message="Carregando detalhes da turma..." />
@@ -181,7 +181,6 @@ export function ClassDetailsPage() {
               scheduledDatesMap={scheduledDatesMap}
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
-              onShowTooltip={handleShowTooltip}
               onViewDetailedReport={() => setActiveTab('detailed-report')}
             />
           </div>
@@ -196,21 +195,6 @@ export function ClassDetailsPage() {
           />
         )}
 
-        <FloatingTooltip
-          isVisible={!!tooltipInfo}
-          position={tooltipPosition}
-          content={
-            tooltipInfo && (
-              <div>
-                <div className="font-semibold">{tooltipInfo.description}</div>
-                <div className="mt-1">{tooltipInfo.initialTime} - {tooltipInfo.endTime}</div>
-                <div className="text-gray-300 text-xs mt-1">
-                  {format(tooltipInfo.date, 'EEEE, dd/MM/yyyy', { locale: ptBR })}
-                </div>
-              </div>
-            )
-          }
-        />
       </div>
     </ErrorBoundary>
   )

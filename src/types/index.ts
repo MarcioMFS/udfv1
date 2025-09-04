@@ -1,4 +1,4 @@
-export type EventType = 'training' | 'course'
+export type EventType = 'training' | 'group'
 export type Purpose = 'lucro' | 'satisfacao' | 'bonus'
 export type StatusColor = 'green' | 'yellow' | 'red' | 'gray'
 
@@ -15,12 +15,8 @@ export interface Class {
   description: string | null
   instructor_id: string | null
   influencer_id: string | null
-  start_date: string | null
-  end_date: string | null
   created_at: string
   updated_at: string
-  event_type: EventType
-  schedule: Array<{ 'initial-time': string; 'end-time': string }> | null
   events?: {
     id: string
     name: string
@@ -149,6 +145,9 @@ export interface ScheduledDateInfo {
   endTime: string
   description: string
   index: number
+  eventId?: string
+  eventName?: string
+  eventSubject?: string
 }
 
 export interface ClassAverages {

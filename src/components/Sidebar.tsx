@@ -75,7 +75,20 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
 
         <nav className="space-y-2">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href
+            // Enhanced active state detection for nested routes
+            const isActive = (() => {
+              if (location.pathname === item.href) return true
+              
+              // Check for related routes
+              switch (item.href) {
+                case '/classes':
+                  return location.pathname.startsWith('/classes/')
+                case '/my-events':
+                  return location.pathname.startsWith('/events/')
+                default:
+                  return false
+              }
+            })()
 
             if (item.disabled) {
               return (

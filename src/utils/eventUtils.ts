@@ -75,7 +75,12 @@ export function calculateClassDynamicInfo(events: ClassEvent[]): ClassDynamicInf
     statusLabel = `Em andamento: ${activeSchedule.event.name}`
   } else if (nextSchedule) {
     status = 'upcoming'
-    const daysUntil = Math.ceil((nextSchedule.startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // Calculate days difference more accurately by comparing dates without time
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const eventDate = new Date(nextSchedule.startDate.getFullYear(), nextSchedule.startDate.getMonth(), nextSchedule.startDate.getDate())
+    const daysUntil = Math.round((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
     statusLabel = daysUntil === 0 
       ? 'Próximo evento hoje'
       : daysUntil === 1 
@@ -122,9 +127,9 @@ export function calculateClassDynamicInfo(events: ClassEvent[]): ClassDynamicInf
 export function getEventTypeLabel(eventType: string | null): string {
   switch (eventType) {
     case 'training':
-      return 'Training (Individual)'
+      return 'Training (Treinamento de Instrutores)'
     case 'group':
-      return 'Group (Em Equipe)'
+      return 'Group (Treinamento Normal de Alunos)'
     default:
       return 'Não definido'
   }

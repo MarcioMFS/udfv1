@@ -134,6 +134,25 @@ export function CreateEventPage() {
     setIsLoading(true)
 
     try {
+      // Extract start_date and end_date from schedule
+      let start_date = null
+      let end_date = null
+      
+      if (formData.schedule && formData.schedule.length > 0) {
+        const validSchedules = formData.schedule.filter(s => 
+          s['initial-time'] && s['end-time']
+        )
+        
+        if (validSchedules.length > 0) {
+          // Get earliest start time and latest end time
+          const startTimes = validSchedules.map(s => new Date(s['initial-time']))
+          const endTimes = validSchedules.map(s => new Date(s['end-time']))
+          
+          start_date = new Date(Math.min(...startTimes)).toISOString()
+          end_date = new Date(Math.max(...endTimes)).toISOString()
+        }
+      }
+
       if (isEditing && editId) {
         const { error } = await supabase
           .from('events')
@@ -148,6 +167,8 @@ export function CreateEventPage() {
             class_id: formData.class_id,
             event_type: formData.event_type,
             schedule: formData.schedule,
+            start_date,
+            end_date,
             updated_at: new Date().toISOString()
           })
           .eq('id', editId)
@@ -174,7 +195,9 @@ export function CreateEventPage() {
             instructor_id: user.id,
             class_id: formData.class_id,
             event_type: formData.event_type,
-            schedule: formData.schedule
+            schedule: formData.schedule,
+            start_date,
+            end_date
           })
 
         if (error) throw error
@@ -294,11 +317,11 @@ export function CreateEventPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  <option value="training">Training (Individual)</option>
-                  <option value="group">Group (Em Equipe)</option>
+                  <option value="training">Training (Treinamento de Instrutores)</option>
+                  <option value="group">Group (Treinamento Normal de Alunos)</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Training: Jogadores individuais | Group: Jogadores organizados em equipes
+                  Training: Para capacitação de instrutores | Group: Para treinamento regular de alunos
                 </p>
               </div>
 

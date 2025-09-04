@@ -23,6 +23,8 @@ interface Class {
     subject: string
     time_limit: number
     max_players: number
+    start_date: string | null
+    end_date: string | null
   }
   influencer?: {
     name: string
@@ -94,12 +96,12 @@ export function ClassesPage() {
             .eq('class_id', classItem.id)
 
           // Load events for this class
-          const { data: eventsData } = await supabase
+          const { data: eventsData, error: eventError } = await supabase
             .from('events')
-            .select('name, subject, difficulty, time_limit, max_players')
+            .select('name, subject, difficulty, time_limit, max_players, start_date, end_date')
             .eq('class_id', classItem.id)
             .limit(1)
-            .single()
+            .maybeSingle()
 
           return {
             ...classItem,
@@ -205,8 +207,8 @@ export function ClassesPage() {
       </div>
 
       <div className="flex flex-wrap gap-1 text-xs mb-1">
-        <span className={`px-2 py-0.5 rounded-full font-medium ${getStatusColor(classItem.start_date, classItem.end_date)}`}>
-          {getStatusLabel(classItem.start_date, classItem.end_date)}
+        <span className={`px-2 py-0.5 rounded-full font-medium ${getStatusColor(classItem.event?.start_date || null, classItem.event?.end_date || null)}`}>
+          {getStatusLabel(classItem.event?.start_date || null, classItem.event?.end_date || null)}
         </span>
               <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
         <svg className="w-3 h-3" viewBox="0 0 20 20">
@@ -216,7 +218,9 @@ export function ClassesPage() {
       </p>
       </div>
 
-      <p className="text-xs text-gray-500">Evento: {classItem.event?.name} - {classItem.event?.subject}</p>
+      <p className="text-xs text-gray-500">
+        Evento: {classItem.event ? `${classItem.event.name} - ${classItem.event.subject}` : 'Nenhum evento associado'}
+      </p>
       {classItem.influencer?.name && (
         <p className="text-xs text-purple-600 mt-1">Influencer: {classItem.influencer.name}</p>
       )}

@@ -45,8 +45,9 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
       // Load events associated with this class
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('id, name, subject, difficulty, code')
+        .select('id, name, subject, difficulty, code, schedule, start_date, end_date')
         .eq('class_id', classId)
+
 
       if (eventsError) {
         console.warn('Error loading events for class:', eventsError)

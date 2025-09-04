@@ -68,8 +68,8 @@ export function formatCurrency(value: number): string {
 
 export function getEventTypeLabel(eventType: EventType): string {
   switch (eventType) {
-    case 'training': return 'Treinamento'
-    case 'course': return 'Curso'
+    case 'training': return 'Training (Treinamento de Instrutores)'
+    case 'group': return 'Group (Treinamento Normal de Alunos)'
     default: return eventType
   }
 }
