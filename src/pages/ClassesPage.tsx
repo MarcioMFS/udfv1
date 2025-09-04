@@ -96,7 +96,7 @@ export function ClassesPage() {
             .eq('class_id', classItem.id)
 
           // Load events for this class
-          const { data: eventsData, error: eventError } = await supabase
+          const { data: eventsData } = await supabase
             .from('events')
             .select('name, subject, difficulty, time_limit, max_players, start_date, end_date')
             .eq('class_id', classItem.id)

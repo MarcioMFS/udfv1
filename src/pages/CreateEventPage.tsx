@@ -148,8 +148,8 @@ export function CreateEventPage() {
           const startTimes = validSchedules.map(s => new Date(s['initial-time']))
           const endTimes = validSchedules.map(s => new Date(s['end-time']))
           
-          start_date = new Date(Math.min(...startTimes)).toISOString()
-          end_date = new Date(Math.max(...endTimes)).toISOString()
+          start_date = new Date(Math.min(...startTimes.map(d => d.getTime()))).toISOString()
+          end_date = new Date(Math.max(...endTimes.map(d => d.getTime()))).toISOString()
         }
       }
 

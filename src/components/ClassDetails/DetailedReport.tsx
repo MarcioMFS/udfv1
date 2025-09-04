@@ -309,9 +309,9 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
     const summarySection = `Relatório Detalhado da Turma: ${classData.code}
 Descrição: ${classData.description || 'N/A'}
 Evento: ${classData.events?.[0]?.name || 'N/A'} (${classData.events?.[0]?.subject || 'N/A'})
-Status: ${getStatusLabel(classData.start_date, classData.end_date)}
-Data de Início: ${classData.start_date ? format(new Date(classData.start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
-Data de Fim: ${classData.end_date ? format(new Date(classData.end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
+Status: ${getStatusLabel(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}
+Data de Início: ${classData.events?.[0]?.start_date ? format(new Date(classData.events[0].start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
+Data de Fim: ${classData.events?.[0]?.end_date ? format(new Date(classData.events[0].end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
 
 Estatísticas Gerais da Turma:
 Total de Alunos: ${classStats.uniquePlayers}
@@ -433,9 +433,9 @@ Engajamento da Turma: ${classStats.classEngagement}%
               <p className="text-sm text-gray-600"><strong>Código da Turma:</strong> {classData.code}</p>
               <p className="text-sm text-gray-600"><strong>Descrição:</strong> {classData.description || 'N/A'}</p>
               <p className="text-sm text-gray-600"><strong>Evento:</strong> {classData.events?.[0]?.name || 'N/A'} ({classData.events?.[0]?.subject || 'N/A'})</p>
-              <p className="text-sm text-gray-600"><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(classData.start_date, classData.end_date)}`}>{getStatusLabel(classData.start_date, classData.end_date)}</span></p>
-              <p className="text-sm text-gray-600"><strong>Data de Início:</strong> {classData.start_date ? format(new Date(classData.start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
-              <p className="text-sm text-gray-600"><strong>Data de Fim:</strong> {classData.end_date ? format(new Date(classData.end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
+              <p className="text-sm text-gray-600"><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}`}>{getStatusLabel(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}</span></p>
+              <p className="text-sm text-gray-600"><strong>Data de Início:</strong> {classData.events?.[0]?.start_date ? format(new Date(classData.events[0].start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
+              <p className="text-sm text-gray-600"><strong>Data de Fim:</strong> {classData.events?.[0]?.end_date ? format(new Date(classData.events[0].end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
             </div>
             
             <div className="space-y-3">

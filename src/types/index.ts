@@ -17,11 +17,23 @@ export interface Class {
   influencer_id: string | null
   created_at: string
   updated_at: string
+  start_date?: string | null
+  end_date?: string | null
+  schedule?: Array<{
+    'initial-time': string
+    'end-time': string
+  }>
   events?: {
     id: string
     name: string
     subject: string
     code: string
+    schedule?: Array<{
+      'initial-time': string
+      'end-time': string
+    }>
+    start_date?: string | null
+    end_date?: string | null
   }[]
   influencer?: {
     name: string
