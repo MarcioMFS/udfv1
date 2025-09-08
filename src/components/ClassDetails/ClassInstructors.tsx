@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassInstructors.tsx
 import { useState, useEffect } from 'react'
 import { Crown, Users, UserPlus, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'

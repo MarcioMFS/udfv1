@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventPerformanceChart.tsx
 import { useMemo } from 'react'
 import { BarChart3, Calendar, TrendingUp } from 'lucide-react'
 import { format, parseISO, startOfDay, eachDayOfInterval, min, max } from 'date-fns'

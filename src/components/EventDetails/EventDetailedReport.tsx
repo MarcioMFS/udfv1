@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventDetailedReport.tsx
 import { useState } from 'react'
 import { FileText, Download, TrendingUp, Users, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'

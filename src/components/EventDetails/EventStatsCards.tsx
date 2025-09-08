@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventStatsCards.tsx
 import { 
   Users, 
   TrendingUp, 

@@ -1,4 +1,3 @@
-// src/utils/eventUtils.ts
 import { parseISO, isBefore, isAfter, isWithinInterval } from 'date-fns'
 
 export interface EventSchedule {

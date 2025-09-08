@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventParticipants.tsx
 import { useState, useEffect } from 'react'
 import { Users, UserPlus, Crown, CheckCircle, Clock, Plus, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'

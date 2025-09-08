@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassScheduleCalendar.tsx
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'

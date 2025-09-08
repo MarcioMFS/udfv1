@@ -7,6 +7,7 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 * {
@@ -39,6 +40,13 @@ body {
   display: none;  /* Safari and Chrome */
 }
 
+/* Prevent horizontal overflow */
+.prevent-overflow {
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 /* Responsive text sizes */
 .text-responsive-xs { font-size: 0.75rem; }
 .text-responsive-sm { font-size: 0.875rem; }
@@ -56,6 +64,18 @@ body {
   .text-responsive-lg { font-size: 1rem; }
   .text-responsive-xl { font-size: 1.125rem; }
   .text-responsive-2xl { font-size: 1.25rem; }
+  
+  /* Prevent horizontal overflow on mobile */
+  body, html {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Ensure all containers fit within viewport */
+  * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Ensure minimum touch target size */

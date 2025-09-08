@@ -1,4 +1,3 @@
-// src/components/Header.tsx
 import { LogOut, User, Menu } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import Logo from "../assets/logo.png"

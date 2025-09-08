@@ -77,7 +77,6 @@ const BADGE_IMAGES: Record<string, string> = {
   'turma-top-3': 'https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/emblemas/turma-top-3.png'
 }
 
-// Badge descriptions - explanations for each badge
 const BADGE_DESCRIPTIONS: Record<string, string> = {
   'formador-de-turmas': 'Conquiste este emblema criando e gerenciando turmas. Demonstre sua capacidade de organizar grupos de alunos e formar comunidades de aprendizado.',
   'construtor-de-líderes': 'Este emblema é conquistado quando seus alunos se tornam instrutores. Mostre sua habilidade em inspirar e desenvolver futuros líderes.',

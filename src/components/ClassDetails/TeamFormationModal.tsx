@@ -1,4 +1,3 @@
-// src/components/ClassDetails/TeamFormationModal.tsx
 import { useState, useEffect } from 'react'
 import { X, Users, Plus, Trash2, Search, Target, UserCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'

@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassEventsCalendar.tsx
 import { useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, Search, ExternalLink, Filter } from 'lucide-react'
 import { CustomTooltip } from '../ui/CustomTooltip'

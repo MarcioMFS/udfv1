@@ -1,4 +1,3 @@
-// src/components/common/FloatingTooltip.tsx
 
 
 interface FloatingTooltipProps {

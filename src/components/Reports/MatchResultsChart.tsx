@@ -1,4 +1,3 @@
-// src/components/Reports/MatchResultsChart.tsx
 import { useState, useEffect } from 'react'
 import {
   BarChart,

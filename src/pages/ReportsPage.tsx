@@ -1,4 +1,3 @@
-// src/pages/ReportsPage.tsx
 import { useState, useEffect } from 'react'
 import {
   BarChart,

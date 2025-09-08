@@ -1,4 +1,3 @@
-// src/components/LoginForm.tsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, Mail, Lock, Loader2, UserPlus } from 'lucide-react'

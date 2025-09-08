@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventMatchesList.tsx
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -49,12 +48,13 @@ export function EventMatchesList({ matches }: EventMatchesListProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-6 border-b border-gray-200">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 w-full prevent-overflow">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Partidas Registradas ({matches.length})
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Partidas Registradas ({matches.length})</span>
+            <span className="sm:hidden">Partidas ({matches.length})</span>
           </h2>
         </div>
 
@@ -89,7 +89,45 @@ export function EventMatchesList({ matches }: EventMatchesListProps) {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* Mobile Card View */}
+          <div className="sm:hidden space-y-3 p-4">
+            {currentMatches.map((match) => (
+              <div key={match.id} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-3 h-3 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800 text-sm">{match.player_name}</p>
+                      <p className="text-xs text-gray-500">{match.player_email}</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                    {match.class_code}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1 text-gray-600">
+                    <Calendar className="w-3 h-3" />
+                    <span>{format(new Date(match.match_date), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-600">
+                    <Hash className="w-3 h-3" />
+                    <span>#{match.match_number}</span>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-gray-500 font-mono truncate">
+                  Serial: {match.app_serial.substring(0, 20)}...
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -160,9 +198,10 @@ export function EventMatchesList({ matches }: EventMatchesListProps) {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Mostrando {startIndex + 1} a {Math.min(endIndex, filteredMatches.length)} de {filteredMatches.length} partidas
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+              <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
+                <span className="hidden sm:inline">Mostrando {startIndex + 1} a {Math.min(endIndex, filteredMatches.length)} de {filteredMatches.length} partidas</span>
+                <span className="sm:hidden">{startIndex + 1}-{Math.min(endIndex, filteredMatches.length)} de {filteredMatches.length}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button

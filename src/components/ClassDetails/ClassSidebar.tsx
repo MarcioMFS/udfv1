@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassSidebar.tsx
 import { Download, ExternalLink, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 

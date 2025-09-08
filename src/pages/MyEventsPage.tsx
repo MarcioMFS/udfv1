@@ -1,4 +1,3 @@
-// src/pages/MyEventsPage.tsx
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Calendar, Users, Edit, Trash2, BarChart3 } from 'lucide-react'

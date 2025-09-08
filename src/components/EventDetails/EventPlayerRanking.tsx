@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventPlayerRanking.tsx
 import { Trophy, Medal, Crown, User, TrendingUp, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'

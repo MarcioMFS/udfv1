@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassRankingChart.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trophy, Crown, ChevronLeft, ChevronRight, Users, UserCheck, TrendingUp, Target, Info } from 'lucide-react'

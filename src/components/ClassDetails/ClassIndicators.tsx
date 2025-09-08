@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassIndicators.tsx
 import { useState, useEffect } from 'react'
 import { Users, TrendingUp, Trophy, Target, User, Search, Award } from 'lucide-react'
 

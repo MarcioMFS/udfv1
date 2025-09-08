@@ -1,4 +1,3 @@
-// src/components/ClassDetails/DetailedReport.tsx
 import { useState, useMemo } from 'react'
 import { MatchResult } from '../../types'
 import {

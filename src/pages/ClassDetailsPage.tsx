@@ -173,7 +173,7 @@ export function ClassDetailsPage() {
             />
           </div>
 
-          <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <div className="space-y-6 xl:sticky xl:top-0 xl:self-start xl:mt-[72px]">
             <ClassDetailsSidebar
               classData={classData}
               students={students}

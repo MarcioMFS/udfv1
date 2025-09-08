@@ -1,4 +1,3 @@
-// src/pages/EventDetailsPage.tsx
 import { useParams, Link } from 'react-router-dom'
 import { useState } from 'react'
 import { 
@@ -68,77 +67,78 @@ export function EventDetailsPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 prevent-overflow">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto w-full prevent-overflow">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-2 sm:gap-4 mb-4">
           <Link 
             to="/my-events" 
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-800">{eventData.name}</h1>
-            <p className="text-gray-600">{eventData.subject}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{eventData.name}</h1>
+            <p className="text-sm sm:text-base text-gray-600 truncate">{eventData.subject}</p>
           </div>
         </div>
 
         {/* Event Info Bar */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Target className="w-5 h-5 text-blue-600" />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 w-full overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Código do Evento</p>
-                <p className="font-mono font-bold text-gray-800 text-lg">{eventData.code}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Participantes</p>
-                <p className="font-semibold text-gray-800">{stats.unique_players}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600">Código do Evento</p>
+                <p className="font-mono font-bold text-gray-800 text-sm sm:text-lg truncate">{eventData.code}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-600" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Criado em</p>
-                <p className="font-semibold text-gray-800">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600">Participantes</p>
+                <p className="font-semibold text-gray-800 text-sm sm:text-base">{stats.unique_players}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600">Criado em</p>
+                <p className="font-semibold text-gray-800 text-sm sm:text-base">
                   {format(new Date(eventData.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Settings className="w-5 h-5 text-indigo-600" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Tipo do Evento</p>
-                <p className="font-semibold text-gray-800">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600">Tipo do Evento</p>
+                <p className="font-semibold text-gray-800 text-sm sm:text-base">
                   {eventData.event_type === 'training' ? 'Training (Individual)' : 'Group (Em Equipe)'}
                 </p>
               </div>
             </div>
 
             {eventData.schedule && eventData.schedule.length > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-green-600" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Cronograma</p>
-                  <p className="font-semibold text-gray-800">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-gray-600">Cronograma</p>
+                  <p className="font-semibold text-gray-800 text-sm sm:text-base">
                     {eventData.schedule.length} horário{eventData.schedule.length > 1 ? 's' : ''} programado{eventData.schedule.length > 1 ? 's' : ''}
                   </p>
                 </div>
@@ -164,59 +164,59 @@ export function EventDetailsPage() {
       />
 
       {/* Tabs Navigation */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+      <div className="mb-4 sm:mb-6">
+        <div className="border-b border-gray-200 overflow-x-auto scrollbar-hide">
+          <nav className="-mb-px flex space-x-2 sm:space-x-4 lg:space-x-8 min-w-max px-2 sm:px-1">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1.5 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'overview'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Visão Geral
+              <div className="flex items-center gap-1">
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Visão Geral</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('participants')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1.5 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'participants'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4" />
-                Participantes
+              <div className="flex items-center gap-1">
+                <UserCheck className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Participantes</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('ranking')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1.5 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'ranking'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                Ranking
+              <div className="flex items-center gap-1">
+                <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Ranking</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('report')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1.5 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'report'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Relatório
+              <div className="flex items-center gap-1">
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Relatório</span>
               </div>
             </button>
           </nav>
@@ -224,13 +224,13 @@ export function EventDetailsPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6 w-full prevent-overflow">
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full">
+            <div className="lg:col-span-2 w-full min-w-0">
               <EventMatchesList matches={matches} />
             </div>
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 w-full min-w-0">
               <EventRankingFiltered players={players} />
             </div>
           </div>
@@ -258,6 +258,7 @@ export function EventDetailsPage() {
             stats={stats} 
           />
         )}
+      </div>
       </div>
     </div>
   )

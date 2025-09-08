@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventDashboard.tsx
 import { useState, useEffect } from 'react'
 import { 
   Users, 
@@ -262,9 +261,9 @@ export function EventDashboard({ eventId, classId, stats }: EventDashboardProps)
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 w-full overflow-hidden">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+          <div key={i} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse w-full">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
               <div className="w-4 h-4 bg-gray-200 rounded"></div>
@@ -281,7 +280,7 @@ export function EventDashboard({ eventId, classId, stats }: EventDashboardProps)
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 w-full overflow-hidden">
       {statCards.map((card, index) => {
         const IconComponent = card.icon
         const colors = getColorClasses(card.color)
@@ -294,29 +293,29 @@ export function EventDashboard({ eventId, classId, stats }: EventDashboardProps)
            comparison.previous.engagement_rate) : null
 
         return (
-          <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-12 h-12 ${colors.bg} rounded-lg flex items-center justify-center`}>
-                <IconComponent className={`w-6 h-6 ${colors.icon}`} />
+          <div key={index} className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow w-full overflow-hidden">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.bg} rounded-lg flex items-center justify-center`}>
+                <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.icon}`} />
               </div>
               <div className="group relative cursor-help">
-                <Info className="w-4 h-4 text-gray-400" />
+                <Info className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity z-50">
                   {card.tooltip}
                 </div>
               </div>
             </div>
             
-            <div className="space-y-2">
-              <div className={`text-2xl font-bold ${colors.text}`}>
+            <div className="space-y-1 sm:space-y-2">
+              <div className={`text-lg sm:text-2xl font-bold ${colors.text} break-words`}>
                 {card.format(card.value)}
               </div>
-              <div className="text-sm font-medium text-gray-600">
+              <div className="text-xs sm:text-sm font-medium text-gray-600">
                 {card.label}
               </div>
               <div className={`flex items-center gap-1 text-xs ${getComparisonColor(card.value, previousValue)}`}>
                 {getComparisonIcon(card.value, previousValue)}
-                <span>{getComparisonText(card.value, previousValue)}</span>
+                <span className="truncate">{getComparisonText(card.value, previousValue)}</span>
               </div>
             </div>
           </div>

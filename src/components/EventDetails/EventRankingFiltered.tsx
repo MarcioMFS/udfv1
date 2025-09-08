@@ -1,4 +1,3 @@
-// src/components/EventDetails/EventRankingFiltered.tsx
 import { useState } from 'react'
 import { Trophy, Medal, Crown, User, TrendingUp, DollarSign, Target, Award } from 'lucide-react'
 import { format } from 'date-fns'
@@ -126,7 +125,7 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
   }
 
   const getFilterButtonClass = (type: RankingType) => {
-    return `px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+    return `px-2 py-1.5 sm:px-3 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
       rankingType === type
         ? 'bg-blue-600 text-white'
         : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -136,47 +135,47 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
   const sortedPlayers = getSortedPlayers()
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2 mb-4">
-          {getRankingIcon()}
-          {getRankingTitle()}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 w-full prevent-overflow">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2 mb-4">
+          <span className="w-4 h-4 sm:w-5 sm:h-5">{getRankingIcon()}</span>
+          <span className="truncate">{getRankingTitle()}</span>
         </h2>
         
         {/* Filtros */}
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <button
             onClick={() => setRankingType('lucro')}
             className={getFilterButtonClass('lucro')}
           >
-            <DollarSign className="w-4 h-4 inline mr-1" />
-            Lucro
+            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+            <span className="text-xs sm:text-sm">Lucro</span>
           </button>
           <button
             onClick={() => setRankingType('satisfacao')}
             className={getFilterButtonClass('satisfacao')}
           >
-            <Target className="w-4 h-4 inline mr-1" />
-            Satisfação
+            <Target className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+            <span className="text-xs sm:text-sm">Satisfação</span>
           </button>
           <button
             onClick={() => setRankingType('bonus')}
             className={getFilterButtonClass('bonus')}
           >
-            <Award className="w-4 h-4 inline mr-1" />
-            Bônus
+            <Award className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+            <span className="text-xs sm:text-sm">Bônus</span>
           </button>
           <button
             onClick={() => setRankingType('matches')}
             className={getFilterButtonClass('matches')}
           >
-            <TrendingUp className="w-4 h-4 inline mr-1" />
-            Participação
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+            <span className="text-xs sm:text-sm">Participação</span>
           </button>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {sortedPlayers.length === 0 ? (
           <div className="text-center py-8">
             <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -191,11 +190,11 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
               return (
                 <div 
                   key={player.player_id} 
-                  className={`rounded-lg border p-4 transition-all hover:shadow-md ${getRankColor(position)}`}
+                  className={`rounded-lg border p-3 sm:p-4 transition-all hover:shadow-md ${getRankColor(position)}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     {/* Rank Icon */}
-                    <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
+                    <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0">
                       {getRankIcon(position)}
                     </div>
                     
@@ -212,25 +211,25 @@ export function EventRankingFiltered({ players }: EventRankingFilteredProps) {
                       
                       {/* Primary Metric */}
                       <div className="flex items-center justify-between">
-                        <div className="text-lg font-bold text-gray-900">
+                        <div className="text-sm sm:text-lg font-bold text-gray-900 truncate">
                           {getPlayerValue(player)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 flex-shrink-0 ml-2">
                           {player.total_matches} partidas
                         </div>
                       </div>
                       
                       {/* Secondary Metrics */}
                       {rankingType !== 'matches' && (
-                        <div className="flex gap-4 mt-2 text-xs text-gray-600">
+                        <div className="flex flex-col sm:flex-row sm:gap-4 mt-2 text-xs text-gray-600">
                           {rankingType !== 'lucro' && (
-                            <span>Lucro: {formatCurrency(player.total_profit)}</span>
+                            <span className="truncate">Lucro: {formatCurrency(player.total_profit)}</span>
                           )}
                           {rankingType !== 'satisfacao' && (
-                            <span>Satisfação: {player.avg_satisfaction}%</span>
+                            <span className="truncate">Satisfação: {player.avg_satisfaction}%</span>
                           )}
                           {rankingType !== 'bonus' && (
-                            <span>Bônus: {formatCurrency(player.avg_bonus)}</span>
+                            <span className="truncate">Bônus: {formatCurrency(player.avg_bonus)}</span>
                           )}
                         </div>
                       )}

@@ -1,4 +1,3 @@
-// src/pages/ProfilePage.tsx
 import { BadgeCard } from '@/components/Levels/BadgeCard'
 import { useAuth } from '../contexts/AuthContext'
 import { User, Mail, Shield } from 'lucide-react'

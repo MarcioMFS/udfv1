@@ -1,4 +1,3 @@
-// src/pages/CreateEventPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save, Calendar, BookOpen } from 'lucide-react'
@@ -116,7 +115,6 @@ export function CreateEventPage() {
   }
 
   const generateEventCode = () => {
-    // Generate a UUID and take first 8 characters (similar to C# Guid.NewGuid().ToString().Substring(0, 8))
     const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
     return uuid.substring(0, 8)
   }

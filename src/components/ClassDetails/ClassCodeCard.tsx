@@ -1,4 +1,3 @@
-// src/components/ClassDetails/ClassCodeCard.tsx
 import { Copy } from 'lucide-react'
 import { Class } from '../../types'
 
