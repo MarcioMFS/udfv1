@@ -365,7 +365,7 @@ npm run build
 
 ## 👨‍💻 Desenvolvimento
 
-Este projeto foi desenvolvido pela **[Somos Tecnologia Brasil](https://somostecnologia.com.br)**, empresa especializada em soluções tecnológicas inovadoras para educação e gestão empresarial.
+Este projeto foi desenvolvido pela **[Somos Tecnologia Brasil](https://somos.tec.br)**, empresa especializada em soluções tecnológicas inovadoras para educação e gestão empresarial.
 
 ---
 
