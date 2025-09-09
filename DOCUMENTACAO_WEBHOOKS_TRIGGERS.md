@@ -124,6 +124,65 @@ Este documento descreve a arquitetura de webhooks e triggers do sistema UDF, que
 - Cria/atualiza influenciador
 - Busca por email como chave única
 
+### 6. webhook-events
+
+**Arquivo:** `supabase/functions/webhook-events/index.ts`
+
+**Finalidade:** Criação de eventos com participantes (treinamentos e cursos).
+
+**Payload:**
+```json
+{
+  "event-code": "string",
+  "event-type": "training|course",
+  "event-name": "string",
+  "event-description": "string",
+  "event-subject": "string",
+  "schedule": [
+    {
+      "initial-time": "ISO date",
+      "end-time": "ISO date"
+    }
+  ],
+  "participants": [
+    {
+      "registration": "string",
+      "participant-code": "string", 
+      "name": "string",
+      "email": "string",
+      "role": "leader|training-leader|participant"
+    }
+  ]
+}
+```
+
+**Funcionalidades:**
+- Cria eventos com múltiplos participantes
+- Suporte a diferentes tipos (training/course)
+- Vincula participantes com roles específicos
+- Processa cronograma de eventos
+
+### 7. promote-to-instructor
+
+**Arquivo:** `supabase/functions/promote-to-instructor/index.ts`
+
+**Finalidade:** Promoção de jogadores a instrutores.
+
+**Payload:**
+```json
+{
+  "player_name": "Nome do Jogador",
+  "player_email": "jogador@example.com",
+  "player_id": "uuid_opcional"
+}
+```
+
+**Funcionalidades:**
+- Promove jogador existente para instrutor
+- Cria registro na tabela de instrutores
+- Mantém vínculo com histórico como jogador
+- Permite promoção por email ou ID
+
 ## ⚡ Triggers e Functions do Banco de Dados
 
 ### 1. Sistema de Estatísticas de Instrutores
@@ -201,6 +260,16 @@ Webhook Players → Valida Turma → Cria/Atualiza Jogador → Vincula à Turma 
 Webhook Create Match → Cria Match → Trigger Calculate → Edge Function → Match Results → Trigger Stats
 ```
 
+### 4. Criação de Evento com Participantes
+```
+Webhook Events → Valida Participantes → Cria Evento → Processa Participantes → Vincula Roles → Trigger Stats
+```
+
+### 5. Promoção para Instrutor
+```
+Promote to Instructor → Valida Jogador → Cria Instrutor → Mantém Histórico → Trigger Stats
+```
+
 ## 📊 Tabelas Impactadas
 
 ### Principais:
@@ -237,10 +306,38 @@ Webhook Create Match → Cria Match → Trigger Calculate → Edge Function → 
 
 ## 🔧 Configuração e Manutenção
 
+### Deploy das Edge Functions:
+```bash
+# Instalar Supabase CLI
+npm install -g supabase
+# ou via Scoop (Windows)
+scoop install supabase
+
+# Login no Supabase
+supabase login
+
+# Deploy de todas as functions
+supabase functions deploy
+
+# Deploy individual por function
+supabase functions deploy webhook-classes
+supabase functions deploy webhook-instructors  
+supabase functions deploy webhook-players
+supabase functions deploy webhook-create-match
+supabase functions deploy webhook-match-results
+supabase functions deploy webhook-influencers
+supabase functions deploy webhook-events
+supabase functions deploy promote-to-instructor
+
+# Verificar functions deployadas
+supabase functions list
+```
+
 ### Variáveis de Ambiente:
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### Configurações do Banco:
@@ -267,3 +364,23 @@ ALTER DATABASE postgres SET app.settings.supabase_anon_key = 'your-anon-key';
 - Monitore os logs de performance das Edge Functions
 - Execute `ANALYZE` periódico nas tabelas principais
 - Configure alertas para falhas nos webhooks
+
+## 📋 Lista Completa de Edge Functions
+
+| Function | Finalidade | Status | Deploy |
+|----------|------------|--------|---------|
+| `webhook-classes` | Criação e atualização de turmas | ✅ Ativo | `supabase functions deploy webhook-classes` |
+| `webhook-instructors` | Gestão completa de instrutores | ✅ Ativo | `supabase functions deploy webhook-instructors` |
+| `webhook-players` | Gerenciamento de jogadores e vinculação | ✅ Ativo | `supabase functions deploy webhook-players` |
+| `webhook-create-match` | Registro de novas partidas | ✅ Ativo | `supabase functions deploy webhook-create-match` |
+| `webhook-match-results` | Processamento automático de resultados | ✅ Ativo | `supabase functions deploy webhook-match-results` |
+| `webhook-influencers` | Gestão simples de influenciadores | ✅ Ativo | `supabase functions deploy webhook-influencers` |
+| `webhook-events` | Criação de eventos com participantes | ✅ Ativo | `supabase functions deploy webhook-events` |
+| `promote-to-instructor` | Promoção de jogadores a instrutores | ✅ Ativo | `supabase functions deploy promote-to-instructor` |
+
+### Comando para Deploy Completo:
+```bash
+supabase functions deploy
+```
+
+Este comando faz o deploy de todas as Edge Functions de uma vez.

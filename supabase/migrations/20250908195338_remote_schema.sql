@@ -592,11 +592,20 @@ AS $function$
   $function$
 ;
 
-create type "public"."http_header" as ("field" character varying, "value" character varying);
-
-create type "public"."http_request" as ("method" http_method, "uri" character varying, "headers" http_header[], "content_type" character varying, "content" character varying);
-
-create type "public"."http_response" as ("status" integer, "content_type" character varying, "headers" http_header[], "content" character varying);
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'http_header' AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN
+        CREATE TYPE "public"."http_header" AS ("field" character varying, "value" character varying);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'http_request' AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN
+        CREATE TYPE "public"."http_request" AS ("method" http_method, "uri" character varying, "headers" http_header[], "content_type" character varying, "content" character varying);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'http_response' AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')) THEN
+        CREATE TYPE "public"."http_response" AS ("status" integer, "content_type" character varying, "headers" http_header[], "content" character varying);
+    END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION public.recalculate_instructor_stats(instructor_uuid uuid)
  RETURNS void

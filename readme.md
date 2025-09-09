@@ -270,6 +270,44 @@ POST /webhook-match-results
 }
 ```
 
+#### **6. webhook-influencers** - Gestão de influenciadores
+```json
+POST /webhook-influencers
+{
+  "name": "Nome do Influencer",
+  "email": "influencer@example.com"
+}
+```
+
+#### **7. webhook-events** - Criação de eventos
+```json
+POST /webhook-events
+{
+  "event-code": "EVENT123",
+  "event-type": "training|course",
+  "event-name": "Treinamento Avançado",
+  "event-description": "Descrição do evento",
+  "schedule": [{"initial-time": "2025-01-15T10:00:00", "end-time": "2025-01-15T12:00:00"}],
+  "participants": [
+    {
+      "name": "João Silva",
+      "email": "joao@email.com",
+      "role": "leader|training-leader|participant"
+    }
+  ]
+}
+```
+
+#### **8. promote-to-instructor** - Promoção para instrutor
+```json
+POST /promote-to-instructor
+{
+  "player_name": "Maria Santos",
+  "player_email": "maria@email.com",
+  "player_id": "uuid_opcional"
+}
+```
+
 ### **Triggers Automáticos**
 - **Estatísticas de Instrutores**: Recalcula métricas automaticamente
 - **Cálculo de Resultados**: Processa partidas em tempo real  
@@ -303,7 +341,22 @@ Sistema totalmente responsivo para mobile, tablet e desktop.
 
 ## 🚀 Deploy
 
-**Build local:**
+### **Edge Functions:**
+```bash
+# Instalar Supabase CLI
+npm install -g supabase
+
+# Login no Supabase  
+supabase login
+
+# Deploy de todas as Edge Functions
+supabase functions deploy
+
+# Verificar functions deployadas
+supabase functions list
+```
+
+### **Build local:**
 ```bash
 npm run build
 ```
