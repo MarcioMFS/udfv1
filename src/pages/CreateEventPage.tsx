@@ -123,9 +123,22 @@ export function CreateEventPage() {
     e.preventDefault()
     if (!user) return
 
-    // Validação obrigatória da turma
     if (!formData.class_id) {
       toast.error('Por favor, selecione uma turma para o evento')
+      return
+    }
+
+    if (!formData.schedule || formData.schedule.length === 0) {
+      toast.error('Por favor, adicione pelo menos um horário ao cronograma do evento')
+      return
+    }
+
+    const hasInvalidSchedule = formData.schedule.some(s =>
+      !s['initial-time'] || !s['end-time']
+    )
+
+    if (hasInvalidSchedule) {
+      toast.error('Por favor, preencha todos os horários do cronograma')
       return
     }
 
@@ -177,7 +190,7 @@ export function CreateEventPage() {
         toast.success('Evento atualizado com sucesso!')
         navigate('/my-events')
       } else {
-        const codigo = generateEventCode()
+        const codigo = generateEventCode().toUpperCase()
 
         const { error } = await supabase
           .from('events')
@@ -326,7 +339,7 @@ export function CreateEventPage() {
               {/* Schedule */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cronograma (Opcional)
+                  Cronograma *
                 </label>
                 <div className="space-y-2">
                   {Array.isArray(formData.schedule) ? formData.schedule.map((meeting, index) => (
@@ -342,6 +355,7 @@ export function CreateEventPage() {
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                           placeholder="Data/hora inicial"
+                          required
                         />
                       </div>
                       <span className="text-gray-400">até</span>
@@ -356,6 +370,7 @@ export function CreateEventPage() {
                           }}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
                           placeholder="Data/hora final"
+                          required
                         />
                       </div>
                       <button
@@ -382,7 +397,7 @@ export function CreateEventPage() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Defina os horários programados para este evento (opcional)
+                  Defina pelo menos um horário para o evento
                 </p>
               </div>
             </div>

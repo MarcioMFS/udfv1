@@ -95,8 +95,31 @@ export function capitalizeFirst(text: string): string {
 
 export function formatCsvValue(value: any): string {
   if (value === null || value === undefined) return ''
-  if (typeof value === 'string') return `"${value}"`
-  return value.toString()
+  
+  let stringValue = value.toString()
+  
+  // Escapa aspas duplas duplicando-as
+  stringValue = stringValue.replace(/"/g, '""')
+  
+  // Coloca entre aspas se contém caracteres especiais
+  if (stringValue.includes(',') || stringValue.includes(';') || 
+      stringValue.includes('"') || stringValue.includes('\n') || 
+      stringValue.includes('\r')) {
+    return `"${stringValue}"`
+  }
+  
+  return stringValue
+}
+
+export function formatCsvNumber(value: number): string {
+  if (value === null || value === undefined || isNaN(value)) return '0'
+  
+  // Formata números usando vírgula decimal (padrão brasileiro)
+  // mas mantém formato que Excel entende
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
 
 export function sanitizeFilename(filename: string): string {

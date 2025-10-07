@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Student, Team } from '../types'
-import { formatCsvValue, sanitizeFilename, getPurposeLabel } from './formatters'
+import { formatCsvValue, formatCsvNumber, sanitizeFilename, getPurposeLabel } from './formatters'
 
 export function exportStudentsToCSV(
   students: Student[], 
@@ -34,15 +34,15 @@ export function exportStudentsToCSV(
       return [
         formatCsvValue(student.name || ''),
         formatCsvValue(student.email || ''),
-        student.total_matches,
-        student.avg_score,
+        student.total_matches || 0,
+        formatCsvNumber(student.avg_score || 0),
         formatCsvValue(purposeLabel),
         formatCsvValue(team?.name || 'Sem time'),
         formatCsvValue(joinedAt)
-      ].join(',')
+      ].join(';')
     })
 
-    const csvContent = [headers.join(','), ...csvRows].join('\n')
+    const csvContent = [headers.join(';'), ...csvRows].join('\n')
     downloadCSV(csvContent, `alunos_turma_${sanitizeFilename(classCode)}.csv`)
     
   } catch (error) {
@@ -70,15 +70,15 @@ export function exportRankingToCSV(
     ]
     
     const csvRows = rankingData.map(item => [
-      item.position,
+      item.position || 0,
       formatCsvValue(item.name),
       formatCsvValue(item.isTeam ? 'Time' : 'Individual'),
-      item.score,
-      item.matches,
+      formatCsvNumber(item.score || 0),
+      item.matches || 0,
       formatCsvValue(item.statusColor || 'gray')
-    ].join(','))
+    ].join(';'))
 
-    const csvContent = [headers.join(','), ...csvRows].join('\n')
+    const csvContent = [headers.join(';'), ...csvRows].join('\n')
     downloadCSV(csvContent, `ranking_turma_${sanitizeFilename(classCode)}.csv`)
     
   } catch (error) {
@@ -113,18 +113,18 @@ export function exportIndicatorsToCSV(
     const csvRows = indicators.map(indicator => [
       formatCsvValue(indicator.name || ''),
       formatCsvValue(indicator.email || ''),
-      indicator.totalLucro,
-      indicator.avgSatisfacao,
-      indicator.totalBonus,
+      formatCsvNumber(indicator.totalLucro || 0),
+      formatCsvNumber(indicator.avgSatisfacao || 0),
+      formatCsvNumber(indicator.totalBonus || 0),
       formatCsvValue(getPurposeLabel(indicator.purpose)),
-      indicator.individualEngagement,
+      formatCsvNumber(indicator.individualEngagement || 0),
       formatCsvValue(indicator.statusColor),
-      indicator.lucroPosition,
-      indicator.satisfacaoPosition,
-      indicator.bonusPosition
-    ].join(','))
+      indicator.lucroPosition || 0,
+      indicator.satisfacaoPosition || 0,
+      indicator.bonusPosition || 0
+    ].join(';'))
 
-    const csvContent = [headers.join(','), ...csvRows].join('\n')
+    const csvContent = [headers.join(';'), ...csvRows].join('\n')
     downloadCSV(csvContent, `indicadores_turma_${sanitizeFilename(classCode)}.csv`)
     
   } catch (error) {
@@ -134,7 +134,11 @@ export function exportIndicatorsToCSV(
 }
 
 function downloadCSV(csvContent: string, filename: string): void {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  // Adiciona BOM (Byte Order Mark) para UTF-8 - garante que Excel reconheça acentos
+  const BOM = '\uFEFF'
+  const csvWithBOM = BOM + csvContent
+  
+  const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   
