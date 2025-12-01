@@ -9,6 +9,14 @@ interface ProcessedExcelData {
 }
 
 /**
+ * Gera um código aleatório de 8 caracteres para o evento
+ */
+function generateEventCode(): string {
+  const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
+  return uuid.substring(0, 8)
+}
+
+/**
  * Lê o arquivo Excel e extrai os dados das 3 abas: Instrutor, Alunos e Encontros
  */
 export async function readExcelFile(file: File): Promise<ProcessedExcelData> {
@@ -544,10 +552,13 @@ export async function importClassFromExcel(
           .delete()
           .eq('class_id', classId)
 
+        // Gerar código aleatório para o evento
+        const eventCode = generateEventCode()
+
         const { error: eventError } = await supabase
           .from('events')
           .insert({
-            code: classInfo.classCode,
+            code: eventCode,
             name: classInfo.className,
             description: `${classInfo.className} - ${events.length} encontros`,
             class_id: classId,
