@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { Class, Student, Team, MatchResult } from '../types'
 import { useAuth } from '../contexts/AuthContext'
+import { getInstructorIdByEmail } from '../utils/instructorUtils'
 
 interface UseClassDataReturn {
   classData: Class | null
@@ -32,6 +33,13 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
     setError(null)
 
     try {
+      // Buscar instructor_id baseado no email do usuário
+      const instructorId = await getInstructorIdByEmail(user.email || '')
+
+      if (!instructorId) {
+        throw new Error('Instrutor não encontrado')
+      }
+
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select(`
@@ -39,7 +47,7 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
           influencers:influencer_id (name, email)
         `)
         .eq('id', classId)
-        .eq('instructor_id', user.id)
+        .eq('instructor_id', instructorId)
         .single()
 
       // Load events associated with this class

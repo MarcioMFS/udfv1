@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { Event } from '../types'
+import { getInstructorIdByEmail } from '../utils/instructorUtils'
 
 interface EventMatch {
   id: string
@@ -85,12 +86,19 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
     setError(null)
 
     try {
+      // Buscar instructor_id baseado no email do usuário
+      const instructorId = await getInstructorIdByEmail(user.email || '')
+
+      if (!instructorId) {
+        throw new Error('Instrutor não encontrado')
+      }
+
       // Load event details
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .select('*')
         .eq('id', eventId)
-        .eq('instructor_id', user.id)
+        .eq('instructor_id', instructorId)
         .single()
 
       if (eventError) {

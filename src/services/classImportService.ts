@@ -346,9 +346,9 @@ function generateClassCode(className: string): string {
 }
 
 /**
- * Converte horário "8 as 12" para formato de schedule
+ * Converte horário "8 as 12" para formato de schedule com data ISO completa
  */
-function parseSchedule(scheduleStr: string): { 'initial-time': string; 'end-time': string } | null {
+function parseSchedule(scheduleStr: string, eventDate: string): { 'initial-time': string; 'end-time': string } | null {
   // Formatos aceitos: "8 as 12", "14 as 18", "08:00 às 12:00"
   const match = scheduleStr.match(/(\d+)(?::(\d+))?\s*(?:as|às|a)\s*(\d+)(?::(\d+))?/)
 
@@ -358,9 +358,10 @@ function parseSchedule(scheduleStr: string): { 'initial-time': string; 'end-time
     const endHour = match[3].padStart(2, '0')
     const endMin = (match[4] || '00').padStart(2, '0')
 
+    // Criar timestamps ISO completos com a data do evento
     return {
-      'initial-time': `${startHour}:${startMin}`,
-      'end-time': `${endHour}:${endMin}`
+      'initial-time': `${eventDate}T${startHour}:${startMin}:00`,
+      'end-time': `${eventDate}T${endHour}:${endMin}:00`
     }
   }
 
@@ -523,36 +524,50 @@ export async function importClassFromExcel(
       }
     }
 
-    // 4. Criar eventos
-    for (const event of events) {
+    // 4. Criar UM ÚNICO evento com múltiplos encontros no schedule
+    if (events.length > 0) {
       try {
-        const schedule = parseSchedule(event.schedule)
+        // Construir array de schedules (todos os encontros)
+        const schedules = events.map(event => {
+          const schedule = parseSchedule(event.schedule, event.startDate)
+          return schedule
+        }).filter(s => s !== null)
+
+        // Pegar primeira e última data para start_date e end_date
+        const sortedDates = events.map(e => e.startDate).sort()
+        const firstDate = sortedDates[0]
+        const lastDate = sortedDates[sortedDates.length - 1]
+
+        // Deletar eventos existentes da turma antes de criar novo
+        await supabase
+          .from('events')
+          .delete()
+          .eq('class_id', classId)
 
         const { error: eventError } = await supabase
           .from('events')
           .insert({
-            code: `${classInfo.classCode}-${event.code}`,
-            name: `Encontro ${event.code}`,
-            description: `Encontro ${event.code} - ${event.schedule}`,
+            code: classInfo.classCode,
+            name: classInfo.className,
+            description: `${classInfo.className} - ${events.length} encontros`,
             class_id: classId,
             instructor_id: instructorId,
             event_type: 'training',
-            start_date: event.startDate,
-            end_date: event.endDate,
-            schedule: schedule ? [schedule] : [],
+            start_date: firstDate,
+            end_date: lastDate,
+            schedule: schedules,
             difficulty: 'medium',
             time_limit: 30,
             max_players: 50
           })
 
         if (eventError) {
-          errors.push(`Erro ao criar evento ${event.code}: ${eventError.message}`)
-          continue
+          errors.push(`Erro ao criar evento: ${eventError.message}`)
+        } else {
+          eventsImported = events.length // Contar quantos encontros foram adicionados
         }
-
-        eventsImported++
       } catch (error) {
-        errors.push(`Erro ao processar evento ${event.code}: ${error}`)
+        errors.push(`Erro ao processar eventos: ${error}`)
       }
     }
 
