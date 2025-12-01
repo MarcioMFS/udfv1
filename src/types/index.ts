@@ -203,7 +203,6 @@ export interface ExcelStudentImport {
 }
 
 export interface ExcelEventImport {
-  code: string
   startDate: string
   endDate: string
   schedule: string

@@ -17,16 +17,14 @@ export function downloadClassImportTemplate() {
   XLSX.utils.book_append_sheet(wb, wsInstructor, 'Instrutor')
 
   // ABA 2: Encontros
-  // NOTA: O código (E1, E2, etc) é apenas para organização
-  // O sistema gera automaticamente um código único aleatório para o evento
   const eventsData = [
-    ['CÓDIGO', 'DATA INICIO', 'DATA FIM', 'HORÁRIO'],
-    ['E1', '2025-12-02', '2025-12-02', '8 as 12'],
-    ['E2', '2025-12-02', '2025-12-02', '14 as 18'],
-    ['E3', '2025-12-03', '2025-12-03', '8 as 12'],
-    ['E4', '2025-12-03', '2025-12-03', '14 as 18'],
-    ['E5', '2025-12-04', '2025-12-04', '8 as 12'],
-    ['E6', '2025-12-04', '2025-12-04', '14 as 18']
+    ['DATA INICIO', 'DATA FIM', 'HORÁRIO'],
+    ['2025-12-02', '2025-12-02', '8 as 12'],
+    ['2025-12-02', '2025-12-02', '14 as 18'],
+    ['2025-12-03', '2025-12-03', '8 as 12'],
+    ['2025-12-03', '2025-12-03', '14 as 18'],
+    ['2025-12-04', '2025-12-04', '8 as 12'],
+    ['2025-12-04', '2025-12-04', '14 as 18']
   ]
   const wsEvents = XLSX.utils.aoa_to_sheet(eventsData)
   XLSX.utils.book_append_sheet(wb, wsEvents, 'Encontros')

@@ -269,20 +269,13 @@ function processEventsSheet(workbook: XLSX.WorkBook): ExcelEventImport[] {
     const row = data[i]
     if (!row || row.length < 2) continue
 
-    // Primeira coluna geralmente é o código (E1, E2, etc)
-    const code = row[0] ? String(row[0]).trim() : `E${i - headerRowIndex}`
-
-    // Se não parece ser código de evento, pular
-    if (!/^E\d+$/i.test(code)) continue
-
-    // Colunas: [código, inicio, fim, horario]
-    const startDate = parseExcelDate(row[1])
-    const endDate = parseExcelDate(row[2])
-    const schedule = row[3] ? String(row[3]).trim() : ''
+    // Colunas: [inicio, fim, horario]
+    const startDate = parseExcelDate(row[0])
+    const endDate = parseExcelDate(row[1])
+    const schedule = row[2] ? String(row[2]).trim() : ''
 
     if (startDate && schedule) {
       events.push({
-        code,
         startDate,
         endDate: endDate || startDate,
         schedule
