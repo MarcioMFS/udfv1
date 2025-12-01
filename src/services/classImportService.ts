@@ -62,30 +62,58 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
   let instructorName = ''
   let instructorEmail = ''
 
+  console.log('Dados da aba Instrutor:', data)
+
   for (let i = 0; i < data.length && i < 10; i++) {
     const row = data[i]
-    if (!row) continue
+    if (!row || row.length === 0) continue
 
-    // Primeira linha geralmente contém o nome da turma
-    if (i === 0 && row[0] && typeof row[0] === 'string') {
-      className = row[0].trim()
-    }
-
-    // Procurar por "Instrutor" e "Email Instrutor"
-    const rowStr = row.join(' ').toLowerCase()
-    if (rowStr.includes('instrutor')) {
-      // Próxima linha deve ter os valores
-      if (data[i + 1]) {
-        instructorName = data[i + 1][0] || ''
-        instructorEmail = data[i + 1][1] || ''
+    // Primeira linha não vazia geralmente contém o nome da turma
+    if (!className && row[0] && typeof row[0] === 'string' && row[0].trim().length > 0) {
+      const firstCell = row[0].trim()
+      // Verificar se não é cabeçalho
+      if (!firstCell.toLowerCase().includes('instrutor')) {
+        className = firstCell
       }
     }
+
+    // Procurar linha com cabeçalho "Instrutor" e "Email"
+    const rowStr = row.map(cell => String(cell || '').toLowerCase()).join(' ')
+
+    if (rowStr.includes('instrutor') && rowStr.includes('email')) {
+      // Próxima linha deve ter os valores
+      if (data[i + 1] && data[i + 1].length >= 2) {
+        const nextRow = data[i + 1]
+
+        // Encontrar qual coluna tem o nome e qual tem o email
+        // Nome geralmente não tem @, email tem @
+        for (let col = 0; col < nextRow.length; col++) {
+          const cellValue = String(nextRow[col] || '').trim()
+
+          if (cellValue.includes('@')) {
+            instructorEmail = cellValue
+          } else if (cellValue.length > 0 && !instructorName) {
+            instructorName = cellValue
+          }
+        }
+
+        // Se não encontrou dessa forma, tentar ordem padrão
+        if (!instructorEmail && nextRow[1]) {
+          instructorName = String(nextRow[0] || '').trim()
+          instructorEmail = String(nextRow[1] || '').trim()
+        }
+      }
+      break
+    }
   }
+
+  console.log('Dados extraídos:', { className, instructorName, instructorEmail })
 
   // Gerar código da turma baseado no nome (pegar primeiras letras ou usar nome completo)
   const classCode = generateClassCode(className)
 
   if (!className || !instructorEmail) {
+    console.error('Dados incompletos:', { className, instructorEmail })
     return null
   }
 
