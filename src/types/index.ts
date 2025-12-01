@@ -189,3 +189,30 @@ export interface BaseComponentProps extends LoadingState, ErrorState {
 }
 
 export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report' | 'instructors'
+
+export interface ExcelClassImport {
+  classCode: string
+  className: string
+  instructorName: string
+  instructorEmail: string
+}
+
+export interface ExcelStudentImport {
+  name: string
+  email: string
+}
+
+export interface ExcelEventImport {
+  code: string
+  startDate: string
+  endDate: string
+  schedule: string
+}
+
+export interface ClassImportResult {
+  success: boolean
+  classId?: string
+  studentsImported: number
+  eventsImported: number
+  errors: string[]
+}

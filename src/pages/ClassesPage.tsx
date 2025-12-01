@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { ImportClassModal } from '../components/modal/ImportClassModal'
 
 interface Class {
   id: string
@@ -46,6 +48,7 @@ export function ClassesPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showStudentsModal, setShowStudentsModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -180,9 +183,9 @@ export function ClassesPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      {/* Search and Import */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="relative max-w-md flex-1">
           <svg className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -194,6 +197,13 @@ export function ClassesPage() {
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           />
         </div>
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+        >
+          <Upload size={18} />
+          Importar Turma via Excel
+        </button>
       </div>
 
       {/* Loading state */}
@@ -268,6 +278,16 @@ export function ClassesPage() {
   ))}
 </div>
 
+
+      {/* Import Modal */}
+      <ImportClassModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          setShowImportModal(false)
+          loadClasses()
+        }}
+      />
 
       {/* Students Modal */}
       {showStudentsModal && selectedClass && (
