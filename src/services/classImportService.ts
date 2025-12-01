@@ -42,6 +42,10 @@ export async function readExcelFile(file: File): Promise<ProcessedExcelData> {
 
 /**
  * Processa a aba "Instrutor" para extrair informações da turma
+ * Formato esperado:
+ * Linha 1: [Nome da Turma]
+ * Linha 2: [vazio, "Instrutor", "Email Instrutor"]
+ * Linha 3: [vazio, "Nome do Instrutor", "email@exemplo.com"]
  */
 function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | null {
   // Tentar encontrar aba por nome
@@ -57,50 +61,50 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
   const sheet = workbook.Sheets[sheetName]
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][]
 
-  // Procurar informações da turma
   let className = ''
   let instructorName = ''
   let instructorEmail = ''
 
-  console.log('Dados da aba Instrutor:', data)
+  console.log('Dados da aba Instrutor:', data.slice(0, 5))
 
-  for (let i = 0; i < data.length && i < 10; i++) {
-    const row = data[i]
-    if (!row || row.length === 0) continue
-
-    // Primeira linha não vazia geralmente contém o nome da turma
-    if (!className && row[0] && typeof row[0] === 'string' && row[0].trim().length > 0) {
-      const firstCell = row[0].trim()
-      // Verificar se não é cabeçalho
-      if (!firstCell.toLowerCase().includes('instrutor')) {
-        className = firstCell
+  // Linha 1: Nome da turma (coluna A ou primeira coluna com valor)
+  if (data[0]) {
+    for (const cell of data[0]) {
+      if (cell && String(cell).trim()) {
+        className = String(cell).trim()
+        break
       }
     }
+  }
 
-    // Procurar linha com cabeçalho "Instrutor" e "Email"
-    const rowStr = row.map(cell => String(cell || '').toLowerCase()).join(' ')
+  // Procurar linha com cabeçalho "Instrutor" e "Email"
+  for (let i = 1; i < Math.min(data.length, 10); i++) {
+    const row = data[i]
+    if (!row) continue
 
-    if (rowStr.includes('instrutor') && rowStr.includes('email')) {
-      // Próxima linha deve ter os valores
-      if (data[i + 1] && data[i + 1].length >= 2) {
-        const nextRow = data[i + 1]
+    // Verificar se é linha de cabeçalho
+    const hasInstructor = row.some(cell =>
+      cell && String(cell).toLowerCase().includes('instrutor')
+    )
+    const hasEmail = row.some(cell =>
+      cell && String(cell).toLowerCase().includes('email')
+    )
 
-        // Encontrar qual coluna tem o nome e qual tem o email
-        // Nome geralmente não tem @, email tem @
+    if (hasInstructor && hasEmail) {
+      // Próxima linha tem os dados
+      const nextRow = data[i + 1]
+      if (nextRow) {
+        // Percorrer células procurando nome e email
         for (let col = 0; col < nextRow.length; col++) {
           const cellValue = String(nextRow[col] || '').trim()
 
+          if (!cellValue) continue
+
           if (cellValue.includes('@')) {
             instructorEmail = cellValue
-          } else if (cellValue.length > 0 && !instructorName) {
+          } else if (!instructorName && cellValue.length > 2) {
             instructorName = cellValue
           }
-        }
-
-        // Se não encontrou dessa forma, tentar ordem padrão
-        if (!instructorEmail && nextRow[1]) {
-          instructorName = String(nextRow[0] || '').trim()
-          instructorEmail = String(nextRow[1] || '').trim()
         }
       }
       break
@@ -109,7 +113,6 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
 
   console.log('Dados extraídos:', { className, instructorName, instructorEmail })
 
-  // Gerar código da turma baseado no nome (pegar primeiras letras ou usar nome completo)
   const classCode = generateClassCode(className)
 
   if (!className || !instructorEmail) {
@@ -127,6 +130,10 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
 
 /**
  * Processa a aba "Alunos" para extrair lista de alunos
+ * Formato esperado:
+ * Linha 1: [Título da tabela]
+ * Linha 2: [vazio, "Nome", "Email"]
+ * Linha 3+: [número, "Nome do Aluno", "email@exemplo.com"]
  */
 function processStudentsSheet(workbook: XLSX.WorkBook): ExcelStudentImport[] {
   // Tentar encontrar aba por nome
@@ -147,51 +154,66 @@ function processStudentsSheet(workbook: XLSX.WorkBook): ExcelStudentImport[] {
   const students: ExcelStudentImport[] = []
   let headerRowIndex = -1
 
+  console.log('Dados da aba Alunos:', data.slice(0, 7))
+
   // Encontrar linha de cabeçalho (procurar por "Nome" e "Email")
-  for (let i = 0; i < data.length && i < 20; i++) {
+  for (let i = 0; i < Math.min(data.length, 20); i++) {
     const row = data[i]
     if (!row) continue
 
-    const rowStr = row.join(' ').toLowerCase()
-    if (rowStr.includes('nome') && rowStr.includes('email')) {
+    const hasNome = row.some(cell => cell && String(cell).toLowerCase().includes('nome'))
+    const hasEmail = row.some(cell => cell && String(cell).toLowerCase().includes('email'))
+
+    if (hasNome && hasEmail) {
       headerRowIndex = i
       break
     }
   }
 
-  if (headerRowIndex === -1) return []
+  if (headerRowIndex === -1) {
+    console.error('Cabeçalho de alunos não encontrado')
+    return []
+  }
 
   // Processar linhas após cabeçalho
   for (let i = headerRowIndex + 1; i < data.length; i++) {
     const row = data[i]
-    if (!row || row.length < 2) continue
+    if (!row) continue
 
-    // Pular linha se primeiro campo for número (índice)
-    let nameIndex = 0
-    let emailIndex = 1
+    let name = ''
+    let email = ''
 
-    // Se primeira coluna for número, ajustar índices
-    if (typeof row[0] === 'number') {
-      nameIndex = 1
-      emailIndex = 2
+    // Percorrer todas as células procurando nome e email
+    for (let col = 0; col < row.length; col++) {
+      const cellValue = String(row[col] || '').trim()
+
+      if (!cellValue) continue
+
+      // Se contém @, é email
+      if (cellValue.includes('@')) {
+        email = cellValue
+      }
+      // Se não é número e não é email, é nome
+      else if (!email && cellValue.length > 2 && isNaN(Number(cellValue))) {
+        name = cellValue
+      }
     }
 
-    const name = row[nameIndex]
-    const email = row[emailIndex]
-
-    if (name && email && typeof name === 'string' && typeof email === 'string') {
-      students.push({
-        name: name.trim(),
-        email: email.trim()
-      })
+    if (name && email) {
+      students.push({ name, email })
     }
   }
 
+  console.log(`Alunos encontrados: ${students.length}`)
   return students
 }
 
 /**
  * Processa a aba "Encontros" para extrair eventos/aulas
+ * Formato esperado:
+ * Linha 1: [Título]
+ * Linha 2: [vazio, "Inicio", "Fim", "Horario"]
+ * Linha 3+: ["E1", "2025-11-21 00:00:00", "2025-11-21 00:00:00", "8 as 12"]
  */
 function processEventsSheet(workbook: XLSX.WorkBook): ExcelEventImport[] {
   // Tentar encontrar aba por nome
@@ -212,93 +234,96 @@ function processEventsSheet(workbook: XLSX.WorkBook): ExcelEventImport[] {
   const events: ExcelEventImport[] = []
   let headerRowIndex = -1
 
+  console.log('Dados da aba Encontros:', data.slice(0, 9))
+
   // Encontrar linha de cabeçalho
-  for (let i = 0; i < data.length && i < 20; i++) {
+  for (let i = 0; i < Math.min(data.length, 20); i++) {
     const row = data[i]
     if (!row) continue
 
-    const rowStr = row.join(' ').toLowerCase()
-    if (rowStr.includes('inicio') || rowStr.includes('fim') || rowStr.includes('horario')) {
+    const hasInicio = row.some(cell => cell && String(cell).toLowerCase().includes('inicio'))
+    const hasFim = row.some(cell => cell && String(cell).toLowerCase().includes('fim'))
+    const hasHorario = row.some(cell => cell && String(cell).toLowerCase().includes('horario'))
+
+    if (hasInicio || (hasFim && hasHorario)) {
       headerRowIndex = i
       break
     }
   }
 
-  if (headerRowIndex === -1) return []
+  if (headerRowIndex === -1) {
+    console.error('Cabeçalho de encontros não encontrado')
+    return []
+  }
 
   // Processar linhas após cabeçalho
   for (let i = headerRowIndex + 1; i < data.length; i++) {
     const row = data[i]
-    if (!row || row.length < 3) continue
+    if (!row || row.length < 2) continue
 
-    // Pode ter código do evento na primeira coluna (E1, E2, etc)
-    let startIndex = 0
-    let endIndex = 1
-    let scheduleIndex = 2
+    // Primeira coluna geralmente é o código (E1, E2, etc)
+    const code = row[0] ? String(row[0]).trim() : `E${i - headerRowIndex}`
 
-    // Se primeira coluna parece ser código de evento (E1, E2, etc)
-    if (row[0] && typeof row[0] === 'string' && /^E\d+$/i.test(row[0].trim())) {
-      const code = row[0].trim()
-      startIndex = 1
-      endIndex = 2
-      scheduleIndex = 3
+    // Se não parece ser código de evento, pular
+    if (!/^E\d+$/i.test(code)) continue
 
-      const startDate = parseExcelDate(row[startIndex])
-      const endDate = parseExcelDate(row[endIndex])
-      const schedule = row[scheduleIndex]
+    // Colunas: [código, inicio, fim, horario]
+    const startDate = parseExcelDate(row[1])
+    const endDate = parseExcelDate(row[2])
+    const schedule = row[3] ? String(row[3]).trim() : ''
 
-      if (startDate && schedule) {
-        events.push({
-          code,
-          startDate,
-          endDate: endDate || startDate,
-          schedule: String(schedule).trim()
-        })
-      }
-    } else {
-      // Sem código de evento, gerar automaticamente
-      const startDate = parseExcelDate(row[startIndex])
-      const endDate = parseExcelDate(row[endIndex])
-      const schedule = row[scheduleIndex]
-
-      if (startDate && schedule) {
-        events.push({
-          code: `E${i - headerRowIndex}`,
-          startDate,
-          endDate: endDate || startDate,
-          schedule: String(schedule).trim()
-        })
-      }
+    if (startDate && schedule) {
+      events.push({
+        code,
+        startDate,
+        endDate: endDate || startDate,
+        schedule
+      })
     }
   }
 
+  console.log(`Eventos encontrados: ${events.length}`)
   return events
 }
 
 /**
- * Converte data do Excel para formato ISO
+ * Converte data do Excel para formato ISO (YYYY-MM-DD)
  */
 function parseExcelDate(value: any): string | null {
   if (!value) return null
 
-  // Se for número (data do Excel)
-  if (typeof value === 'number') {
-    const date = XLSX.SSF.parse_date_code(value)
-    if (date) {
-      const year = new Date().getFullYear()
-      return `${year}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`
+  // Se for string que já está no formato "YYYY-MM-DD HH:MM:SS" ou "YYYY-MM-DD"
+  if (typeof value === 'string') {
+    // Extrair apenas a parte da data
+    const dateMatch = value.match(/(\d{4})-(\d{2})-(\d{2})/)
+    if (dateMatch) {
+      return `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
+    }
+
+    // Formato dd/mm ou dd/mm/yyyy
+    const slashMatch = value.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/)
+    if (slashMatch) {
+      const day = slashMatch[1].padStart(2, '0')
+      const month = slashMatch[2].padStart(2, '0')
+      const year = slashMatch[3] ? (slashMatch[3].length === 2 ? '20' + slashMatch[3] : slashMatch[3]) : new Date().getFullYear()
+      return `${year}-${month}-${day}`
     }
   }
 
-  // Se for string (formato dd/mm)
-  if (typeof value === 'string') {
-    const match = value.match(/(\d+)\/(\d+)/)
-    if (match) {
-      const day = match[1].padStart(2, '0')
-      const month = match[2].padStart(2, '0')
-      const year = new Date().getFullYear()
-      return `${year}-${month}-${day}`
+  // Se for número (data serial do Excel)
+  if (typeof value === 'number') {
+    const date = XLSX.SSF.parse_date_code(value)
+    if (date) {
+      return `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`
     }
+  }
+
+  // Se for objeto Date do JavaScript
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    const year = value.getFullYear()
+    const month = String(value.getMonth() + 1).padStart(2, '0')
+    const day = String(value.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   return null
