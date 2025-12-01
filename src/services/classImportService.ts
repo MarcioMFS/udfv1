@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
-import type { ExcelClassImport, ExcelStudentImport, ExcelEventImport, ClassImportResult } from '../types'
+import type { ExcelClassImport, ExcelStudentImport, ExcelEventImport, ClassImportResult, ClassImportPreview } from '../types'
 
 interface ProcessedExcelData {
   classInfo: ExcelClassImport | null
@@ -368,6 +368,64 @@ function parseSchedule(scheduleStr: string): { 'initial-time': string; 'end-time
 }
 
 /**
+ * Verifica se a turma já existe e retorna preview dos dados a serem importados
+ */
+export async function previewClassImport(
+  classInfo: ExcelClassImport,
+  students: ExcelStudentImport[],
+  events: ExcelEventImport[]
+): Promise<ClassImportPreview> {
+  try {
+    // Verificar se turma já existe
+    const { data: existingClass, error } = await supabase
+      .from('classes')
+      .select('id, code, description')
+      .eq('code', classInfo.classCode)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Erro ao verificar turma existente:', error)
+    }
+
+    let existingClassInfo
+    if (existingClass) {
+      // Contar alunos existentes
+      const { count: studentsCount } = await supabase
+        .from('class_players')
+        .select('*', { count: 'exact', head: true })
+        .eq('class_id', existingClass.id)
+
+      // Contar eventos existentes
+      const { count: eventsCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('class_id', existingClass.id)
+
+      existingClassInfo = {
+        id: existingClass.id,
+        description: existingClass.description || existingClass.code,
+        studentsCount: studentsCount || 0,
+        eventsCount: eventsCount || 0
+      }
+    }
+
+    return {
+      classExists: !!existingClass,
+      classCode: classInfo.classCode,
+      className: classInfo.className,
+      instructorName: classInfo.instructorName,
+      instructorEmail: classInfo.instructorEmail,
+      studentsCount: students.length,
+      eventsCount: events.length,
+      existingClass: existingClassInfo
+    }
+  } catch (error) {
+    console.error('Erro ao fazer preview:', error)
+    throw error
+  }
+}
+
+/**
  * Importa a turma completa para o Supabase
  */
 export async function importClassFromExcel(
@@ -381,19 +439,23 @@ export async function importClassFromExcel(
   let eventsImported = 0
 
   try {
-    // 1. Buscar ou criar instrutor
+    // 1. Buscar instrutor por email
     const { data: instructorData, error: instructorError } = await supabase
       .from('instructors')
       .select('id')
       .eq('email', classInfo.instructorEmail)
-      .single()
+      .limit(1)
 
-    if (instructorError || !instructorData) {
-      errors.push(`Instrutor com email ${classInfo.instructorEmail} não encontrado`)
+    if (instructorError || !instructorData || instructorData.length === 0) {
+      errors.push(`Instrutor com email ${classInfo.instructorEmail} não encontrado. Erro: ${instructorError?.message || 'Nenhum instrutor encontrado'}`)
       return { success: false, studentsImported: 0, eventsImported: 0, errors }
     }
 
-    const instructorId = instructorData.id
+    // Pegar o primeiro instrutor (caso haja duplicados)
+    const instructor = Array.isArray(instructorData) ? instructorData[0] : instructorData
+    const instructorId = instructor.id
+
+    console.log('Instrutor encontrado:', { instructorId, email: classInfo.instructorEmail })
 
     // 2. Criar turma
     const { data: classData, error: classError } = await supabase

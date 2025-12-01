@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { readExcelFile, importClassFromExcel } from '../../services/classImportService'
-import type { ClassImportResult } from '../../types'
+import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
+import type { ClassImportResult, ClassImportPreview } from '../../types'
 
 type ImportClassModalProps = {
   isOpen: boolean
@@ -14,6 +14,8 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   const [file, setFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [importResult, setImportResult] = useState<ClassImportResult | null>(null)
+  const [preview, setPreview] = useState<ClassImportPreview | null>(null)
+  const [showConfirmation, setShowConfirmation] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -46,14 +48,38 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
         return
       }
 
+      // Fazer preview e verificar se turma existe
+      const previewData = await previewClassImport(classInfo, students, events)
+      setPreview(previewData)
+
+      // Se turma já existe, mostrar confirmação
+      if (previewData.classExists) {
+        setShowConfirmation(true)
+        setIsLoading(false)
+        return
+      }
+
+      // Se não existe, importar diretamente
+      await performImport(classInfo, students, events)
+    } catch (error) {
+      console.error('Erro ao importar:', error)
+      toast.error(`Erro ao processar arquivo: ${error}`)
+      setIsLoading(false)
+    }
+  }
+
+  const performImport = async (classInfo: any, students: any[], events: any[]) => {
+    setIsLoading(true)
+    try {
       // Importar para o banco
       const result = await importClassFromExcel(classInfo, students, events)
 
       setImportResult(result)
+      setShowConfirmation(false)
 
       if (result.success) {
         toast.success(
-          `Turma importada com sucesso! ${result.studentsImported} alunos e ${result.eventsImported} eventos cadastrados.`
+          `Turma ${preview?.classExists ? 'atualizada' : 'importada'} com sucesso! ${result.studentsImported} alunos e ${result.eventsImported} eventos cadastrados.`
         )
         onSuccess()
       } else {
@@ -67,9 +93,30 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
     }
   }
 
+  const handleConfirmUpdate = async () => {
+    if (!file) return
+
+    try {
+      const { classInfo, students, events } = await readExcelFile(file)
+      if (classInfo) {
+        await performImport(classInfo, students, events)
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.error(`Erro ao atualizar turma: ${error}`)
+    }
+  }
+
+  const handleCancelUpdate = () => {
+    setShowConfirmation(false)
+    setPreview(null)
+  }
+
   const handleClose = () => {
     setFile(null)
     setImportResult(null)
+    setPreview(null)
+    setShowConfirmation(false)
     onClose()
   }
 
@@ -126,6 +173,64 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
           </div>
         </div>
 
+        {showConfirmation && preview && preview.classExists && (
+          <div className="mb-6">
+            <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertTriangle className="text-yellow-600 flex-shrink-0" size={24} />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-yellow-800 mb-2">
+                    Turma já existe!
+                  </h3>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    A turma <strong>{preview.className}</strong> (código: <strong>{preview.classCode}</strong>) já está cadastrada no sistema.
+                  </p>
+
+                  <div className="bg-white rounded-md p-3 mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Turma Existente:</h4>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>• Alunos cadastrados: <strong>{preview.existingClass?.studentsCount || 0}</strong></p>
+                      <p>• Eventos cadastrados: <strong>{preview.existingClass?.eventsCount || 0}</strong></p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-md p-3">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Novos Dados (Excel):</h4>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>• Alunos no arquivo: <strong>{preview.studentsCount}</strong></p>
+                      <p>• Eventos no arquivo: <strong>{preview.eventsCount}</strong></p>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-yellow-700 mt-3 font-medium">
+                    Deseja atualizar a turma com os dados do Excel?
+                  </p>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    Os alunos e eventos serão adicionados/atualizados. Dados existentes não serão removidos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelUpdate}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium"
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmUpdate}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Atualizando...' : 'Sim, Atualizar Turma'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {importResult && (
           <div className="mb-6">
             <div
@@ -179,7 +284,7 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
           >
             {importResult?.success ? 'Fechar' : 'Cancelar'}
           </button>
-          {!importResult?.success && (
+          {!importResult?.success && !showConfirmation && (
             <button
               onClick={handleImport}
               disabled={!file || isLoading}
@@ -188,7 +293,7 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  Importando...
+                  Processando...
                 </>
               ) : (
                 <>

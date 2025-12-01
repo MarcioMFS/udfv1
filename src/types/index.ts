@@ -216,3 +216,19 @@ export interface ClassImportResult {
   eventsImported: number
   errors: string[]
 }
+
+export interface ClassImportPreview {
+  classExists: boolean
+  classCode: string
+  className: string
+  instructorName: string
+  instructorEmail: string
+  studentsCount: number
+  eventsCount: number
+  existingClass?: {
+    id: string
+    description: string
+    studentsCount: number
+    eventsCount: number
+  }
+}
