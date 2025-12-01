@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
+import { downloadClassImportTemplate } from '../../utils/excelTemplateUtils'
 import type { ClassImportResult, ClassImportPreview } from '../../types'
 
 type ImportClassModalProps = {
@@ -147,6 +148,14 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
             <li><strong>Encontros:</strong> Código, data de início, data de fim e horário dos eventos</li>
             <li><strong>Alunos:</strong> Nome e email dos alunos</li>
           </ul>
+
+          <button
+            onClick={downloadClassImportTemplate}
+            className="mb-4 w-full px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-2 font-medium"
+          >
+            <Download size={18} />
+            Baixar Modelo de Planilha
+          </button>
 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
             <input
