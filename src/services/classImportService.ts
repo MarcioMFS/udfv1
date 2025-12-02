@@ -52,8 +52,8 @@ export async function readExcelFile(file: File): Promise<ProcessedExcelData> {
  * Processa a aba "Instrutor" para extrair informações da turma
  * Formato esperado:
  * Linha 1: [Nome da Turma]
- * Linha 2: [vazio, "Instrutor", "Email Instrutor"]
- * Linha 3: [vazio, "Nome do Instrutor", "email@exemplo.com"]
+ * Linha 2: ["Instrutor", "Email"]
+ * Linha 3: ["Nome do Instrutor", "email@exemplo.com"]
  */
 function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | null {
   // Tentar encontrar aba por nome

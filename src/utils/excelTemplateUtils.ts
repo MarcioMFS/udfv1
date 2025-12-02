@@ -10,8 +10,9 @@ export function downloadClassImportTemplate() {
 
   // ABA 1: Instrutor
   const instructorData = [
-    ['CÓDIGO', 'NOME DA TURMA', 'INSTRUTOR', 'EMAIL'],
-    ['T001', 'TURMA EXEMPLO', 'João Silva', 'joao@exemplo.com']
+    ['TURMA EXEMPLO'],
+    ['INSTRUTOR', 'EMAIL'],
+    ['João Silva', 'joao@exemplo.com']
   ]
   const wsInstructor = XLSX.utils.aoa_to_sheet(instructorData)
   XLSX.utils.book_append_sheet(wb, wsInstructor, 'Instrutor')
