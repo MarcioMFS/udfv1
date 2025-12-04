@@ -30,18 +30,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { session }
       } = await supabase.auth.getSession()
 
-      if (session && mounted) {
-        const { data: instructorData } = await supabase
-          .from('instructors')
-          .select('name')
-          .eq('id', session.user.id)
-          .single()
 
+      if (session && mounted) {
+        const supaUser = session.user
         setUser({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: instructorData?.name || session.user.user_metadata?.name || session.user.email || '',
-          role: session.user.role || 'instructor'
+          id: supaUser.id,
+          email: supaUser.email!,
+          name: supaUser.user_metadata.name || '',
+          role: supaUser.role || ''
         })
       }
 
@@ -51,20 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession()
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
-            const { data: instructorData } = await supabase
-              .from('instructors')
-              .select('name')
-              .eq('id', session.user.id)
-              .single()
-
+            const supaUser = session.user
             setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              name: instructorData?.name || session.user.user_metadata?.name || session.user.email || '',
-              role: session.user.role || 'instructor'
+              id: supaUser.id,
+              email: supaUser.email!,
+              name: supaUser.user_metadata.name || '',
+              role: supaUser.role || ''
             })
           }
         }
