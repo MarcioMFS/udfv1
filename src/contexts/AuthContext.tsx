@@ -22,6 +22,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  // Função auxiliar para carregar dados do usuário incluindo is_admin
+  const loadUserData = async (supaUser: any) => {
+    // Buscar dados do instrutor incluindo is_admin
+    const { data: instructorData } = await supabase
+      .from('instructors')
+      .select('name, is_admin')
+      .eq('id', supaUser.id)
+      .single()
+
+    return {
+      id: supaUser.id,
+      email: supaUser.email || '',
+      name: instructorData?.name || supaUser.user_metadata?.name || supaUser.email || '',
+      role: supaUser.role || 'instructor',
+      isAdmin: instructorData?.is_admin || false
+    }
+  }
+
   useEffect(() => {
     let mounted = true
 
@@ -30,15 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { session }
       } = await supabase.auth.getSession()
 
-
       if (session && mounted) {
-        const supaUser = session.user
-        setUser({
-          id: supaUser.id,
-          email: supaUser.email!,
-          name: supaUser.user_metadata.name || '',
-          role: supaUser.role || ''
-        })
+        const userData = await loadUserData(session.user)
+        setUser(userData)
       }
 
       setIsLoading(false)
@@ -47,18 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkSession()
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-
+      async (event, session) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session) {
-            const supaUser = session.user
-         setUser({
-           id: supaUser.id,
-           email: supaUser.email!,
-           name: supaUser.user_metadata.name || '',
-           role: supaUser.role || ''
-         })
-       }
+            const userData = await loadUserData(session.user)
+            setUser(userData)
+          }
         }
 
         if (event === 'SIGNED_OUT') {

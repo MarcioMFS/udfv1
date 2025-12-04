@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Calendar, BookOpen } from 'lucide-react'
 import { CreateEventModal } from '../components/modal/CreateEventModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useIsAdmin } from '../hooks'
 import toast from 'react-hot-toast'
 
 interface EventFormData {
@@ -25,9 +26,19 @@ interface EventFormData {
 export function CreateEventPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const isAdmin = useIsAdmin()
   const [searchParams] = useSearchParams()
   const editId = searchParams.get('edit')
   const isEditing = !!editId
+
+  // Se não é admin e não está editando, redirecionar
+  if (!isAdmin && !isEditing) {
+    toast.error('Apenas administradores podem criar novos eventos')
+    return <Navigate to="/my-events" replace />
+  }
+
+  // Admin pode editar tudo, instrutor só pode editar schedules
+  const canEditAll = isAdmin
 
   const [isLoading, setIsLoading] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -130,6 +141,11 @@ export function CreateEventPage() {
 
     if (!formData.schedule || formData.schedule.length === 0) {
       toast.error('Por favor, adicione pelo menos um horário ao cronograma do evento')
+      return
+    }
+
+    if (formData.schedule.length > 6) {
+      toast.error('Máximo de 6 horários permitidos por evento')
       return
     }
 
@@ -255,86 +271,95 @@ export function CreateEventPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Informações Básicas */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Informações Básicas
-              </h2>
+            {/* Informações Básicas - Apenas admin pode editar */}
+            {canEditAll && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Informações Básicas
+                </h2>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nome do Evento *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Evento do Jogo"
+                      required
+                    />
+                  </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome do Evento *
+                    Turma *
                   </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
+                  <select
+                    value={formData.class_id}
+                    onChange={(e) => handleInputChange('class_id', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Evento do Jogo"
                     required
+                  >
+                    <option value="">Selecione uma turma</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.code} {cls.description ? `- ${cls.description}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Este evento será aplicado à turma selecionada
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descrição
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Descreva o objetivo e conteúdo do evento..."
                   />
                 </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Turma *
-                </label>
-                <select
-                  value={formData.class_id}
-                  onChange={(e) => handleInputChange('class_id', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Selecione uma turma</option>
-                  {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.code} {cls.description ? `- ${cls.description}` : ''}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Este evento será aplicado à turma selecionada
-                </p>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descrição
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Descreva o objetivo e conteúdo do evento..."
-                />
+            {/* Tipo de Evento - Apenas admin */}
+            {canEditAll && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                  Tipo do Evento
+                </h2>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo do Evento *
+                  </label>
+                  <select
+                    value={formData.event_type}
+                    onChange={(e) => handleInputChange('event_type', e.target.value as 'training' | 'group')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="training">Training (Treinamento de Instrutores)</option>
+                    <option value="group">Group (Treinamento Normal de Alunos)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Training: Para capacitação de instrutores | Group: Para treinamento regular de alunos
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Configurações do Evento */}
+            {/* Cronograma - Todos podem editar */}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Configurações do Evento
+                Cronograma do Evento
               </h2>
-              
-              {/* Event Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo do Evento *
-                </label>
-                <select
-                  value={formData.event_type}
-                  onChange={(e) => handleInputChange('event_type', e.target.value as 'training' | 'group')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="training">Training (Treinamento de Instrutores)</option>
-                  <option value="group">Group (Treinamento Normal de Alunos)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Training: Para capacitação de instrutores | Group: Para treinamento regular de alunos
-                </p>
-              </div>
 
               {/* Schedule */}
               <div>
@@ -385,39 +410,52 @@ export function CreateEventPage() {
                       </button>
                     </div>
                   )) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newSchedule = [...(formData.schedule || []), { 'initial-time': '', 'end-time': '' }]
-                      handleInputChange('schedule', newSchedule)
-                    }}
-                    className="px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors text-sm"
-                  >
-                    + Adicionar Horário
-                  </button>
+                  {(formData.schedule || []).length < 6 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if ((formData.schedule || []).length >= 6) {
+                          toast.error('Máximo de 6 horários permitidos por evento')
+                          return
+                        }
+                        const newSchedule = [...(formData.schedule || []), { 'initial-time': '', 'end-time': '' }]
+                        handleInputChange('schedule', newSchedule)
+                      }}
+                      className="px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors text-sm"
+                    >
+                      + Adicionar Horário
+                    </button>
+                  )}
+                  {(formData.schedule || []).length >= 6 && (
+                    <p className="text-xs text-amber-600 font-medium">
+                      Máximo de 6 horários atingido
+                    </p>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Defina pelo menos um horário para o evento
+                  Defina pelo menos um horário para o evento (máximo 6)
                 </p>
               </div>
             </div>
 
-            {/* Instruções */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">
-                Instruções para os Jogadores
-              </h2>
+            {/* Instruções - Apenas admin */}
+            {canEditAll && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                  Instruções para os Jogadores
+                </h2>
 
-              <div>
-                <textarea
-                  value={formData.instructions}
-                  onChange={(e) => handleInputChange('instructions', e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Instruções detalhadas sobre como participar do evento, regras do jogo, objetivos de aprendizado..."
-                />
+                <div>
+                  <textarea
+                    value={formData.instructions}
+                    onChange={(e) => handleInputChange('instructions', e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Instruções detalhadas sobre como participar do evento, regras do jogo, objetivos de aprendizado..."
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Botões */}
             <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">

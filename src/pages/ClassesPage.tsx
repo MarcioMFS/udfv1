@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale'
 import { Upload } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useIsAdmin } from '../hooks'
 import { ImportClassModal } from '../components/modal/ImportClassModal'
 
 interface Class {
@@ -43,6 +44,7 @@ interface Student {
 
 export function ClassesPage() {
   const { user, isLoading: authLoading } = useAuth()
+  const isAdmin = useIsAdmin()
   const [classes, setClasses] = useState<Class[]>([])
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
   const [students, setStudents] = useState<Student[]>([])
@@ -197,13 +199,16 @@ export function ClassesPage() {
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           />
         </div>
-        <button
-          onClick={() => setShowImportModal(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
-        >
-          <Upload size={18} />
-          Importar Turma via Excel
-        </button>
+        {/* Botão de importar - apenas admin */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm"
+          >
+            <Upload size={18} />
+            Importar Turma via Excel
+          </button>
+        )}
       </div>
 
       {/* Loading state */}

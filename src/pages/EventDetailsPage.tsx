@@ -1,17 +1,22 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Users, 
+import {
+  ArrowLeft,
+  Calendar,
+  Users,
   Target,
   Settings,
   Clock,
   BarChart3,
   FileText,
-  UserCheck
+  UserCheck,
+  Edit,
+  Trash2
 } from 'lucide-react'
 import { useEventData } from '../hooks/useEventData'
+import { useIsAdmin } from '../hooks'
+import { supabase } from '../lib/supabase'
+import toast from 'react-hot-toast'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { ErrorMessage } from '../components/ui/ErrorMessage'
 import { EventDashboard } from '../components/EventDetails/EventDashboard'
@@ -26,8 +31,38 @@ type TabType = 'overview' | 'participants' | 'ranking' | 'report'
 
 export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const isAdmin = useIsAdmin()
   const [activeTab, setActiveTab] = useState<TabType>('overview')
+  const [isDeleting, setIsDeleting] = useState(false)
   const { eventData, matches, players, stats, isLoading, error, refetch } = useEventData(id)
+
+  const handleDeleteEvent = async () => {
+    if (!id) return
+
+    const confirmed = window.confirm(
+      `Tem certeza que deseja deletar o evento "${eventData?.name}"?\n\nEsta ação não pode ser desfeita.`
+    )
+
+    if (!confirmed) return
+
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      toast.success('Evento deletado com sucesso!')
+      navigate('/my-events')
+    } catch (error) {
+      console.error('Erro ao deletar evento:', error)
+      toast.error('Erro ao deletar evento. Verifique suas permissões.')
+      setIsDeleting(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -72,8 +107,8 @@ export function EventDetailsPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 sm:gap-4 mb-4">
-          <Link 
-            to="/my-events" 
+          <Link
+            to="/my-events"
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -81,6 +116,26 @@ export function EventDetailsPage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{eventData.name}</h1>
             <p className="text-sm sm:text-base text-gray-600 truncate">{eventData.subject}</p>
+          </div>
+          {/* Botões de Ação */}
+          <div className="flex gap-2">
+            <Link
+              to={`/events/create?edit=${id}`}
+              className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              <span className="hidden sm:inline">Editar Horários</span>
+            </Link>
+            {isAdmin && (
+              <button
+                onClick={handleDeleteEvent}
+                disabled={isDeleting}
+                className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span className="hidden sm:inline">{isDeleting ? 'Deletando...' : 'Deletar'}</span>
+              </button>
+            )}
           </div>
         </div>
 

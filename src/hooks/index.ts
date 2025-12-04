@@ -1,4 +1,5 @@
 export { useClassData } from './useClassData'
-export { useDashboardStats } from './useDashboardStats' 
+export { useDashboardStats } from './useDashboardStats'
 export { useCalculations } from './useCalculations'
 export { useInstructorStats } from './useInstructorStats'
+export { useIsAdmin } from './useIsAdmin'
