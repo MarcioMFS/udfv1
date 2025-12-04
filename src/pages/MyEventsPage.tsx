@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useIsAdmin } from '../hooks'
 import { ConfirmDialog } from '../components/modal/DialogModal'
 import toast from 'react-hot-toast'
 
@@ -28,6 +29,7 @@ interface Event {
 
 export function MyEventsPage() {
   const { user, isLoading: authLoading } = useAuth()
+  const isAdmin = useIsAdmin()
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -150,13 +152,24 @@ export function MyEventsPage() {
           </p>
         </div>
         
-        <Link
-          to="/events/create"
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Criar Evento
-        </Link>
+        {isAdmin ? (
+          <Link
+            to="/events/create"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Criar Evento
+          </Link>
+        ) : (
+          <button
+            disabled
+            className="px-6 py-3 bg-gray-400 text-gray-200 rounded-lg cursor-not-allowed flex items-center gap-2 font-medium"
+            title="Apenas administradores podem criar eventos"
+          >
+            <Plus className="w-5 h-5" />
+            Criar Evento
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -200,13 +213,24 @@ export function MyEventsPage() {
             }
           </p>
           {!searchTerm && (
-            <Link
-              to="/events/create"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Criar Primeiro Evento
-            </Link>
+            isAdmin ? (
+              <Link
+                to="/events/create"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Criar Primeiro Evento
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-400 text-gray-200 rounded-lg cursor-not-allowed"
+                title="Apenas administradores podem criar eventos"
+              >
+                <Plus className="w-5 h-5" />
+                Criar Primeiro Evento
+              </button>
+            )
           )}
         </div>
       ) : (
@@ -247,13 +271,15 @@ export function MyEventsPage() {
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  onClick={() => handleDeleteEvent(event)}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Excluir</span>
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDeleteEvent(event)}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Excluir</span>
+                  </button>
+                )}
                 <Link
                   to={`/events/${event.id}`}
                   className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 flex-1"
