@@ -17,13 +17,25 @@ export function useIsAdmin(): boolean {
     }
 
     const checkAdmin = async () => {
-      const { data } = await supabase
+      console.log('🔍 [useIsAdmin] Verificando admin para user:', user.id)
+
+      const { data, error } = await supabase
         .from('instructors')
         .select('is_admin')
         .eq('id', user.id)
         .single()
 
-      setIsAdmin(data?.is_admin || false)
+      console.log('🔍 [useIsAdmin] Resultado:', { data, error })
+
+      if (error) {
+        console.error('❌ [useIsAdmin] Erro ao verificar admin:', error)
+        setIsAdmin(false)
+        return
+      }
+
+      const adminStatus = data?.is_admin || false
+      console.log('✅ [useIsAdmin] Status final:', adminStatus)
+      setIsAdmin(adminStatus)
     }
 
     checkAdmin()
