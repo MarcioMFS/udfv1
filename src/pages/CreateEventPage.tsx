@@ -31,6 +31,43 @@ export function CreateEventPage() {
   const editId = searchParams.get('edit')
   const isEditing = !!editId
 
+  // TODOS os hooks devem ser chamados antes de qualquer return condicional
+  const [isLoading, setIsLoading] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [eventCode, setEventCode] = useState('')
+  const [classes, setClasses] = useState<Array<{id: string, code: string, description: string | null}>>([])
+  const [formData, setFormData] = useState<EventFormData>({
+    name: '',
+    description: '',
+    subject: '',
+    difficulty: 'medium',
+    time_limit: 30,
+    max_players: 50,
+    instructions: '',
+    class_id: '',
+    event_type: 'training',
+    schedule: []
+  })
+
+  useEffect(() => {
+    if (user) {
+      loadClasses()
+    }
+    if (isEditing && editId) {
+      loadEventForEdit(editId)
+    }
+  }, [isEditing, editId, user])
+
+  // Ensure schedule is always an array
+  useEffect(() => {
+    if (!Array.isArray(formData.schedule)) {
+      setFormData(prev => ({
+        ...prev,
+        schedule: []
+      }))
+    }
+  }, [formData.schedule])
+
   // Aguardar o carregamento da verificação de admin
   if (isAdminLoading) {
     return (
@@ -51,40 +88,6 @@ export function CreateEventPage() {
 
   // Admin pode editar tudo, instrutor só pode editar schedules
   const canEditAll = isAdmin
-
-  const [isLoading, setIsLoading] = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [eventCode, setEventCode] = useState('')
-  const [classes, setClasses] = useState<Array<{id: string, code: string, description: string | null}>>([])
-  const [formData, setFormData] = useState<EventFormData>({
-    name: '',
-    description: '',
-    subject: '',
-    difficulty: 'medium',
-    time_limit: 30,
-    max_players: 50,
-    instructions: '',
-    class_id: '',
-    event_type: 'training',
-    schedule: []
-  })
-
-  useEffect(() => {
-    loadClasses()
-    if (isEditing && editId) {
-      loadEventForEdit(editId)
-    }
-  }, [isEditing, editId])
-
-  // Ensure schedule is always an array
-  useEffect(() => {
-    if (!Array.isArray(formData.schedule)) {
-      setFormData(prev => ({
-        ...prev,
-        schedule: []
-      }))
-    }
-  }, [formData.schedule])
 
   const loadClasses = async () => {
     try {
