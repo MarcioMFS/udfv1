@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Calendar, BookOpen } from 'lucide-react'
 import { CreateEventModal } from '../components/modal/CreateEventModal'
@@ -49,47 +49,8 @@ export function CreateEventPage() {
     schedule: []
   })
 
-  useEffect(() => {
-    if (user) {
-      loadClasses()
-    }
-    if (isEditing && editId) {
-      loadEventForEdit(editId)
-    }
-  }, [isEditing, editId, user])
-
-  // Ensure schedule is always an array
-  useEffect(() => {
-    if (!Array.isArray(formData.schedule)) {
-      setFormData(prev => ({
-        ...prev,
-        schedule: []
-      }))
-    }
-  }, [formData.schedule])
-
-  // Aguardar o carregamento da verificação de admin
-  if (isAdminLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Verificando permissões...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Se não é admin e não está editando, redirecionar
-  if (!isAdmin && !isEditing) {
-    toast.error('Apenas administradores podem criar novos eventos')
-    return <Navigate to="/my-events" replace />
-  }
-
-  // Admin pode editar tudo, instrutor só pode editar schedules
-  const canEditAll = isAdmin
-
-  const loadClasses = async () => {
+  // Declarar funções com useCallback antes de usá-las no useEffect
+  const loadClasses = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('classes')
@@ -103,9 +64,9 @@ export function CreateEventPage() {
       console.error('Error loading classes:', error)
       toast.error('Erro ao carregar turmas')
     }
-  }
+  }, [user?.id])
 
-  const loadEventForEdit = async (eventId: string) => {
+  const loadEventForEdit = useCallback(async (eventId: string) => {
     try {
       const { data: eventData, error } = await supabase
         .from('events')
@@ -138,7 +99,47 @@ export function CreateEventPage() {
       toast.error('Erro ao carregar evento para edição')
       navigate('/my-events')
     }
+  }, [user?.id, navigate])
+
+  useEffect(() => {
+    if (user) {
+      loadClasses()
+    }
+    if (isEditing && editId) {
+      loadEventForEdit(editId)
+    }
+  }, [isEditing, editId, user, loadClasses, loadEventForEdit])
+
+  // Ensure schedule is always an array
+  useEffect(() => {
+    if (!Array.isArray(formData.schedule)) {
+      setFormData(prev => ({
+        ...prev,
+        schedule: []
+      }))
+    }
+  }, [formData.schedule])
+
+  // Aguardar o carregamento da verificação de admin
+  if (isAdminLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Verificando permissões...</p>
+        </div>
+      </div>
+    )
   }
+
+  // Se não é admin e não está editando, redirecionar
+  if (!isAdmin && !isEditing) {
+    toast.error('Apenas administradores podem criar novos eventos')
+    return <Navigate to="/my-events" replace />
+  }
+
+  // Admin pode editar tudo, instrutor só pode editar schedules
+  const canEditAll = isAdmin
 
   const generateEventCode = () => {
     const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
