@@ -29,7 +29,7 @@ interface Event {
 
 export function MyEventsPage() {
   const { user, isLoading: authLoading } = useAuth()
-  const isAdmin = useIsAdmin()
+  const { isAdmin } = useIsAdmin()
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [searchTerm, setSearchTerm] = useState('')

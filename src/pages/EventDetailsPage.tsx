@@ -32,7 +32,7 @@ type TabType = 'overview' | 'participants' | 'ranking' | 'report'
 export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const isAdmin = useIsAdmin()
+  const { isAdmin } = useIsAdmin()
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [isDeleting, setIsDeleting] = useState(false)
   const { eventData, matches, players, stats, isLoading, error, refetch } = useEventData(id)

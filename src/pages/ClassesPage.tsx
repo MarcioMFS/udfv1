@@ -44,7 +44,7 @@ interface Student {
 
 export function ClassesPage() {
   const { user, isLoading: authLoading } = useAuth()
-  const isAdmin = useIsAdmin()
+  const { isAdmin } = useIsAdmin()
   const [classes, setClasses] = useState<Class[]>([])
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
   const [students, setStudents] = useState<Student[]>([])
