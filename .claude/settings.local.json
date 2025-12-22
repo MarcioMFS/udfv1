@@ -4,7 +4,14 @@
       "Bash(python3:*)",
       "Bash(pip3 install:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(apt-get update:*)",
+      "Bash(apt-get install:*)",
+      "Bash(sudo apt-get update:*)",
+      "Bash(sudo apt-get install:*)",
+      "Bash(sudo -S apt-get:*)",
+      "Bash(sudo -S apt-get install:*)"
     ],
     "deny": [],
     "ask": []

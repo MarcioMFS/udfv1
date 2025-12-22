@@ -26,10 +26,22 @@ interface EventFormData {
 export function CreateEventPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const isAdmin = useIsAdmin()
+  const { isAdmin, isLoading: isAdminLoading } = useIsAdmin()
   const [searchParams] = useSearchParams()
   const editId = searchParams.get('edit')
   const isEditing = !!editId
+
+  // Aguardar o carregamento da verificação de admin
+  if (isAdminLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Verificando permissões...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Se não é admin e não está editando, redirecionar
   if (!isAdmin && !isEditing) {
