@@ -123,6 +123,12 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
 
   const classCode = generateClassCode(className)
 
+  // Validar que o código tem exatamente 8 caracteres
+  if (classCode.length !== 8) {
+    console.error('Código da turma deve ter exatamente 8 caracteres:', { classCode, length: classCode.length })
+    return null
+  }
+
   if (!className || !instructorEmail) {
     console.error('Dados incompletos:', { className, instructorEmail })
     return null
@@ -331,19 +337,18 @@ function parseExcelDate(value: any): string | null {
 }
 
 /**
- * Gera código único para a turma baseado no nome
+ * Gera código único para a turma baseado no nome com EXATAMENTE 8 caracteres
  */
 function generateClassCode(className: string): string {
-  // Extrair código se já existir (ex: T000, T001, etc)
-  const codeMatch = className.match(/T\d{3}/i)
+  // Extrair código se já existir (ex: T000ABCD com 8 dígitos)
+  const codeMatch = className.match(/[A-Z0-9]{8}/i)
   if (codeMatch) {
     return codeMatch[0].toUpperCase()
   }
 
-  // Gerar código baseado nas iniciais
-  const words = className.split(' ').filter(w => w.length > 0)
-  const initials = words.map(w => w[0]).join('').toUpperCase()
-  return initials.substring(0, 4) || 'TURM'
+  // Gerar código de 8 caracteres usando UUID
+  const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
+  return uuid.substring(0, 8)
 }
 
 /**
