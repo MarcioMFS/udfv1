@@ -338,17 +338,93 @@ function parseExcelDate(value: any): string | null {
 
 /**
  * Gera código único para a turma baseado no nome com EXATAMENTE 8 caracteres
+ * IMPORTANTE: Não gera aleatório para evitar duplicações!
+ * GARANTIA: Sempre retorna string com exatamente 8 caracteres alfanuméricos
  */
 function generateClassCode(className: string): string {
-  // Extrair código se já existir (ex: T000ABCD com 8 dígitos)
-  const codeMatch = className.match(/[A-Z0-9]{8}/i)
-  if (codeMatch) {
-    return codeMatch[0].toUpperCase()
+  // 1. Tentar extrair código existente no formato T000XXXX (T + 3 dígitos + 4 caracteres)
+  const t000Match = className.match(/T\d{3}[A-Z0-9]{4}/i)
+  if (t000Match) {
+    const code = t000Match[0].toUpperCase()
+    console.log('Código extraído (T000):', code, '- Length:', code.length)
+    return code // Já tem 8 caracteres garantidos pelo regex
   }
 
-  // Gerar código de 8 caracteres usando UUID
-  const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
-  return uuid.substring(0, 8)
+  // 2. Tentar extrair qualquer código de exatamente 8 caracteres alfanuméricos
+  const codeMatch = className.match(/\b[A-Z0-9]{8}\b/i)
+  if (codeMatch) {
+    const code = codeMatch[0].toUpperCase()
+    console.log('Código extraído (8 chars):', code, '- Length:', code.length)
+    return code // Já tem 8 caracteres garantidos pelo regex
+  }
+
+  // 3. Criar código baseado no nome da turma (DETERMINÍSTICO)
+  // Remove caracteres especiais e pega primeiras letras/palavras
+  const words = className
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 0)
+
+  let code = ''
+
+  if (words.length === 0) {
+    // Fallback: usar apenas hash do nome completo (garantir 8 chars)
+    const hash = simpleHash(className)
+    code = hash.padEnd(8, '0').substring(0, 8)
+    console.log('Código gerado (hash):', code, '- Length:', code.length)
+    return code.toUpperCase()
+  }
+
+  // Estratégia: Iniciais (até 3 chars) + Hash (5 chars) = 8 chars exatos
+  // Pegar primeiras letras de cada palavra (máximo 3)
+  for (let i = 0; i < Math.min(words.length, 3); i++) {
+    code += words[i][0]
+  }
+
+  // Gerar hash determinístico e pegar caracteres necessários
+  const hash = simpleHash(className)
+  const remainingChars = 8 - code.length
+
+  // Adicionar hash para completar 8 caracteres
+  code += hash.padEnd(remainingChars, '0').substring(0, remainingChars)
+
+  // Garantir que tem exatamente 8 caracteres
+  const finalCode = code.toUpperCase().padEnd(8, '0').substring(0, 8)
+
+  console.log('Código gerado (determinístico):', {
+    input: className,
+    words: words.join(','),
+    initials: code.substring(0, Math.min(words.length, 3)),
+    hash: hash.substring(0, 5),
+    finalCode: finalCode,
+    length: finalCode.length
+  })
+
+  // Validação final: DEVE ter exatamente 8 caracteres
+  if (finalCode.length !== 8) {
+    console.error('ERRO: Código não tem 8 caracteres!', { finalCode, length: finalCode.length })
+    // Fallback de emergência: hash do nome todo
+    return simpleHash(className).padEnd(8, '0').substring(0, 8).toUpperCase()
+  }
+
+  return finalCode
+}
+
+/**
+ * Hash simples para gerar código determinístico
+ * Retorna string base36 (0-9, A-Z) de tamanho variável
+ */
+function simpleHash(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  // Base36 sempre retorna string, mas tamanho varia
+  // Garantir que tenha pelo menos 8 caracteres
+  return Math.abs(hash).toString(36).toUpperCase().padEnd(8, '0')
 }
 
 /**
@@ -544,6 +620,11 @@ export async function importClassFromExcel(
         const firstDate = sortedDates[0]
         const lastDate = sortedDates[sortedDates.length - 1]
 
+        // Pegar o tipo de evento do primeiro evento (todos devem ter o mesmo tipo)
+        const eventType = events[0]?.eventType || 'training'
+
+        console.log('Criando evento com tipo:', eventType)
+
         // Deletar eventos existentes da turma antes de criar novo
         await supabase
           .from('events')
@@ -561,7 +642,7 @@ export async function importClassFromExcel(
             description: `${classInfo.className} - ${events.length} encontros`,
             class_id: classId,
             instructor_id: instructorId,
-            event_type: 'training',
+            event_type: eventType,
             start_date: firstDate,
             end_date: lastDate,
             schedule: schedules,

@@ -23,6 +23,11 @@ serve(async (req)=>{
     if (!classCode || !instructorEmail) {
       throw new Error('Campos obrigatórios ausentes: class-code, instructor-email');
     }
+
+    // Validar que o código da turma tem exatamente 8 caracteres
+    if (classCode.length !== 8) {
+      throw new Error(`O código da turma deve ter exatamente 8 caracteres. Recebido: "${classCode}" (${classCode.length} caracteres)`);
+    }
     const { data: instructorData, error: instructorError } = await supabaseClient.from('instructors').select('id').eq('email', instructorEmail).single();
     if (instructorError || !instructorData) {
       throw new Error(`Instrutor com e-mail ${instructorEmail} não encontrado`);

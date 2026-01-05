@@ -206,6 +206,7 @@ export interface ExcelEventImport {
   startDate: string
   endDate: string
   schedule: string
+  eventType?: 'training' | 'group'
 }
 
 export interface ClassImportResult {

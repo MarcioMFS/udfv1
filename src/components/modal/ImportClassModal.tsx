@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download, Users, GraduationCap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
 import { downloadClassImportTemplate } from '../../utils/excelTemplateUtils'
-import type { ClassImportResult, ClassImportPreview } from '../../types'
+import { EditEventDatesModal } from './EditEventDatesModal'
+import type { ClassImportResult, ClassImportPreview, ExcelEventImport, EventType } from '../../types'
 
 type ImportClassModalProps = {
   isOpen: boolean
@@ -17,6 +18,10 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   const [importResult, setImportResult] = useState<ClassImportResult | null>(null)
   const [preview, setPreview] = useState<ClassImportPreview | null>(null)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [classType, setClassType] = useState<EventType>('training')
+  const [pendingEvents, setPendingEvents] = useState<ExcelEventImport[]>([])
+  const [showEditDatesModal, setShowEditDatesModal] = useState(false)
+  const [pendingImportData, setPendingImportData] = useState<{ classInfo: any; students: any[] } | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
@@ -30,6 +35,17 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
       setFile(selectedFile)
       setImportResult(null)
     }
+  }
+
+  const checkPastDates = (events: ExcelEventImport[]): boolean => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    return events.some(event => {
+      const eventDate = new Date(event.startDate)
+      eventDate.setHours(0, 0, 0, 0)
+      return eventDate < now
+    })
   }
 
   const handleImport = async () => {
@@ -49,8 +65,20 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
         return
       }
 
+      // Adicionar tipo de evento a todos os eventos
+      const eventsWithType = events.map(event => ({ ...event, eventType: classType }))
+
+      // Verificar se há datas no passado
+      if (checkPastDates(eventsWithType)) {
+        setPendingEvents(eventsWithType)
+        setPendingImportData({ classInfo, students })
+        setShowEditDatesModal(true)
+        setIsLoading(false)
+        return
+      }
+
       // Fazer preview e verificar se turma existe
-      const previewData = await previewClassImport(classInfo, students, events)
+      const previewData = await previewClassImport(classInfo, students, eventsWithType)
       setPreview(previewData)
 
       // Se turma já existe, mostrar confirmação
@@ -61,7 +89,7 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
       }
 
       // Se não existe, importar diretamente
-      await performImport(classInfo, students, events)
+      await performImport(classInfo, students, eventsWithType)
     } catch (error) {
       console.error('Erro ao importar:', error)
       toast.error(`Erro ao processar arquivo: ${error}`)
@@ -99,8 +127,10 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
 
     try {
       const { classInfo, students, events } = await readExcelFile(file)
+      const eventsWithType = events.map(event => ({ ...event, eventType: classType }))
+
       if (classInfo) {
-        await performImport(classInfo, students, events)
+        await performImport(classInfo, students, eventsWithType)
       }
     } catch (error) {
       console.error('Erro:', error)
@@ -111,6 +141,71 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   const handleCancelUpdate = () => {
     setShowConfirmation(false)
     setPreview(null)
+  }
+
+  const handleSaveEditedDates = async (updatedEvents: ExcelEventImport[]) => {
+    if (!pendingImportData) return
+
+    setShowEditDatesModal(false)
+    setIsLoading(true)
+
+    try {
+      const { classInfo, students } = pendingImportData
+
+      // Fazer preview e verificar se turma existe
+      const previewData = await previewClassImport(classInfo, students, updatedEvents)
+      setPreview(previewData)
+
+      // Se turma já existe, mostrar confirmação
+      if (previewData.classExists) {
+        setShowConfirmation(true)
+        setIsLoading(false)
+        return
+      }
+
+      // Se não existe, importar diretamente
+      await performImport(classInfo, students, updatedEvents)
+    } catch (error) {
+      console.error('Erro ao importar:', error)
+      toast.error(`Erro ao processar arquivo: ${error}`)
+    } finally {
+      setIsLoading(false)
+      setPendingImportData(null)
+      setPendingEvents([])
+    }
+  }
+
+  const handleCancelEditDates = async () => {
+    setShowEditDatesModal(false)
+
+    if (!pendingImportData) return
+
+    setIsLoading(true)
+
+    try {
+      const { classInfo, students } = pendingImportData
+
+      // Continuar com as datas originais
+      const previewData = await previewClassImport(classInfo, students, pendingEvents)
+      setPreview(previewData)
+
+      // Se turma já existe, mostrar confirmação
+      if (previewData.classExists) {
+        setShowConfirmation(true)
+        setIsLoading(false)
+        return
+      }
+
+      // Se não existe, importar diretamente com datas originais
+      await performImport(classInfo, students, pendingEvents)
+    } catch (error) {
+      console.error('Erro ao importar:', error)
+      toast.error(`Erro ao processar arquivo: ${error}`)
+    } finally {
+      setIsLoading(false)
+      setPendingImportData(null)
+      setPendingEvents([])
+    }
   }
 
   const handleClose = () => {
@@ -156,6 +251,43 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
             <Download size={18} />
             Baixar Modelo de Planilha
           </button>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tipo de Turma
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setClassType('training')}
+                className={`px-4 py-3 rounded-lg border-2 transition flex items-center justify-center gap-2 ${
+                  classType === 'training'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                <GraduationCap size={20} />
+                <span className="font-medium">Training (Individual)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setClassType('group')}
+                className={`px-4 py-3 rounded-lg border-2 transition flex items-center justify-center gap-2 ${
+                  classType === 'group'
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                }`}
+              >
+                <Users size={20} />
+                <span className="font-medium">Group (Equipes)</span>
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {classType === 'training'
+                ? '📚 Training: Alunos jogam individualmente'
+                : '👥 Group: Alunos são organizados em equipes'}
+            </p>
+          </div>
 
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
             <input
@@ -214,9 +346,12 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
                   <p className="text-sm text-yellow-700 mt-3 font-medium">
                     Deseja atualizar a turma com os dados do Excel?
                   </p>
-                  <p className="text-xs text-yellow-600 mt-1">
-                    Os alunos e eventos serão adicionados/atualizados. Dados existentes não serão removidos.
-                  </p>
+                  <div className="text-xs text-yellow-600 mt-2 bg-yellow-100 rounded p-2 space-y-1">
+                    <p className="font-semibold">⚠️ O que será feito:</p>
+                    <p>• <strong>Alunos:</strong> Novos alunos serão adicionados. Alunos existentes serão atualizados (sem duplicar).</p>
+                    <p>• <strong>Eventos:</strong> Eventos antigos serão SUBSTITUÍDOS pelos novos do Excel.</p>
+                    <p>• <strong>Turma:</strong> Descrição e instrutor serão atualizados.</p>
+                  </div>
                 </div>
               </div>
 
@@ -314,6 +449,14 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
           )}
         </div>
       </div>
+
+      {/* Modal de Edição de Datas */}
+      <EditEventDatesModal
+        isOpen={showEditDatesModal}
+        events={pendingEvents}
+        onClose={handleCancelEditDates}
+        onSave={handleSaveEditedDates}
+      />
     </div>
   )
 }
