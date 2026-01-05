@@ -455,14 +455,17 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
           )}
         </div>
       </div>
+    </div>
 
-      {/* Modal de Edição de Datas */}
+    {/* Modal de Edição de Datas - FORA do modal de importação */}
+    <>
       <EditEventDatesModal
         isOpen={showEditDatesModal}
         events={pendingEvents}
         onClose={handleCancelEditDates}
         onSave={handleSaveEditedDates}
       />
-    </div>
+    </>
+    </>
   )
 }

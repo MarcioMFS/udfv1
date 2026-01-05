@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Calendar, Clock, X, AlertTriangle } from 'lucide-react'
 import type { ExcelEventImport } from '../../types'
 
@@ -11,6 +11,13 @@ type EditEventDatesModalProps = {
 
 export function EditEventDatesModal({ isOpen, events, onClose, onSave }: EditEventDatesModalProps) {
   const [editedEvents, setEditedEvents] = useState<ExcelEventImport[]>(events)
+
+  // Atualizar editedEvents quando events mudar
+  useEffect(() => {
+    if (events.length > 0) {
+      setEditedEvents(events)
+    }
+  }, [events])
 
   const handleDateChange = (index: number, field: 'startDate' | 'endDate', value: string) => {
     const updated = [...editedEvents]
@@ -31,8 +38,11 @@ export function EditEventDatesModal({ isOpen, events, onClose, onSave }: EditEve
 
   if (!isOpen) return null
 
+  console.log('EditEventDatesModal - eventos recebidos:', events)
+  console.log('EditEventDatesModal - eventos editados:', editedEvents)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -53,6 +63,13 @@ export function EditEventDatesModal({ isOpen, events, onClose, onSave }: EditEve
             Alguns eventos têm datas no passado. Ajuste as datas abaixo para continuar com a importação.
           </p>
         </div>
+
+        {editedEvents.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>Nenhum evento para editar.</p>
+            <p className="text-sm mt-2">Debug: {events.length} eventos recebidos</p>
+          </div>
+        ) : null}
 
         <div className="space-y-4 mb-6">
           {editedEvents.map((event, index) => {
