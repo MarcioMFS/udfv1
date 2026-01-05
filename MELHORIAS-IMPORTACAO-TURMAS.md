@@ -17,8 +17,8 @@ Implementadas 3 melhorias críticas no processo de importação de turmas via Ex
 **Localização:** Modal de Importação → Logo após "Baixar Modelo de Planilha"
 
 **Opções:**
-- 🎓 **Training (Individual)**: Alunos jogam individualmente
-- 👥 **Group (Equipes)**: Alunos são organizados em equipes
+- 🎓 **Training**: Formação de Instrutores/Líderes
+- 👥 **Group**: Treinamento Regular de Alunos
 
 **Como funciona:**
 - Botões visuais com ícones
@@ -192,22 +192,22 @@ const checkPastDates = (events: ExcelEventImport[]): boolean => {
 
 ## 🧪 TESTES RECOMENDADOS
 
-### Teste 1: Tipo de Turma Training
+### Teste 1: Tipo de Evento Training (Instrutores)
 ```
 1. Abrir modal de importação
-2. Selecionar "Training (Individual)"
+2. Selecionar "Training - Formação de Instrutores"
 3. Importar planilha
 4. Verificar no banco: event_type = 'training'
-✅ Esperado: Tipo salvo corretamente
+✅ Esperado: Tipo salvo corretamente como 'training'
 ```
 
-### Teste 2: Tipo de Turma Group
+### Teste 2: Tipo de Evento Group (Alunos)
 ```
 1. Abrir modal de importação
-2. Selecionar "Group (Equipes)"
+2. Selecionar "Group - Treinamento de Alunos"
 3. Importar planilha
 4. Verificar no banco: event_type = 'group'
-✅ Esperado: Tipo salvo corretamente
+✅ Esperado: Tipo salvo corretamente como 'group'
 ```
 
 ### Teste 3: Datas Futuras (Sem Validação)
@@ -327,7 +327,11 @@ await supabase
 
 Todos os eventos de uma importação terão o mesmo tipo (training ou group).
 
-**Justificativa:** Uma turma geralmente tem um único objetivo pedagógico.
+**Justificativa:**
+- **Training**: Formação de instrutores/líderes (capacitação avançada)
+- **Group**: Treinamento regular de alunos (turmas normais)
+
+Uma turma geralmente tem um único objetivo pedagógico.
 
 **Se precisar misturar:** Importe separadamente ou edite manualmente após importar.
 
@@ -369,7 +373,7 @@ O modal de edição só permite alterar:
 - ❌ Sem chance de corrigir erros antes de importar
 
 ### Depois das melhorias:
-- ✅ Usuário escolhe tipo de turma
+- ✅ Usuário escolhe tipo de evento (Training para instrutores ou Group para alunos)
 - ✅ Validação de datas no passado
 - ✅ Edição de datas antes de importar
 - ✅ Flexibilidade: Pode manter datas originais ou corrigir

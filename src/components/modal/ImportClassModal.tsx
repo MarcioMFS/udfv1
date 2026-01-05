@@ -254,38 +254,44 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Turma
+              Tipo de Evento
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setClassType('training')}
-                className={`px-4 py-3 rounded-lg border-2 transition flex items-center justify-center gap-2 ${
+                className={`px-4 py-3 rounded-lg border-2 transition flex flex-col items-start gap-1 ${
                   classType === 'training'
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
                     : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
                 }`}
               >
-                <GraduationCap size={20} />
-                <span className="font-medium">Training (Individual)</span>
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={20} />
+                  <span className="font-semibold">Training</span>
+                </div>
+                <span className="text-xs">Formação de Instrutores</span>
               </button>
               <button
                 type="button"
                 onClick={() => setClassType('group')}
-                className={`px-4 py-3 rounded-lg border-2 transition flex items-center justify-center gap-2 ${
+                className={`px-4 py-3 rounded-lg border-2 transition flex flex-col items-start gap-1 ${
                   classType === 'group'
                     ? 'border-green-500 bg-green-50 text-green-700'
                     : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
                 }`}
               >
-                <Users size={20} />
-                <span className="font-medium">Group (Equipes)</span>
+                <div className="flex items-center gap-2">
+                  <Users size={20} />
+                  <span className="font-semibold">Group</span>
+                </div>
+                <span className="text-xs">Treinamento de Alunos</span>
               </button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
               {classType === 'training'
-                ? '📚 Training: Alunos jogam individualmente'
-                : '👥 Group: Alunos são organizados em equipes'}
+                ? '🎓 Training: Para capacitação de instrutores/líderes'
+                : '👥 Group: Para treinamento regular de alunos'}
             </p>
           </div>
 
