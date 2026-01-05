@@ -219,6 +219,7 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   if (!isOpen) return null
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
@@ -458,14 +459,12 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
     </div>
 
     {/* Modal de Edição de Datas - FORA do modal de importação */}
-    <>
-      <EditEventDatesModal
-        isOpen={showEditDatesModal}
-        events={pendingEvents}
-        onClose={handleCancelEditDates}
-        onSave={handleSaveEditedDates}
-      />
-    </>
+    <EditEventDatesModal
+      isOpen={showEditDatesModal}
+      events={pendingEvents}
+      onClose={handleCancelEditDates}
+      onSave={handleSaveEditedDates}
+    />
     </>
   )
 }
