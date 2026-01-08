@@ -31,7 +31,7 @@ export function ClassDetailsPage() {
 
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['overview', 'ranking', 'indicators', 'growth', 'detailed-report', 'instructors'].includes(tab)) {
+    if (tab && ['overview', 'ranking', 'indicators', 'growth', 'detailed-report'].includes(tab)) {
       setActiveTab(tab as TabType)
     }
   }, [searchParams])

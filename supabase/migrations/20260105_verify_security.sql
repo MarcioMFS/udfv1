@@ -81,6 +81,7 @@ END $$;
 DO $$
 DECLARE
   unsafe_policies INTEGER;
+  rec RECORD;
 BEGIN
   SELECT COUNT(*) INTO unsafe_policies
   FROM pg_policies

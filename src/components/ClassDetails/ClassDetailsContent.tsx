@@ -4,7 +4,6 @@ import { ClassInfoCard } from './ClassInfoCard'
 import { ClassRankingChart } from './ClassRankingChart'
 import { ClassStudentsList } from './ClassStudentsList'
 import { ClassIndicators } from './ClassIndicators'
-import { ClassInstructors } from './ClassInstructors'
 import StudentGrowth from './ClassGrowthChart'
 import { EmptyState } from '../ui'
 
@@ -108,11 +107,6 @@ export function ClassDetailsContent({
             matchResults={matchResults}
             teams={teams}
           />
-        )
-
-      case 'instructors':
-        return (
-          <ClassInstructors classId={classData.id} />
         )
 
       default:

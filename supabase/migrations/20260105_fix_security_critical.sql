@@ -397,18 +397,16 @@ USING (
 -- 8. POLÍTICAS RLS SEGURAS - MATCH_RESULTS
 -- ================================================================
 
--- Política 1: Ver resultados de suas turmas
+-- Política 1: Ver resultados de suas turmas (via event_id)
 CREATE POLICY "match_results_select_own"
 ON public.match_results
 FOR SELECT
 TO authenticated
 USING (
-  class_id IN (
-    SELECT id FROM public.classes WHERE instructor_id = auth.uid()
-  )
-  OR
   event_id IN (
-    SELECT id FROM public.events WHERE instructor_id = auth.uid()
+    SELECT e.id FROM public.events e
+    JOIN public.classes c ON c.id = e.class_id
+    WHERE c.instructor_id = auth.uid()
   )
   OR
   EXISTS (

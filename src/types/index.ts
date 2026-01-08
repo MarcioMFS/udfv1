@@ -188,7 +188,7 @@ export interface BaseComponentProps extends LoadingState, ErrorState {
   className?: string
 }
 
-export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report' | 'instructors'
+export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report'
 
 export interface ExcelClassImport {
   classCode: string
