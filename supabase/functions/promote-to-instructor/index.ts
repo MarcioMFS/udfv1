@@ -20,8 +20,63 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Authorization header obrigatório'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '', 
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Autenticação inválida'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const { data: instructor } = await supabaseClient
+      .from('instructors')
+      .select('id, is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!instructor) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Usuário não é um instrutor'
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!instructor.is_admin) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Apenas administradores podem promover usuários a instrutores'
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
@@ -33,7 +88,7 @@ serve(async (req) => {
     }
 
     // Check if instructor already exists
-    const { data: existingInstructor, error: checkError } = await supabaseClient
+    const { data: existingInstructor, error: checkError } = await supabaseAdmin
       .from('instructors')
       .select('id')
       .eq('email', player_email)
@@ -53,14 +108,14 @@ serve(async (req) => {
     }
 
     // First create auth user if doesn't exist
-    const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(user => user.email === player_email);
-    
+
     let authUserId;
     if (existingUser) {
       authUserId = existingUser.id;
     } else {
-      const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: player_email,
         user_metadata: {
           name: player_name,
@@ -74,7 +129,7 @@ serve(async (req) => {
     }
 
     // Create instructor record
-    const { data: instructorData, error: instructorError } = await supabaseClient
+    const { data: instructorData, error: instructorError } = await supabaseAdmin
       .from('instructors')
       .insert({
         id: authUserId,
@@ -88,12 +143,11 @@ serve(async (req) => {
 
     if (instructorError) throw instructorError;
 
-    // Update event_participants status - remove candidate_instructor status
-    // since they are now a full instructor
-    const { error: updateParticipantsError } = await supabaseClient
+    // Update event_participants status
+    const { error: updateParticipantsError } = await supabaseAdmin
       .from('event_participants')
-      .update({ 
-        status: 'participated', // Change back to participated
+      .update({
+        status: 'participated',
         updated_at: new Date().toISOString()
       })
       .eq('player_id', player_id)

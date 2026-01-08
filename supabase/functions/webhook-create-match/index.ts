@@ -1,9 +1,10 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateWebhook } from '../_shared/auth-middleware.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret'
 };
 
 // Lógica de cálculo dos resultados (copiada do webhook-match-results)
@@ -240,6 +241,13 @@ serve(async (req)=>{
     });
   }
   try {
+    const auth = await validateWebhook(req);
+    if (!auth.valid) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const body = await req.json();
     const { "player-email": playerEmail, "event-code": eventCode, "app-serial": appSerial, "match-number": matchNumber } = body;
     if (!playerEmail || !eventCode || !appSerial || matchNumber == null) {

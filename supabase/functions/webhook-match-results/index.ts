@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-// Cabeçalhos CORS para permitir requisições de qualquer origem
+import { validateWebhook } from '../_shared/auth-middleware.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret'
 };
 var ARCode;
 // --- INÍCIO DA LÓGICA DE DESSERIALIZAÇÃO E CÁLCULO ---
@@ -224,6 +225,13 @@ serve(async (req)=>{
     });
   }
   try {
+    const auth = await validateWebhook(req);
+    if (!auth.valid) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabaseClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
     const payload = await req.json();
     const { 'player-udf-id': playerUdfId, 'player-email': playerEmail, 'event-code': eventCode, 'match-number': matchNumber } = payload;

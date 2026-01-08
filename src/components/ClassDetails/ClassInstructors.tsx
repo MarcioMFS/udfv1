@@ -3,6 +3,7 @@ import { Crown, Users, UserPlus, CheckCircle, AlertCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { ErrorMessage } from '../ui/ErrorMessage'
+import { useIsAdmin } from '../../hooks/useIsAdmin'
 import toast from 'react-hot-toast'
 
 interface InstructorCandidate {
@@ -27,6 +28,7 @@ interface ClassInstructorsProps {
 }
 
 export function ClassInstructors({ classId }: ClassInstructorsProps) {
+  const { isAdmin } = useIsAdmin()
   const [candidates, setCandidates] = useState<InstructorCandidate[]>([])
   const [currentInstructors, setCurrentInstructors] = useState<CurrentInstructor[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -262,23 +264,25 @@ export function ClassInstructors({ classId }: ClassInstructorsProps) {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handlePromoteToInstructor(candidate)}
-                    disabled={isPromoting === candidate.player_id}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isPromoting === candidate.player_id ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Promovendo...
-                      </>
-                    ) : (
-                      <>
-                        <Crown className="w-4 h-4" />
-                        Promover a Instrutor
-                      </>
-                    )}
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handlePromoteToInstructor(candidate)}
+                      disabled={isPromoting === candidate.player_id}
+                      className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isPromoting === candidate.player_id ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Promovendo...
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="w-4 h-4" />
+                          Promover a Instrutor
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

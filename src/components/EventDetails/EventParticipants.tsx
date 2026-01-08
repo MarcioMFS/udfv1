@@ -3,6 +3,7 @@ import { Users, UserPlus, Crown, CheckCircle, Clock, Plus, X } from 'lucide-reac
 import { supabase } from '../../lib/supabase'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { ErrorMessage } from '../ui/ErrorMessage'
+import { useIsAdmin } from '../../hooks/useIsAdmin'
 import toast from 'react-hot-toast'
 
 interface EventParticipant {
@@ -31,6 +32,7 @@ interface EventParticipantsProps {
 }
 
 export function EventParticipants({ eventId, classId, eventType }: EventParticipantsProps) {
+  const { isAdmin } = useIsAdmin()
   const [participants, setParticipants] = useState<EventParticipant[]>([])
   const [availableStudents, setAvailableStudents] = useState<ClassPlayer[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -274,9 +276,9 @@ export function EventParticipants({ eventId, classId, eventType }: EventParticip
 
                 <div className="flex items-center gap-3">
                   {getStatusBadge(participant)}
-                  
+
                   {/* Promote to Instructor button for training events */}
-                  {eventType === 'training' && participant.can_promote_to_instructor && (
+                  {isAdmin && eventType === 'training' && participant.can_promote_to_instructor && (
                     <button
                       onClick={() => handlePromoteToInstructor(participant)}
                       className="flex items-center gap-1 px-3 py-1 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
