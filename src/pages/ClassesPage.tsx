@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Upload } from 'lucide-react'
+import { Upload, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks'
@@ -52,6 +52,7 @@ export function ClassesPage() {
   const [showStudentsModal, setShowStudentsModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [expandedClassCodes, setExpandedClassCodes] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (user && !authLoading) loadClasses()
@@ -176,6 +177,18 @@ export function ClassesPage() {
     return 'Ativa'
   }
 
+  const toggleClassCode = (classId: string) => {
+    setExpandedClassCodes(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(classId)) {
+        newSet.delete(classId)
+      } else {
+        newSet.add(classId)
+      }
+      return newSet
+    })
+  }
+
   const filteredClasses = classes.filter(classItem =>
     classItem.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     classItem.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -222,9 +235,26 @@ export function ClassesPage() {
     <div key={classItem.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-6 flex flex-col h-full">
       {/* Header */}
       <div className="mb-3">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1">{classItem.code}</h2>
-        {classItem.description && (
-          <p className="text-sm text-gray-600 line-clamp-2">{classItem.description}</p>
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-1 flex-1">
+            {classItem.description || classItem.code}
+          </h2>
+          <button
+            onClick={() => toggleClassCode(classItem.id)}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+            title={expandedClassCodes.has(classItem.id) ? "Ocultar código" : "Ver código da turma"}
+          >
+            {expandedClassCodes.has(classItem.id) ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+        {expandedClassCodes.has(classItem.id) && (
+          <p className="text-xs text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded mt-1 inline-block">
+            Código: {classItem.code}
+          </p>
         )}
       </div>
 
