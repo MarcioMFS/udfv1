@@ -263,20 +263,7 @@ serve(async (req)=>{
       });
     }
     const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-    const { data: players, error: playerError } = await supabase.from('players').select('id, email').eq('email', playerEmail);
-    if (playerError || !players || players.length === 0) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Jogador com email '${playerEmail}' não encontrado.`
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 404
-      });
-    }
-    const player = players[0];
+
     // Buscar evento com informações da turma
     const { data: eventData, error: eventError } = await supabase
       .from('events')
@@ -297,15 +284,43 @@ serve(async (req)=>{
       });
     }
 
-    // Verificar se o player está inscrito na turma deste evento
-    const { data: classPlayer, error: classPlayerError } = await supabase
-      .from('class_players')
-      .select('id')
-      .eq('class_id', eventData.class_id)
-      .eq('player_id', player.id)
-      .single();
+    // Buscar todos os players com esse email (pega o mais recente)
+    const { data: players, error: playerError } = await supabase
+      .from('players')
+      .select('id, email')
+      .eq('email', playerEmail)
+      .order('created_at', { ascending: false });
 
-    if (classPlayerError || !classPlayer) {
+    if (playerError || !players || players.length === 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Jogador com email '${playerEmail}' não encontrado.`
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 404
+      });
+    }
+
+    // Verificar qual desses players está inscrito na turma do evento
+    let player = null;
+    for (const p of players) {
+      const { data: classPlayer, error: cpError } = await supabase
+        .from('class_players')
+        .select('id')
+        .eq('class_id', eventData.class_id)
+        .eq('player_id', p.id)
+        .maybeSingle();
+
+      if (!cpError && classPlayer) {
+        player = p;
+        break;
+      }
+    }
+
+    if (!player) {
       return new Response(JSON.stringify({
         success: false,
         error: `Jogador '${playerEmail}' não está inscrito na turma deste evento.`
