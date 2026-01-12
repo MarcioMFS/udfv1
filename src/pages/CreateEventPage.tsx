@@ -341,7 +341,7 @@ export function CreateEventPage() {
                     <option value="">Selecione uma turma</option>
                     {classes.map((cls) => (
                       <option key={cls.id} value={cls.id}>
-                        {cls.code} {cls.description ? `- ${cls.description}` : ''}
+                        {cls.description || cls.code}
                       </option>
                     ))}
                   </select>

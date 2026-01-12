@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { MatchResult } from '../../types'
 import {
   FileText,
@@ -22,6 +22,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { Class } from '../../types'
+import { supabase } from '../../lib/supabase'
+import { calculateClassDynamicInfo, ClassDynamicInfo } from '../../utils/eventUtils'
 
 interface Student {
   id: string
@@ -113,6 +115,31 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
   const [selectedSection, setSelectedSection] = useState<'summary' | 'students' | 'teams' | 'performance'>('summary')
   const [performanceCurrentPage, setPerformanceCurrentPage] = useState(1)
   const performanceItemsPerPage = 10
+  const [dynamicInfo, setDynamicInfo] = useState<ClassDynamicInfo | null>(null)
+
+  // Carregar eventos e calcular informações dinâmicas
+  useEffect(() => {
+    if (!classData?.id) return
+
+    const loadEvents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('id, name, code, subject, event_type, schedule, created_at')
+          .eq('class_id', classData.id)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        const eventsData = data || []
+        setDynamicInfo(calculateClassDynamicInfo(eventsData))
+      } catch (error) {
+        console.error('Error loading events:', error)
+      }
+    }
+
+    loadEvents()
+  }, [classData?.id])
 
   const getPurposeLabel = (purpose: 'lucro' | 'satisfacao' | 'bonus' | null) => {
     switch (purpose) {
@@ -132,24 +159,20 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
     }
   }
 
-  const getStatusColor = (startDate: string | null, endDate: string | null) => {
-    if (!startDate || !endDate) return 'bg-gray-100 text-gray-800'
-    const now = new Date()
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    if (now < start) return 'bg-blue-100 text-blue-800'
-    if (now > end) return 'bg-red-100 text-red-800'
-    return 'bg-green-100 text-green-800'
-  }
-
-  const getStatusLabel = (startDate: string | null, endDate: string | null) => {
-    if (!startDate || !endDate) return 'Indefinido'
-    const now = new Date()
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    if (now < start) return 'Agendada'
-    if (now > end) return 'Finalizada'
-    return 'Ativa'
+  // Status badge color helper
+  const getStatusBadgeColor = (status: ClassDynamicInfo['status']) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800'
+      case 'upcoming':
+        return 'bg-blue-100 text-blue-800'
+      case 'completed':
+        return 'bg-red-100 text-red-800'
+      case 'no_events':
+        return 'bg-orange-100 text-orange-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
   }
 
   const getRankIcon = (position: number) => {
@@ -307,10 +330,10 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
   const exportReport = () => {
     const summarySection = `Relatório Detalhado da Turma: ${classData.code}
 Descrição: ${classData.description || 'N/A'}
-Evento: ${classData.events?.[0]?.name || 'N/A'} (${classData.events?.[0]?.subject || 'N/A'})
-Status: ${getStatusLabel(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}
-Data de Início: ${classData.events?.[0]?.start_date ? format(new Date(classData.events[0].start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
-Data de Fim: ${classData.events?.[0]?.end_date ? format(new Date(classData.events[0].end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
+Evento: ${dynamicInfo?.activeEvent?.name || dynamicInfo?.nextEvent?.name || 'N/A'} (${dynamicInfo?.activeEvent?.subject || dynamicInfo?.nextEvent?.subject || 'N/A'})
+Status: ${dynamicInfo?.statusLabel || 'Status indisponível'}
+Total de Eventos: ${dynamicInfo?.totalEvents || 0}
+Próximo Evento: ${dynamicInfo?.nextEventDate ? format(dynamicInfo.nextEventDate, 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}
 
 Estatísticas Gerais da Turma:
 Total de Alunos: ${classStats.uniquePlayers}
@@ -431,10 +454,12 @@ Engajamento da Turma: ${classStats.classEngagement}%
               <h4 className="font-semibold text-gray-700">Detalhes da Turma</h4>
               <p className="text-sm text-gray-600"><strong>Código da Turma:</strong> {classData.code}</p>
               <p className="text-sm text-gray-600"><strong>Descrição:</strong> {classData.description || 'N/A'}</p>
-              <p className="text-sm text-gray-600"><strong>Evento:</strong> {classData.events?.[0]?.name || 'N/A'} ({classData.events?.[0]?.subject || 'N/A'})</p>
-              <p className="text-sm text-gray-600"><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}`}>{getStatusLabel(classData.events?.[0]?.start_date || null, classData.events?.[0]?.end_date || null)}</span></p>
-              <p className="text-sm text-gray-600"><strong>Data de Início:</strong> {classData.events?.[0]?.start_date ? format(new Date(classData.events[0].start_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
-              <p className="text-sm text-gray-600"><strong>Data de Fim:</strong> {classData.events?.[0]?.end_date ? format(new Date(classData.events[0].end_date), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</p>
+              <p className="text-sm text-gray-600"><strong>Evento Atual:</strong> {dynamicInfo?.activeEvent?.name || dynamicInfo?.nextEvent?.name || 'N/A'} ({dynamicInfo?.activeEvent?.subject || dynamicInfo?.nextEvent?.subject || 'N/A'})</p>
+              <p className="text-sm text-gray-600"><strong>Status:</strong> <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(dynamicInfo?.status || 'no_events')}`}>{dynamicInfo?.statusLabel || 'Status indisponível'}</span></p>
+              <p className="text-sm text-gray-600"><strong>Total de Eventos:</strong> {dynamicInfo?.totalEvents || 0}</p>
+              {dynamicInfo?.nextEventDate && (
+                <p className="text-sm text-gray-600"><strong>Próximo Evento:</strong> {format(dynamicInfo.nextEventDate, 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+              )}
             </div>
             
             <div className="space-y-3">

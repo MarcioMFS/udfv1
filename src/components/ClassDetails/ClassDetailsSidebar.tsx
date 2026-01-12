@@ -28,13 +28,6 @@ export function ClassDetailsSidebar({
   onViewDetailedReport
 }: ClassDetailsSidebarProps) {
 
-  const copyClassCode = () => {
-    if (classData?.code) {
-      navigator.clipboard.writeText(classData.code)
-      toast.success('Código da turma copiado para a área de transferência!')
-    }
-  }
-
   const handleExportStudents = () => {
     try {
       exportStudentsToCSV(students, teams, classData.code)
@@ -57,10 +50,7 @@ export function ClassDetailsSidebar({
 
       <ClassEventsCalendar classId={classData.id} />
 
-      <ClassCodeCard
-        classData={classData}
-        copyClassCode={copyClassCode}
-      />
+      <ClassCodeCard classData={classData} />
 
       <ClassSidebar
         exportStudentsToCsv={handleExportStudents}

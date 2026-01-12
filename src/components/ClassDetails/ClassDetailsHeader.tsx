@@ -29,11 +29,11 @@ export function ClassDetailsHeader({
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 truncate" title={classData.code}>
-            {classData.code}
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 truncate" title={classData.description || classData.code}>
+            {classData.description || classData.code}
           </h1>
-          <p className="text-gray-600 mt-1 truncate" title={classData.description || ''}>
-            {classData.description}
+          <p className="text-sm text-gray-500 mt-1 truncate" title={`Código da turma: ${classData.code}`}>
+            Código da turma: {classData.code}
           </p>
         </div>
       </div>
