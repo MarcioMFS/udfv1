@@ -46,7 +46,7 @@ export function ClassCodeCard({ classData }: ClassCodeCardProps) {
   const copyEventCode = () => {
     if (eventCode) {
       navigator.clipboard.writeText(eventCode)
-      toast.success('Código do evento copiado para a área de transferência!')
+      toast.success('Senha copiada para a área de transferência!')
     } else {
       toast.error('Nenhum evento ativo para copiar')
     }
@@ -54,7 +54,7 @@ export function ClassCodeCard({ classData }: ClassCodeCardProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Código do Evento</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Senha para o Evento</h3>
 
       <div className="text-center">
         <div className="bg-gray-100 rounded-lg p-4 mb-4">
@@ -80,11 +80,11 @@ export function ClassCodeCard({ classData }: ClassCodeCardProps) {
           }`}
         >
           <Copy className="w-4 h-4" />
-          Copiar Código
+          Copiar Senha
         </button>
 
         <p className="text-xs text-gray-500 mt-2">
-          {eventCode ? 'Código do evento ativo/próximo' : 'Crie um evento para esta turma'}
+          {eventCode ? 'Senha do evento ativo/próximo' : 'Crie um evento para esta turma'}
         </p>
       </div>
     </div>
