@@ -37,7 +37,6 @@ export function CreateEventPage() {
   const [eventCode, setEventCode] = useState('')
   const [classes, setClasses] = useState<Array<{id: string, code: string, description: string | null}>>([])
   const [eventHasPassed, setEventHasPassed] = useState(false)
-  const [originalEndDate, setOriginalEndDate] = useState<string | null>(null)
   const [formData, setFormData] = useState<EventFormData>({
     name: '',
     description: '',
@@ -105,7 +104,6 @@ export function CreateEventPage() {
 
         if (endDate < now) {
           setEventHasPassed(true)
-          setOriginalEndDate(eventData.end_date)
           console.warn('⚠️ Este evento já passou. Edição de datas bloqueada para não-admins.')
         }
       }
