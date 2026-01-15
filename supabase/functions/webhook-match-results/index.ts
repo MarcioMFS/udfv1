@@ -27,6 +27,7 @@ class DeliveryManifest {
   source = ARCode.HOME;
   satisfaction = false;
   value = 0;
+  bonusValue = 0;
   deserialize(serial) {
     const parts = serial.split(';');
     if (parts.length < 5) return;
@@ -37,6 +38,7 @@ class DeliveryManifest {
     this.source = parsedSource;
     this.satisfaction = parts[2].toLowerCase() === 'true';
     this.value = parseInt(parts[4], 10) || 0;
+    this.bonusValue = parseInt(parts[5], 10) || 0;
   }
 }
 class GameDataManifest {
@@ -203,6 +205,9 @@ class GameDataManifest {
     }
     return totalBonus;
   }
+  get bonusMoney() {
+    return this.deliveries.reduce((sum, d)=>sum + (d.bonusValue || 0), 0);
+  }
 }
 function deserializeAppSerial(serial) {
   if (!serial) {
@@ -213,7 +218,8 @@ function deserializeAppSerial(serial) {
   return {
     lucro: manifest.profit,
     satisfacao: manifest.satisfaction,
-    bonus: manifest.bonus
+    bonus: manifest.bonus,
+    bonusMoney: manifest.bonusMoney
   };
 }
 // Função principal do servidor da Edge Function
@@ -261,7 +267,7 @@ serve(async (req)=>{
     const { data: matchEntry, error: matchEntryError } = await supabaseClient.from('matches').select('app_serial, event_id').eq('player_id', playerData.id).eq('event_id', eventData.id).eq('match_number', matchNumber).single();
     if (matchEntryError || !matchEntry) throw new Error(`Partida não encontrada para os critérios fornecidos.`);
     // 3. Desserializa e Calcula os resultados
-    const { lucro, satisfacao, bonus } = deserializeAppSerial(matchEntry.app_serial);
+    const { lucro, satisfacao, bonus, bonusMoney } = deserializeAppSerial(matchEntry.app_serial);
     // 4. Salva os resultados calculados
     const { data: matchResultData, error: matchResultError } = await supabaseClient.from('match_results').upsert({
       id: crypto.randomUUID(),
@@ -271,6 +277,7 @@ serve(async (req)=>{
       lucro: lucro,
       satisfacao: satisfacao,
       bonus: bonus,
+      bonus_money: bonusMoney,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }, {

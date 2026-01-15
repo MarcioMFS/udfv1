@@ -34,21 +34,30 @@ class DeliveryManifest {
   deliveryTime = 0;
   deserialize(serial) {
     const parts = serial.split(';');
-    if (parts.length < 7) return;
+    if (parts.length < 5) return; // Suporta formato antigo e novo
     const parsedSource = parseInt(parts[0], 10);
-    const parsedDestination = parseInt(parts[1], 10);
     if (!isValidARCode(parsedSource)) {
       throw new Error(`Código ARCode inválido na entrega: ${parts[0]}`);
     }
-    if (!isValidARCode(parsedDestination)) {
-      throw new Error(`Código ARCode inválido na entrega: ${parts[1]}`);
-    }
     this.source = parsedSource;
-    this.destination = parsedDestination;
-    this.satisfaction = parts[2].toLowerCase() === 'true';
-    this.value = parseInt(parts[4], 10) || 0;
-    this.bonusValue = parseInt(parts[5], 10) || 0;
-    this.deliveryTime = parseFloat(parts[6]) || 0;
+
+    // Formato novo tem 7+ campos, antigo tem 5
+    if (parts.length >= 7) {
+      const parsedDestination = parseInt(parts[1], 10);
+      if (!isValidARCode(parsedDestination)) {
+        throw new Error(`Código ARCode inválido na entrega: ${parts[1]}`);
+      }
+      this.destination = parsedDestination;
+      this.satisfaction = parts[2].toLowerCase() === 'true';
+      this.value = parseInt(parts[4], 10) || 0;
+      this.bonusValue = parseInt(parts[5], 10) || 0;
+      this.deliveryTime = parseFloat(parts[6]) || 0;
+    } else {
+      // Formato antigo: source;destination;satisfaction;type;value
+      this.satisfaction = parts[2].toLowerCase() === 'true';
+      this.value = parseInt(parts[4], 10) || 0;
+      this.bonusValue = 0;
+    }
   }
 }
 
@@ -216,6 +225,9 @@ class GameDataManifest {
     }
     return totalBonus;
   }
+  get bonusMoney() {
+    return this.deliveries.reduce((sum, d)=>sum + (d.bonusValue || 0), 0);
+  }
   get result() {
     if (this.revenue === 0) return 0;
     return Math.round(100 * this.profit / this.revenue);
@@ -231,7 +243,8 @@ function deserializeAppSerial(serial) {
   return {
     lucro: manifest.profit,
     satisfacao: manifest.satisfaction,
-    bonus: manifest.bonus
+    bonus: manifest.bonus,
+    bonusMoney: manifest.bonusMoney
   };
 }
 serve(async (req)=>{
@@ -349,9 +362,9 @@ serve(async (req)=>{
       console.log('Iniciando cálculo dos resultados...');
       console.log('App serial recebido:', appSerial);
       
-      const { lucro, satisfacao, bonus } = deserializeAppSerial(appSerial);
-      console.log('Resultados calculados - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus);
-      
+      const { lucro, satisfacao, bonus, bonusMoney } = deserializeAppSerial(appSerial);
+      console.log('Resultados calculados - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus, 'BonusMoney:', bonusMoney);
+
       // Salvar resultados na tabela match_results
       console.log('Salvando resultados em match_results...');
       const { data: matchResultData, error: matchResultError } = await supabase
@@ -364,6 +377,7 @@ serve(async (req)=>{
           lucro: lucro,
           satisfacao: satisfacao,
           bonus: bonus,
+          bonus_money: bonusMoney,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -375,7 +389,10 @@ serve(async (req)=>{
       }
       
       console.log('Resultados salvos com sucesso:', matchResultData);
-      
+
+      // Atualizar estatísticas do jogador
+      await updatePlayerStats(supabase, player.id, eventData.class_id, eventData.id);
+
     } catch (calcError) {
       console.error('Erro completo ao calcular resultados:', calcError);
       console.error('Stack trace:', calcError.stack);
@@ -407,3 +424,38 @@ serve(async (req)=>{
     });
   }
 });
+
+async function updatePlayerStats(supabaseClient, playerId, classId, eventId) {
+  try {
+    // Buscar results do evento específico
+    const { data: results, error: resultsError } = await supabaseClient
+      .from('match_results')
+      .select('lucro, satisfacao, bonus')
+      .eq('player_id', playerId)
+      .eq('event_id', eventId);
+
+    if (resultsError) throw resultsError;
+    if (!results?.length) return;
+
+    const totalMatches = results.length;
+    const totalScore = results.reduce((sum, result) =>
+      sum + (result.lucro || 0) + (result.satisfacao || 0) + (result.bonus || 0), 0
+    );
+    const avgScore = totalScore / totalMatches;
+
+    // Atualizar estatísticas do jogador na turma
+    const { error: updateError } = await supabaseClient
+      .from('class_players')
+      .update({
+        total_matches: totalMatches,
+        avg_score: Math.round(avgScore)
+      })
+      .eq('player_id', playerId)
+      .eq('class_id', classId);
+
+    if (updateError) throw updateError;
+    console.log(`Estatísticas atualizadas para player ${playerId} no evento ${eventId}`);
+  } catch (error) {
+    console.error('Erro na função updatePlayerStats:', error);
+  }
+}
