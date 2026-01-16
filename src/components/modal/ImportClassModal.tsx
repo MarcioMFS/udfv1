@@ -42,8 +42,11 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
     now.setHours(0, 0, 0, 0)
 
     return events.some(event => {
-      const eventDate = new Date(event.startDate)
-      eventDate.setHours(0, 0, 0, 0)
+      // Parsear a data corretamente no timezone local
+      // event.startDate vem como "YYYY-MM-DD"
+      const [year, month, day] = event.startDate.split('-').map(Number)
+      const eventDate = new Date(year, month - 1, day, 0, 0, 0, 0)
+
       return eventDate < now
     })
   }

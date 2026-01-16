@@ -429,6 +429,7 @@ function simpleHash(str: string): string {
 
 /**
  * Converte horário "8 as 12" para formato de schedule com data ISO completa
+ * IMPORTANTE: Cria timestamps no timezone local (Brasília GMT-3)
  */
 function parseSchedule(scheduleStr: string, eventDate: string): { 'initial-time': string; 'end-time': string } | null {
   // Formatos aceitos: "8 as 12", "14 as 18", "08:00 às 12:00"
@@ -440,10 +441,16 @@ function parseSchedule(scheduleStr: string, eventDate: string): { 'initial-time'
     const endHour = match[3].padStart(2, '0')
     const endMin = (match[4] || '00').padStart(2, '0')
 
-    // Criar timestamps ISO completos com a data do evento
+    // Criar Date object no timezone local e converter para ISO
+    // Isso garante que a data seja interpretada no timezone de Brasília
+    const [year, month, day] = eventDate.split('-').map(Number)
+
+    const startDate = new Date(year, month - 1, day, parseInt(startHour), parseInt(startMin), 0)
+    const endDate = new Date(year, month - 1, day, parseInt(endHour), parseInt(endMin), 0)
+
     return {
-      'initial-time': `${eventDate}T${startHour}:${startMin}:00`,
-      'end-time': `${eventDate}T${endHour}:${endMin}:00`
+      'initial-time': startDate.toISOString(),
+      'end-time': endDate.toISOString()
     }
   }
 
@@ -609,11 +616,15 @@ export async function importClassFromExcel(
     // 4. Criar UM ÚNICO evento com múltiplos encontros no schedule
     if (events.length > 0) {
       try {
+        console.log(`[IMPORT] Processando ${events.length} encontros para criar evento único`)
+
         // Construir array de schedules (todos os encontros)
         const schedules = events.map(event => {
           const schedule = parseSchedule(event.schedule, event.startDate)
           return schedule
         }).filter(s => s !== null)
+
+        console.log(`[IMPORT] Schedules criados: ${schedules.length}`)
 
         // Pegar primeira e última data para start_date e end_date
         const sortedDates = events.map(e => e.startDate).sort()
@@ -623,18 +634,31 @@ export async function importClassFromExcel(
         // Pegar o tipo de evento do primeiro evento (todos devem ter o mesmo tipo)
         const eventType = events[0]?.eventType || 'training'
 
-        console.log('Criando evento com tipo:', eventType)
+        console.log('[IMPORT] Parâmetros do evento:', {
+          eventType,
+          firstDate,
+          lastDate,
+          schedulesCount: schedules.length,
+          classId
+        })
 
         // Deletar eventos existentes da turma antes de criar novo
-        await supabase
+        console.log(`[IMPORT] Deletando eventos existentes da turma ${classId}`)
+        const { error: deleteError } = await supabase
           .from('events')
           .delete()
           .eq('class_id', classId)
 
+        if (deleteError) {
+          console.error('[IMPORT] Erro ao deletar eventos antigos:', deleteError)
+        }
+
         // Gerar código aleatório para o evento
         const eventCode = generateEventCode()
+        console.log(`[IMPORT] Código gerado para o evento: ${eventCode}`)
 
-        const { error: eventError } = await supabase
+        console.log('[IMPORT] Inserindo evento no banco...')
+        const { data: eventData, error: eventError } = await supabase
           .from('events')
           .insert({
             code: eventCode,
@@ -650,13 +674,17 @@ export async function importClassFromExcel(
             time_limit: 30,
             max_players: 50
           })
+          .select()
 
         if (eventError) {
+          console.error('[IMPORT] Erro ao criar evento:', eventError)
           errors.push(`Erro ao criar evento: ${eventError.message}`)
         } else {
+          console.log('[IMPORT] Evento criado com sucesso:', eventData)
           eventsImported = events.length // Contar quantos encontros foram adicionados
         }
       } catch (error) {
+        console.error('[IMPORT] Erro ao processar eventos:', error)
         errors.push(`Erro ao processar eventos: ${error}`)
       }
     }
