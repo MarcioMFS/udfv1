@@ -82,7 +82,7 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
         case 'satisfacao':
           return studentResults.some(result => (result.satisfacao || 0) >= 0)
         case 'bonus':
-          return studentResults.some(result => (result.bonus || 0) >= 0)
+          return studentResults.some(result => (result.bonus_money || 0) >= 0)
         default:
           return true
       }
@@ -94,10 +94,10 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
     const studentResults = matchResults.filter(result => result.player_id === studentId)
     const matchCount = studentResults.length
     const totalLucro = studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
-    const avgSatisfacao = studentResults.length > 0 
-      ? studentResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0) / studentResults.length 
+    const avgSatisfacao = studentResults.length > 0
+      ? studentResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0) / studentResults.length
       : 0
-    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
     
     return {
       matchCount,
@@ -191,7 +191,7 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
               value = studentResults[studentResults.length - 1].satisfacao || 0
               break
             case 'bonus':
-              value = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+              value = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
               break
           }
           
@@ -212,7 +212,7 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
         switch (indicator) {
           case 'lucro': return studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
           case 'satisfacao': return studentResults.sort((a,b) => b.match_number - a.match_number)[0]?.satisfacao || 0
-          case 'bonus': return studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+          case 'bonus': return studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
           default: return 0
         }
       }).filter(value => value > 0)
@@ -245,11 +245,11 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
           
           const lucroValue = studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
           matchData[`${studentName} - Lucro`] = Math.round(lucroValue)
-          
+
           const satisfacaoValue = studentResults[studentResults.length - 1].satisfacao || 0
           matchData[`${studentName} - Satisfação`] = Math.round(satisfacaoValue)
-          
-          const bonusValue = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+
+          const bonusValue = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
           matchData[`${studentName} - Bônus`] = Math.round(bonusValue)
         }
       })
@@ -262,7 +262,7 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
           switch (indicator) {
             case 'lucro': return studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
             case 'satisfacao': return studentResults.sort((a,b) => b.match_number - a.match_number)[0]?.satisfacao || 0
-            case 'bonus': return studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+            case 'bonus': return studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
             default: return 0
           }
         }).filter(value => value > 0)

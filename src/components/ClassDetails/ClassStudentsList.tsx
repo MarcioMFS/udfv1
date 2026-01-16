@@ -41,10 +41,10 @@ export function ClassStudentsList({ students, matchResults = [], itemsPerPage = 
 
   const studentsWithResults = students.map(student => {
     const studentResults = matchResults.filter(result => result.player_id === student.id)
-    
+
     const totalLucro = studentResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
     const totalSatisfacao = studentResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
-    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
     const avgSatisfacao = studentResults.length > 0 ? totalSatisfacao / studentResults.length : 0
     const totalScore = totalLucro + totalSatisfacao + totalBonus
 

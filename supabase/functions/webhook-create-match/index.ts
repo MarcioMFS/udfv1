@@ -262,7 +262,18 @@ serve(async (req)=>{
     }
 
     const body = await req.json();
-    const { "player-email": playerEmail, "event-code": eventCode, "app-serial": appSerial, "match-number": matchNumber } = body;
+    const {
+      "player-email": playerEmail,
+      "event-code": eventCode,
+      "app-serial": appSerial,
+      "match-number": matchNumber,
+      // Novos campos opcionais: valores já calculados
+      "lucro": lucroFromApi,
+      "satisfacao": satisfacaoFromApi,
+      "bonus": bonusFromApi,
+      "bonus-money": bonusMoneyFromApi
+    } = body;
+
     if (!playerEmail || !eventCode || !appSerial || matchNumber == null) {
       return new Response(JSON.stringify({
         success: false,
@@ -357,13 +368,42 @@ serve(async (req)=>{
       throw new Error(`Erro ao salvar match: ${matchError?.message}`);
     }
 
-    // Calcular resultados diretamente
+    // Determinar os resultados: usar valores da API se fornecidos, caso contrário calcular
     try {
-      console.log('Iniciando cálculo dos resultados...');
-      console.log('App serial recebido:', appSerial);
-      
-      const { lucro, satisfacao, bonus, bonusMoney } = deserializeAppSerial(appSerial);
-      console.log('Resultados calculados - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus, 'BonusMoney:', bonusMoney);
+      let lucro: number;
+      let satisfacao: number;
+      let bonus: number;
+      let bonusMoney: number;
+
+      // Verificar se os valores foram fornecidos pela API
+      const hasCalculatedValues =
+        lucroFromApi !== undefined &&
+        satisfacaoFromApi !== undefined &&
+        bonusFromApi !== undefined &&
+        bonusMoneyFromApi !== undefined;
+
+      if (hasCalculatedValues) {
+        // Usar valores já calculados pela API do Unity
+        console.log('Usando valores calculados recebidos da API...');
+        lucro = Number(lucroFromApi);
+        satisfacao = Number(satisfacaoFromApi);
+        bonus = Number(bonusFromApi);
+        bonusMoney = Number(bonusMoneyFromApi);
+
+        console.log('Valores da API - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus, 'BonusMoney:', bonusMoney);
+      } else {
+        // Calcular a partir do app_serial (comportamento antigo - retrocompatível)
+        console.log('Calculando valores a partir do app_serial...');
+        console.log('App serial recebido:', appSerial);
+
+        const calculated = deserializeAppSerial(appSerial);
+        lucro = calculated.lucro;
+        satisfacao = calculated.satisfacao;
+        bonus = calculated.bonus;
+        bonusMoney = calculated.bonusMoney;
+
+        console.log('Valores calculados - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus, 'BonusMoney:', bonusMoney);
+      }
 
       // Salvar resultados na tabela match_results
       console.log('Salvando resultados em match_results...');
@@ -382,19 +422,19 @@ serve(async (req)=>{
           updated_at: new Date().toISOString()
         })
         .select().single();
-        
+
       if (matchResultError) {
         console.error('Erro ao salvar match_results:', matchResultError);
         throw matchResultError;
       }
-      
+
       console.log('Resultados salvos com sucesso:', matchResultData);
 
       // Atualizar estatísticas do jogador
       await updatePlayerStats(supabase, player.id, eventData.class_id, eventData.id);
 
     } catch (calcError) {
-      console.error('Erro completo ao calcular resultados:', calcError);
+      console.error('Erro completo ao processar resultados:', calcError);
       console.error('Stack trace:', calcError.stack);
     }
 

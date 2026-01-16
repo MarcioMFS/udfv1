@@ -94,6 +94,7 @@ export function EventDashboard({ eventId, classId, stats }: EventDashboardProps)
         lucro,
         satisfacao,
         bonus,
+        bonus_money,
         match_number,
         events!inner(id)
       `)
@@ -115,7 +116,7 @@ export function EventDashboard({ eventId, classId, stats }: EventDashboardProps)
     const totalMatches = matchResults.length
     const totalProfit = matchResults.reduce((sum, r) => sum + (r.lucro || 0), 0)
     const avgSatisfaction = matchResults.reduce((sum, r) => sum + (r.satisfacao || 0), 0) / totalMatches
-    const avgBonus = matchResults.reduce((sum, r) => sum + (r.bonus || 0), 0) / totalMatches
+    const avgBonus = matchResults.reduce((sum, r) => sum + (r.bonus_money || 0), 0) / totalMatches
 
     // Calcular engajamento baseado na turma
     const { data: classPlayers } = await supabase

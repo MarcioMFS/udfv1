@@ -200,10 +200,10 @@ export function DetailedReport({ classData, students, matchResults, teams }: Det
       const satisfacaoResults = studentResults.filter(result => result.satisfacao !== null)
       const totalSatisfacao = satisfacaoResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
       const avgSatisfacao = satisfacaoResults.length > 0 ? totalSatisfacao / satisfacaoResults.length : 0
-      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
       const totalScore = totalLucro + avgSatisfacao + totalBonus
 
-      const matchScores = studentResults.map(r => (r.lucro || 0) + (r.satisfacao || 0) + (r.bonus || 0));
+      const matchScores = studentResults.map(r => (r.lucro || 0) + (r.satisfacao || 0) + (r.bonus_money || 0));
       const bestMatchScore = matchScores.length > 0 ? Math.max(...matchScores) : 0;
       const worstMatchScore = matchScores.length > 0 ? Math.min(...matchScores) : 0;
       const avgMatchScore = matchScores.length > 0 ? matchScores.reduce((a, b) => a + b, 0) / matchScores.length : 0;
@@ -383,7 +383,7 @@ Engajamento da Turma: ${classStats.classEngagement}%
         mr.match_number,
         mr.lucro || 0,
         mr.satisfacao || 0,
-        mr.bonus || 0,
+        mr.bonus_money || 0,
         format(new Date(mr.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
     ].join(',')).join('\n');
     const matchesSection = `\nResultados de Partidas (Últimas 100):\n${matchHeaders.join(',')}\n${matchRows}`;
@@ -680,7 +680,7 @@ Engajamento da Turma: ${classStats.classEngagement}%
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{match.match_number}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(match.lucro || 0)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{match.satisfacao || 0}%</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(match.bonus || 0)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(match.bonus_money || 0)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{format(new Date(match.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                       </tr>
                     ))}

@@ -115,7 +115,7 @@ export function ReportsPage() {
 
         const { data: matchResults, count: matchResultsCountData } = await supabase
           .from('match_results')
-          .select('lucro, satisfacao, bonus, class_id')
+          .select('lucro, satisfacao, bonus, bonus_money, class_id')
           .in('class_id', classIds)
           .gte('created_at', startDate.toISOString())
           .lte('created_at', endDate.toISOString())
@@ -125,7 +125,7 @@ export function ReportsPage() {
           const totals = matchResults.reduce((acc, result) => {
             acc.lucro += result.lucro || 0
             acc.satisfacao += result.satisfacao || 0
-            acc.bonus += result.bonus || 0
+            acc.bonus += result.bonus_money || 0
             return acc
           }, { lucro: 0, satisfacao: 0, bonus: 0 })
           avgLucro = totals.lucro / matchResults.length
@@ -213,7 +213,7 @@ export function ReportsPage() {
         classesWithEvents.map(async (classItem) => {
           const { data: results } = await supabase
             .from('match_results')
-            .select('lucro, satisfacao, bonus, events!inner(class_id)')
+            .select('lucro, satisfacao, bonus, bonus_money, events!inner(class_id)')
             .eq('events.class_id', classItem.id)
 
           const { count: matchesCount } = await supabase
@@ -222,7 +222,7 @@ export function ReportsPage() {
             .eq('class_id', classItem.id)
 
           const avgScore = results && results.length > 0
-            ? results.reduce((sum, r) => sum + (r.lucro || 0) + (r.satisfacao || 0) + (r.bonus || 0), 0) / results.length
+            ? results.reduce((sum, r) => sum + (r.lucro || 0) + (r.satisfacao || 0) + (r.bonus_money || 0), 0) / results.length
             : 0
 
           return {

@@ -21,6 +21,7 @@ interface MatchResult {
   lucro: number | null
   satisfacao: number | null
   bonus: number | null
+  bonus_money: number | null
   created_at: string
   player?: {
     name: string | null
@@ -155,7 +156,7 @@ export function MatchResultsChart({ selectedPeriod }: MatchResultsChartProps) {
 
       if (result.lucro !== null) acc[classCode].lucro.push(result.lucro)
       if (result.satisfacao !== null) acc[classCode].satisfacao.push(result.satisfacao)
-      if (result.bonus !== null) acc[classCode].bonus.push(result.bonus)
+      if (result.bonus_money !== null) acc[classCode].bonus.push(result.bonus_money)
       acc[classCode].count++
 
       return acc
