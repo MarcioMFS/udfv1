@@ -626,18 +626,21 @@ export async function importClassFromExcel(
 
         console.log(`[IMPORT] Schedules criados: ${schedules.length}`)
 
-        // Pegar primeira e última data para start_date e end_date
-        const sortedDates = events.map(e => e.startDate).sort()
-        const firstDate = sortedDates[0]
-        const lastDate = sortedDates[sortedDates.length - 1]
+        // Pegar primeira e última data COM HORÁRIOS para start_date e end_date
+        // Usar os timestamps dos schedules ao invés de datas simples
+        const firstSchedule = schedules[0]
+        const lastSchedule = schedules[schedules.length - 1]
+
+        const startDate = firstSchedule ? firstSchedule['initial-time'] : events[0].startDate
+        const endDate = lastSchedule ? lastSchedule['end-time'] : events[events.length - 1].endDate
 
         // Pegar o tipo de evento do primeiro evento (todos devem ter o mesmo tipo)
         const eventType = events[0]?.eventType || 'training'
 
         console.log('[IMPORT] Parâmetros do evento:', {
           eventType,
-          firstDate,
-          lastDate,
+          startDate,
+          endDate,
           schedulesCount: schedules.length,
           classId
         })
@@ -667,8 +670,8 @@ export async function importClassFromExcel(
             class_id: classId,
             instructor_id: instructorId,
             event_type: eventType,
-            start_date: firstDate,
-            end_date: lastDate,
+            start_date: startDate,
+            end_date: endDate,
             schedule: schedules,
             difficulty: 'medium',
             time_limit: 30,
