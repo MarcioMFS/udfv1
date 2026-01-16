@@ -155,6 +155,7 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
           lucro,
           satisfacao,
           bonus,
+          bonus_money,
           created_at,
           match_number,
           event_id,

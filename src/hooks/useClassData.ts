@@ -86,6 +86,7 @@ export function useClassData(classId: string | undefined): UseClassDataReturn {
           lucro,
           satisfacao,
           bonus,
+          bonus_money,
           created_at,
           players:player_id (name, email, purpose),
           events!inner(class_id)

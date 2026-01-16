@@ -78,6 +78,7 @@ interface StudentReport {
     lucro: number | null
     satisfacao: number | null
     bonus: number | null
+    bonus_money: number | null
     created_at: string
   }>
   performance: {

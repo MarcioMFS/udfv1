@@ -96,6 +96,7 @@ export interface MatchResult {
   lucro: number | null
   satisfacao: number | null
   bonus: number | null
+  bonus_money: number | null
   created_at: string
   player?: {
     name: string | null
