@@ -375,11 +375,11 @@ serve(async (req)=>{
       let bonus: number;
       let bonusMoney: number;
 
-      // Verificar se os valores foram fornecidos pela API
+      // Verificar se os valores ESSENCIAIS foram fornecidos pela API
+      // bonus é opcional - se não vier, deixamos como 0
       const hasCalculatedValues =
         lucroFromApi !== undefined &&
         satisfacaoFromApi !== undefined &&
-        bonusFromApi !== undefined &&
         bonusMoneyFromApi !== undefined;
 
       if (hasCalculatedValues) {
@@ -387,8 +387,9 @@ serve(async (req)=>{
         console.log('Usando valores calculados recebidos da API...');
         lucro = Number(lucroFromApi);
         satisfacao = Number(satisfacaoFromApi);
-        bonus = Number(bonusFromApi);
         bonusMoney = Number(bonusMoneyFromApi);
+        // bonus é opcional - se não vier, deixa como 0
+        bonus = bonusFromApi !== undefined ? Number(bonusFromApi) : 0;
 
         console.log('Valores da API - Lucro:', lucro, 'Satisfação:', satisfacao, 'Bonus:', bonus, 'BonusMoney:', bonusMoney);
       } else {
