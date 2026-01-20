@@ -171,9 +171,6 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
   const rankingData = useMemo(() => {
     if (students.length === 0) return []
 
-    // Get unique match numbers
-    const uniqueMatchNumbers = [...new Set(matchResults.map(r => r.match_number))]
-
     // Calculate ranking score by summing positions across all matches
     const studentStats = students.map(student => {
       const studentResults = matchResults.filter(result => result.player_id === student.id)
@@ -189,38 +186,6 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
       const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
       const avgBonus = numMatches > 0 ? totalBonus / numMatches : 0
 
-      // Calculate ranking score: sum of positions across all matches
-      let rankingScore = 0
-      let matchesParticipated = 0
-      uniqueMatchNumbers.forEach(matchNum => {
-        const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
-        const studentInMatch = matchPlayersResults.find(r => r.player_id === student.id)
-
-        if (!studentInMatch) return // Student didn't participate in this match
-
-        matchesParticipated++
-
-        // Rank by lucro for this match
-        const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
-        const lucroPos = lucroRanked.findIndex(r => r.player_id === student.id) + 1
-
-        // Rank by satisfacao for this match
-        const satisfacaoRanked = [...matchPlayersResults].sort((a, b) => (b.satisfacao || 0) - (a.satisfacao || 0))
-        const satisfacaoPos = satisfacaoRanked.findIndex(r => r.player_id === student.id) + 1
-
-        // Rank by bonus for this match
-        const bonusRanked = [...matchPlayersResults].sort((a, b) => (b.bonus_money || 0) - (a.bonus_money || 0))
-        const bonusPos = bonusRanked.findIndex(r => r.player_id === student.id) + 1
-
-        // Sum positions (lower is better)
-        if (lucroPos > 0 && satisfacaoPos > 0 && bonusPos > 0) {
-          rankingScore += (lucroPos + satisfacaoPos + bonusPos)
-        }
-      })
-
-      // Average ranking score (normalize by number of matches participated)
-      const avgRankingScore = matchesParticipated > 0 ? rankingScore / matchesParticipated : 999999
-
       return {
         id: student.id,
         name: student.name || 'Sem nome',
@@ -230,7 +195,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         totalBonus,
         avgBonus,
         matches: numMatches,
-        rankingScore: avgRankingScore, // Lower is better (average position)
+        rankingScore: 0, // Will be calculated after all students
         isTeam: false,
         purpose: student.purpose
       }
@@ -257,40 +222,6 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         const totalBonus = teamResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
         const avgBonus = numMatches > 0 ? totalBonus / numMatches : 0
 
-        // Calculate team ranking score: sum positions of all team members
-        let rankingScore = 0
-        let teamMatchesParticipated = 0
-        uniqueMatchNumbers.forEach(matchNum => {
-          const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
-
-          team.members.forEach(member => {
-            const memberInMatch = matchPlayersResults.find(r => r.player_id === member.id)
-            if (!memberInMatch) return // Member didn't participate in this match
-
-            teamMatchesParticipated++
-
-            // Rank by lucro for this match
-            const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
-            const lucroPos = lucroRanked.findIndex(r => r.player_id === member.id) + 1
-
-            // Rank by satisfacao for this match
-            const satisfacaoRanked = [...matchPlayersResults].sort((a, b) => (b.satisfacao || 0) - (a.satisfacao || 0))
-            const satisfacaoPos = satisfacaoRanked.findIndex(r => r.player_id === member.id) + 1
-
-            // Rank by bonus for this match
-            const bonusRanked = [...matchPlayersResults].sort((a, b) => (b.bonus_money || 0) - (a.bonus_money || 0))
-            const bonusPos = bonusRanked.findIndex(r => r.player_id === member.id) + 1
-
-            // Sum positions (lower is better)
-            if (lucroPos > 0 && satisfacaoPos > 0 && bonusPos > 0) {
-              rankingScore += (lucroPos + satisfacaoPos + bonusPos)
-            }
-          })
-        })
-
-        // Average ranking score (normalize by number of member-matches)
-        const avgRankingScore = teamMatchesParticipated > 0 ? rankingScore / teamMatchesParticipated : 999999
-
         return {
           id: team.id,
           name: team.name || 'Time sem nome',
@@ -300,7 +231,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
           totalBonus,
           avgBonus,
           matches: team.members.reduce((sum, member) => sum + matchResults.filter(r => r.player_id === member.id).length, 0),
-          rankingScore: avgRankingScore, // Lower is better (average position)
+          rankingScore: 0, // Will be calculated after all teams
           isTeam: true,
           purpose: team.group_purpose
         }
@@ -309,6 +240,19 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
     const activeStudents = studentStats.filter(student => student.matches > 0)
     const activeTeams = teamStats.filter(team => team.matches > 0)
     const allEntities = [...activeStudents, ...activeTeams]
+
+    // Calculate ranking positions for each metric
+    const lucroRanked = [...allEntities].sort((a, b) => b.avgLucro - a.avgLucro)
+    const satisfacaoRanked = [...allEntities].sort((a, b) => b.avgSatisfacao - a.avgSatisfacao)
+    const bonusRanked = [...allEntities].sort((a, b) => b.avgBonus - a.avgBonus)
+
+    // Assign position scores to each entity
+    allEntities.forEach(entity => {
+      const lucroPos = lucroRanked.findIndex(e => e.id === entity.id) + 1
+      const satisfacaoPos = satisfacaoRanked.findIndex(e => e.id === entity.id) + 1
+      const bonusPos = bonusRanked.findIndex(e => e.id === entity.id) + 1
+      entity.rankingScore = lucroPos + satisfacaoPos + bonusPos
+    })
 
     // Sort by ranking score (lower is better - like golf)
     const finalRanking = [...allEntities].sort((a, b) => {
