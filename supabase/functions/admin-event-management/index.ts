@@ -57,13 +57,13 @@ serve(async (req) => {
     }
 
     // Check if user is admin
-    const { data: instructor } = await supabaseClient
+    const { data: instructor, error: instructorError } = await supabaseClient
       .from('instructors')
       .select('id, is_admin')
       .eq('id', user.id)
       .single();
 
-    if (!instructor || !instructor.is_admin) {
+    if (instructorError || !instructor || !instructor.is_admin) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Apenas administradores podem executar esta operação'
@@ -95,13 +95,27 @@ serve(async (req) => {
           .from('events')
           .select(`
             *,
-            instructor:instructors(id, name, email),
-            class:classes(id, name)
+            instructors!instructor_id(id, name, email),
+            classes!class_id(id, code, description)
           `)
-          .order('date', { ascending: false });
+          .order('start_date', { ascending: false });
 
         if (listError) throw listError;
-        result = events;
+
+        // Transform the nested objects to match expected format
+        const transformedEvents = events?.map(event => ({
+          ...event,
+          instructor: event.instructors,
+          class: event.classes ? {
+            id: event.classes.id,
+            name: event.classes.code,
+            description: event.classes.description
+          } : null,
+          date: event.start_date,
+          title: event.name
+        })) || [];
+
+        result = transformedEvents;
         message = 'Eventos recuperados com sucesso';
         break;
       }
@@ -125,7 +139,7 @@ serve(async (req) => {
         // Get event details before update
         const { data: eventData } = await supabaseAdmin
           .from('events')
-          .select('title, instructor_id, instructors(name)')
+          .select('name, instructor_id, instructors!instructor_id(name)')
           .eq('id', event_id)
           .single();
 
@@ -139,15 +153,28 @@ serve(async (req) => {
           .eq('id', event_id)
           .select(`
             *,
-            instructor:instructors(id, name, email),
-            class:classes(id, name)
+            instructors!instructor_id(id, name, email),
+            classes!class_id(id, code, description)
           `)
           .single();
 
         if (updateError) throw updateError;
 
-        result = updated;
-        message = `Evento "${eventData?.title}" reatribuído de ${(eventData?.instructors as any)?.name} para ${newInstructor.name}`;
+        // Transform response
+        const transformedResult = {
+          ...updated,
+          instructor: updated.instructors,
+          class: updated.classes ? {
+            id: updated.classes.id,
+            name: updated.classes.code,
+            description: updated.classes.description
+          } : null,
+          date: updated.start_date,
+          title: updated.name
+        };
+
+        result = transformedResult;
+        message = `Evento "${eventData?.name}" reatribuído de ${(eventData?.instructors as any)?.name} para ${newInstructor.name}`;
         break;
       }
 
@@ -156,16 +183,22 @@ serve(async (req) => {
           throw new Error('Campo obrigatório ausente: event_id');
         }
 
-        // Get event title for message
+        // Get event name for message
         const { data: eventData } = await supabaseAdmin
           .from('events')
-          .select('title')
+          .select('name')
           .eq('id', event_id)
           .single();
 
         // Delete match results first (due to foreign key constraint)
         await supabaseAdmin
           .from('match_results')
+          .delete()
+          .eq('event_id', event_id);
+
+        // Delete matches
+        await supabaseAdmin
+          .from('matches')
           .delete()
           .eq('event_id', event_id);
 
@@ -178,7 +211,7 @@ serve(async (req) => {
         if (deleteError) throw deleteError;
 
         result = { deleted_id: event_id };
-        message = `Evento "${eventData?.title || event_id}" excluído com sucesso`;
+        message = `Evento "${eventData?.name || event_id}" excluído com sucesso`;
         break;
       }
 
@@ -192,8 +225,8 @@ serve(async (req) => {
         }
 
         const updateData: any = { updated_at: new Date().toISOString() };
-        if (data.title) updateData.title = data.title;
-        if (data.date) updateData.date = data.date;
+        if (data.title) updateData.name = data.title;
+        if (data.date) updateData.start_date = data.date;
         if (data.location) updateData.location = data.location;
         if (data.description !== undefined) updateData.description = data.description;
 
@@ -203,14 +236,27 @@ serve(async (req) => {
           .eq('id', event_id)
           .select(`
             *,
-            instructor:instructors(id, name, email),
-            class:classes(id, name)
+            instructors!instructor_id(id, name, email),
+            classes!class_id(id, code, description)
           `)
           .single();
 
         if (updateError) throw updateError;
 
-        result = updated;
+        // Transform response
+        const transformedResult = {
+          ...updated,
+          instructor: updated.instructors,
+          class: updated.classes ? {
+            id: updated.classes.id,
+            name: updated.classes.code,
+            description: updated.classes.description
+          } : null,
+          date: updated.start_date,
+          title: updated.name
+        };
+
+        result = transformedResult;
         message = 'Evento atualizado com sucesso';
         break;
       }
@@ -230,7 +276,6 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    console.error('Erro na operação admin de eventos:', error);
 
     return new Response(JSON.stringify({
       success: false,
