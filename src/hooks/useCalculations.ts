@@ -171,6 +171,10 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
   const rankingData = useMemo(() => {
     if (students.length === 0) return []
 
+    // Get unique match numbers
+    const uniqueMatchNumbers = [...new Set(matchResults.map(r => r.match_number))]
+
+    // Calculate ranking score by summing positions across all matches
     const studentStats = students.map(student => {
       const studentResults = matchResults.filter(result => result.player_id === student.id)
       const numMatches = studentResults.length
@@ -185,6 +189,29 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
       const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
       const avgBonus = numMatches > 0 ? totalBonus / numMatches : 0
 
+      // Calculate ranking score: sum of positions across all matches
+      let rankingScore = 0
+      uniqueMatchNumbers.forEach(matchNum => {
+        const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
+
+        // Rank by lucro for this match
+        const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
+        const lucroPos = lucroRanked.findIndex(r => r.player_id === student.id) + 1
+
+        // Rank by satisfacao for this match
+        const satisfacaoRanked = [...matchPlayersResults].sort((a, b) => (b.satisfacao || 0) - (a.satisfacao || 0))
+        const satisfacaoPos = satisfacaoRanked.findIndex(r => r.player_id === student.id) + 1
+
+        // Rank by bonus for this match
+        const bonusRanked = [...matchPlayersResults].sort((a, b) => (b.bonus_money || 0) - (a.bonus_money || 0))
+        const bonusPos = bonusRanked.findIndex(r => r.player_id === student.id) + 1
+
+        // Sum positions (lower is better)
+        if (lucroPos > 0 && satisfacaoPos > 0 && bonusPos > 0) {
+          rankingScore += (lucroPos + satisfacaoPos + bonusPos)
+        }
+      })
+
       return {
         id: student.id,
         name: student.name || 'Sem nome',
@@ -194,6 +221,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         totalBonus,
         avgBonus,
         matches: numMatches,
+        rankingScore, // Lower is better
         isTeam: false,
         purpose: student.purpose
       }
@@ -220,6 +248,31 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         const totalBonus = teamResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
         const avgBonus = numMatches > 0 ? totalBonus / numMatches : 0
 
+        // Calculate team ranking score: sum positions of all team members
+        let rankingScore = 0
+        uniqueMatchNumbers.forEach(matchNum => {
+          const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
+
+          team.members.forEach(member => {
+            // Rank by lucro for this match
+            const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
+            const lucroPos = lucroRanked.findIndex(r => r.player_id === member.id) + 1
+
+            // Rank by satisfacao for this match
+            const satisfacaoRanked = [...matchPlayersResults].sort((a, b) => (b.satisfacao || 0) - (a.satisfacao || 0))
+            const satisfacaoPos = satisfacaoRanked.findIndex(r => r.player_id === member.id) + 1
+
+            // Rank by bonus for this match
+            const bonusRanked = [...matchPlayersResults].sort((a, b) => (b.bonus_money || 0) - (a.bonus_money || 0))
+            const bonusPos = bonusRanked.findIndex(r => r.player_id === member.id) + 1
+
+            // Sum positions (lower is better)
+            if (lucroPos > 0 && satisfacaoPos > 0 && bonusPos > 0) {
+              rankingScore += (lucroPos + satisfacaoPos + bonusPos)
+            }
+          })
+        })
+
         return {
           id: team.id,
           name: team.name || 'Time sem nome',
@@ -229,6 +282,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
           totalBonus,
           avgBonus,
           matches: team.members.reduce((sum, member) => sum + matchResults.filter(r => r.player_id === member.id).length, 0),
+          rankingScore, // Lower is better
           isTeam: true,
           purpose: team.group_purpose
         }
@@ -238,24 +292,14 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
     const activeTeams = teamStats.filter(team => team.matches > 0)
     const allEntities = [...activeStudents, ...activeTeams]
 
-    // Usar MÉDIAS para normalizar pelo número de partidas
-    const lucroRanking = [...allEntities].sort((a, b) => b.avgLucro - a.avgLucro)
-    const satisfacaoRanking = [...allEntities].sort((a, b) => b.avgSatisfacao - a.avgSatisfacao)
-    const bonusRanking = [...allEntities].sort((a, b) => b.avgBonus - a.avgBonus)
-
-    const finalRanking = allEntities.map(entity => {
-      const lucroPos = lucroRanking.findIndex(e => e.id === entity.id) + 1
-      const satisfacaoPos = satisfacaoRanking.findIndex(e => e.id === entity.id) + 1
-      const bonusPos = bonusRanking.findIndex(e => e.id === entity.id) + 1
-      const totalPosition = lucroPos + satisfacaoPos + bonusPos
-
-      return { ...entity, totalPosition }
-    })
-
-    finalRanking.sort((a, b) => {
-      if (a.totalPosition !== b.totalPosition) return a.totalPosition - b.totalPosition
+    // Sort by ranking score (lower is better - like golf)
+    const finalRanking = [...allEntities].sort((a, b) => {
+      if (a.rankingScore !== b.rankingScore) return a.rankingScore - b.rankingScore
+      // Tiebreaker: higher average lucro wins
       if (a.avgLucro !== b.avgLucro) return b.avgLucro - a.avgLucro
+      // Tiebreaker: higher average satisfacao wins
       if (a.avgSatisfacao !== b.avgSatisfacao) return b.avgSatisfacao - a.avgSatisfacao
+      // Tiebreaker: higher average bonus wins
       return b.avgBonus - a.avgBonus
     })
 
@@ -279,7 +323,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
       
       return {
         name: entity.name,
-        score: entity.totalPosition,
+        score: entity.rankingScore,
         position,
         matches: entity.matches,
         isTeam: entity.isTeam,
