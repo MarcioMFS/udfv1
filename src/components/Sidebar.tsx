@@ -6,9 +6,11 @@ import {
   LogOut,
   Home,
   Calendar,
-  X
+  X,
+  Shield
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import { colors } from '../lib/colors'
 import Logo from '../assets/logo.png'
 import { ConfirmDialog } from './modal/DialogModal'
@@ -22,6 +24,7 @@ interface SidebarProps {
 export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
   const location = useLocation()
   const { logout } = useAuth()
+  const { isAdmin } = useIsAdmin()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleLogoutClick = () => {
@@ -44,6 +47,7 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
       disabled: true,
       title: 'Essa funcionalidade será desbloqueada em breve 🕹️'
     },
+    ...(isAdmin ? [{ href: '/admin', icon: Shield, label: 'Administração' }] : []),
     { href: '/profile', icon: User, label: 'Perfil' }
   ]
 
@@ -78,13 +82,15 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
             // Enhanced active state detection for nested routes
             const isActive = (() => {
               if (location.pathname === item.href) return true
-              
+
               // Check for related routes
               switch (item.href) {
                 case '/classes':
                   return location.pathname.startsWith('/classes/')
                 case '/my-events':
                   return location.pathname.startsWith('/events/')
+                case '/admin':
+                  return location.pathname.startsWith('/admin/')
                 default:
                   return false
               }

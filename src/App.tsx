@@ -12,6 +12,10 @@ import { EventDetailsPage } from './pages/EventDetailsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminRoute } from './components/AdminRoute'
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
+import { AdminUsersPage } from './pages/admin/AdminUsersPage'
+import { AdminEventsPage } from './pages/admin/AdminEventsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
@@ -35,6 +39,23 @@ function App() {
                   <Route path="/events/:id" element={<EventDetailsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={
+                    <AdminRoute>
+                      <AdminDashboardPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/admin/users" element={
+                    <AdminRoute>
+                      <AdminUsersPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/admin/events" element={
+                    <AdminRoute>
+                      <AdminEventsPage />
+                    </AdminRoute>
+                  } />
                 </Routes>
               </Layout>
             </ProtectedRoute>
