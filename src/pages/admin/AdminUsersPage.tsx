@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck } from 'lucide-react'
+import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit } from 'lucide-react'
 import { useAdminUsers, useUserManagement } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
@@ -10,7 +10,7 @@ export function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<TabType>('players')
   const [searchTerm, setSearchTerm] = useState('')
   const { players, instructors, admins, isLoading, error, refresh } = useAdminUsers()
-  const { deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin } = useUserManagement()
+  const { updateUser, deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin } = useUserManagement()
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -24,6 +24,19 @@ export function AdminUsersPage() {
     onConfirm: () => {}
   })
 
+  const [editDialog, setEditDialog] = useState<{
+    isOpen: boolean
+    user: (Player | Instructor) | null
+  }>({
+    isOpen: false,
+    user: null
+  })
+
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: ''
+  })
+
   // Filter users based on search term
   const filterUsers = <T extends Player | Instructor>(users: T[]): T[] => {
     if (!searchTerm) return users
@@ -31,6 +44,35 @@ export function AdminUsersPage() {
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     )
+  }
+
+  const handleEditUser = (user: Player | Instructor) => {
+    setEditForm({
+      name: user.name,
+      email: user.email
+    })
+    setEditDialog({
+      isOpen: true,
+      user
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editDialog.user) return
+
+    const success = await updateUser({
+      user_id: editDialog.user.id,
+      user_type: editDialog.user.userType,
+      data: {
+        name: editForm.name,
+        email: editForm.email
+      }
+    })
+
+    if (success) {
+      setEditDialog({ isOpen: false, user: null })
+      refresh()
+    }
   }
 
   const handleDeleteUser = (user: Player | Instructor) => {
@@ -144,6 +186,13 @@ export function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      onClick={() => handleEditUser(player)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar Player"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handlePromote(player)}
                       className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                       title="Promover a Instrutor"
@@ -214,6 +263,13 @@ export function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      onClick={() => handleEditUser(instructor)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar Instrutor"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleToggleAdmin(instructor)}
                       className={`p-2 rounded-lg transition-colors ${
                         instructor.is_admin
@@ -269,6 +325,7 @@ export function AdminUsersPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastrado em</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
             </tr>
@@ -283,11 +340,24 @@ export function AdminUsersPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{admin.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    <GraduationCap className="w-3 h-3" />
+                    Mentor
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {new Date(admin.created_at).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleEditUser(admin)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar Administrador"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleToggleAdmin(admin)}
                       className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -405,6 +475,59 @@ export function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Dialog */}
+      {editDialog.isOpen && editDialog.user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800">
+                Editar Usuário
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nome do usuário"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setEditDialog({ isOpen: false, user: null })}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Dialog */}
       <ConfirmDialog
