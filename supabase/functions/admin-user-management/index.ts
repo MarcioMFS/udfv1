@@ -128,6 +128,20 @@ serve(async (req) => {
           .single();
 
         if (updateError) throw updateError;
+
+        // Update email in Supabase Auth if email was changed
+        if (data.email) {
+          try {
+            await supabaseAdmin.auth.admin.updateUserById(user_id, {
+              email: data.email,
+              email_confirm: true
+            });
+          } catch (authUpdateError) {
+            console.warn('Could not update auth user email:', authUpdateError);
+            // Continue even if auth update fails (user might not exist in auth)
+          }
+        }
+
         result = updated;
         message = 'Usuário atualizado com sucesso';
         break;
