@@ -191,8 +191,14 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
 
       // Calculate ranking score: sum of positions across all matches
       let rankingScore = 0
+      let matchesParticipated = 0
       uniqueMatchNumbers.forEach(matchNum => {
         const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
+        const studentInMatch = matchPlayersResults.find(r => r.player_id === student.id)
+
+        if (!studentInMatch) return // Student didn't participate in this match
+
+        matchesParticipated++
 
         // Rank by lucro for this match
         const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
@@ -212,6 +218,9 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         }
       })
 
+      // Average ranking score (normalize by number of matches participated)
+      const avgRankingScore = matchesParticipated > 0 ? rankingScore / matchesParticipated : 999999
+
       return {
         id: student.id,
         name: student.name || 'Sem nome',
@@ -221,7 +230,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         totalBonus,
         avgBonus,
         matches: numMatches,
-        rankingScore, // Lower is better
+        rankingScore: avgRankingScore, // Lower is better (average position)
         isTeam: false,
         purpose: student.purpose
       }
@@ -250,10 +259,16 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
 
         // Calculate team ranking score: sum positions of all team members
         let rankingScore = 0
+        let teamMatchesParticipated = 0
         uniqueMatchNumbers.forEach(matchNum => {
           const matchPlayersResults = matchResults.filter(r => r.match_number === matchNum)
 
           team.members.forEach(member => {
+            const memberInMatch = matchPlayersResults.find(r => r.player_id === member.id)
+            if (!memberInMatch) return // Member didn't participate in this match
+
+            teamMatchesParticipated++
+
             // Rank by lucro for this match
             const lucroRanked = [...matchPlayersResults].sort((a, b) => (b.lucro || 0) - (a.lucro || 0))
             const lucroPos = lucroRanked.findIndex(r => r.player_id === member.id) + 1
@@ -273,6 +288,9 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
           })
         })
 
+        // Average ranking score (normalize by number of member-matches)
+        const avgRankingScore = teamMatchesParticipated > 0 ? rankingScore / teamMatchesParticipated : 999999
+
         return {
           id: team.id,
           name: team.name || 'Time sem nome',
@@ -282,7 +300,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
           totalBonus,
           avgBonus,
           matches: team.members.reduce((sum, member) => sum + matchResults.filter(r => r.player_id === member.id).length, 0),
-          rankingScore, // Lower is better
+          rankingScore: avgRankingScore, // Lower is better (average position)
           isTeam: true,
           purpose: team.group_purpose
         }

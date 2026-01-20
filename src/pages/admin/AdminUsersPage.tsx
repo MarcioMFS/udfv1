@@ -171,6 +171,7 @@ export function AdminUsersPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastrado em</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
             </tr>
@@ -180,6 +181,12 @@ export function AdminUsersPage() {
               <tr key={player.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{player.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{player.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                    <Users className="w-3 h-3" />
+                    Player
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {new Date(player.created_at).toLocaleDateString('pt-BR')}
                 </td>
@@ -237,6 +244,7 @@ export function AdminUsersPage() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastrado em</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -247,6 +255,12 @@ export function AdminUsersPage() {
               <tr key={instructor.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{instructor.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{instructor.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    <GraduationCap className="w-3 h-3" />
+                    Mentor
+                  </span>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {instructor.is_admin ? (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
