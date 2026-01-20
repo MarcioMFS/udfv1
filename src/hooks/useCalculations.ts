@@ -29,7 +29,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
 
     const totalLucro = matchResults.reduce((sum, result) => sum + (result.lucro || 0), 0)
     const totalSatisfacao = matchResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
-    const totalBonus = matchResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+    const totalBonus = matchResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
     
     const totalParticipations = matchResults.length
     const avgLucro = totalParticipations > 0 ? totalLucro / totalParticipations : 0
@@ -75,7 +75,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
       const totalSatisfacao = satisfacaoResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
       const avgSatisfacao = satisfacaoResults.length > 0 ? totalSatisfacao / satisfacaoResults.length : 0
       
-      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
       
       const studentTeam = teams.find(team => team.members.some(member => member.id === student.id))
       
@@ -149,7 +149,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
       const totalSatisfacao = satisfacaoResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
       const avgSatisfacao = satisfacaoResults.length > 0 ? totalSatisfacao / satisfacaoResults.length : 0
       
-      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+      const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
 
       return {
         id: student.id,
@@ -178,7 +178,7 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
         const totalSatisfacao = satisfacaoResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
         const avgSatisfacao = satisfacaoResults.length > 0 ? totalSatisfacao / satisfacaoResults.length : 0
         
-        const totalBonus = teamResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+        const totalBonus = teamResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
 
         return {
           id: team.id,

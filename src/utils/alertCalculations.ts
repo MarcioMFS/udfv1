@@ -60,7 +60,7 @@ export function calculateStudentAlerts(
     const totalSatisfacao = satisfacaoResults.reduce((sum, result) => sum + (result.satisfacao || 0), 0)
     const avgSatisfacao = satisfacaoResults.length > 0 ? totalSatisfacao / satisfacaoResults.length : 0
 
-    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus || 0), 0)
+    const totalBonus = studentResults.reduce((sum, result) => sum + (result.bonus_money || 0), 0)
 
     const studentTeam = teams.find(team =>
       team.members.some(member => member.id === student.id)

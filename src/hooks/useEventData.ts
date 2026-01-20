@@ -227,7 +227,7 @@ export function useEventData(eventId: string | undefined): UseEventDataReturn {
         stats.matches++
         stats.total_profit += result.lucro || 0
         stats.total_satisfaction += result.satisfacao || 0
-        stats.total_bonus += result.bonus || 0
+        stats.total_bonus += result.bonus_money || 0
         
         if (new Date(result.created_at) > new Date(stats.last_match)) {
           stats.last_match = result.created_at
