@@ -567,49 +567,97 @@ export async function importClassFromExcel(
     }
 
     classId = classData.id
+    console.log(`✅ Turma criada/atualizada com sucesso: ${classInfo.classCode} (ID: ${classId})`)
+    console.log(`📋 Iniciando importação de ${students.length} alunos...`)
 
     // 3. Importar alunos
     for (const student of students) {
       try {
-        const udfId = `${classInfo.classCode}-${student.email.split('@')[0]}`
+        let playerId: string | undefined
 
-        // Criar/atualizar player
-        const { data: playerData, error: playerError } = await supabase
+        // Primeiro, buscar se o aluno já existe por EMAIL
+        const { data: existingPlayer, error: searchError } = await supabase
           .from('players')
-          .upsert({
-            name: student.name,
-            email: student.email,
-            udf_id: udfId,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'udf_id'
-          })
-          .select()
-          .single()
+          .select('id, name, email, udf_id')
+          .eq('email', student.email)
+          .maybeSingle()
 
-        if (playerError || !playerData) {
-          errors.push(`Erro ao criar aluno ${student.name}: ${playerError?.message}`)
+        if (searchError) {
+          console.error(`Erro ao buscar aluno ${student.email}:`, searchError)
+          errors.push(`Erro ao buscar aluno ${student.name}: ${searchError.message}`)
           continue
         }
 
-        // Vincular à turma
+        if (existingPlayer) {
+          // Aluno já existe - usar o ID dele
+          playerId = existingPlayer.id
+          console.log(`✅ Aluno já existe: ${student.name} (${student.email}) - ID: ${playerId}`)
+
+          // Atualizar o nome se for diferente (pode ter sido corrigido na planilha)
+          if (existingPlayer.name !== student.name) {
+            const { error: updateError } = await supabase
+              .from('players')
+              .update({
+                name: student.name,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', playerId)
+
+            if (updateError) {
+              console.warn(`Aviso: Não foi possível atualizar nome de ${student.email}: ${updateError.message}`)
+            } else {
+              console.log(`   📝 Nome atualizado: "${existingPlayer.name}" → "${student.name}"`)
+            }
+          }
+        } else {
+          // Aluno não existe - criar novo
+          const udfId = `${classInfo.classCode}-${student.email.split('@')[0]}`
+
+          const { data: newPlayer, error: createError } = await supabase
+            .from('players')
+            .insert({
+              name: student.name,
+              email: student.email,
+              udf_id: udfId,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+
+          if (createError || !newPlayer) {
+            errors.push(`Erro ao criar aluno ${student.name}: ${createError?.message}`)
+            console.error(`❌ Erro ao criar aluno ${student.name}:`, createError)
+            continue
+          }
+
+          playerId = newPlayer.id
+          console.log(`✨ Novo aluno criado: ${student.name} (${student.email}) - ID: ${playerId}`)
+        }
+
+        // Vincular o aluno à turma (usando upsert para evitar duplicatas)
         const { error: classPlayerError } = await supabase
           .from('class_players')
           .upsert({
             class_id: classId,
-            player_id: playerData.id
+            player_id: playerId,
+            joined_at: new Date().toISOString()
           }, {
             onConflict: 'class_id,player_id'
           })
 
         if (classPlayerError) {
           errors.push(`Erro ao vincular aluno ${student.name} à turma: ${classPlayerError.message}`)
+          console.error(`❌ Erro ao vincular ${student.name} à turma:`, classPlayerError)
           continue
         }
 
+        console.log(`   🔗 Aluno vinculado à turma ${classInfo.classCode}`)
         studentsImported++
       } catch (error) {
-        errors.push(`Erro ao processar aluno ${student.name}: ${error}`)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        errors.push(`Erro ao processar aluno ${student.name}: ${errorMessage}`)
+        console.error(`❌ Exceção ao processar ${student.name}:`, error)
       }
     }
 
@@ -690,6 +738,16 @@ export async function importClassFromExcel(
         console.error('[IMPORT] Erro ao processar eventos:', error)
         errors.push(`Erro ao processar eventos: ${error}`)
       }
+    }
+
+    console.log('\n✨ IMPORTAÇÃO CONCLUÍDA!')
+    console.log('📊 RESUMO:')
+    console.log(`   Turma: ${classInfo.className} (${classInfo.classCode})`)
+    console.log(`   Alunos importados: ${studentsImported}/${students.length}`)
+    console.log(`   Eventos importados: ${eventsImported}/${events.length}`)
+    if (errors.length > 0) {
+      console.log(`   ⚠️  Erros encontrados: ${errors.length}`)
+      errors.forEach((err, i) => console.log(`      ${i + 1}. ${err}`))
     }
 
     return {
