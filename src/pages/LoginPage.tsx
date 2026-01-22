@@ -47,13 +47,23 @@ export function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo mobile */}
           <div className="lg:hidden text-center mb-8">
-            <div 
+            <div
               className="w-20 h-20 rounded-full shadow-md flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4"
             >
               <img src={Logo} alt="logo" />
             </div>
           </div>
           <LoginForm />
+
+          {/* Link para termos */}
+          <div className="mt-6 text-center">
+            <a
+              href="/terms"
+              className="text-sm text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Termos de Política e Privacidade
+            </a>
+          </div>
         </div>
       </div>
     </div>

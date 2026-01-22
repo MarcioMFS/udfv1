@@ -18,6 +18,7 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import { AdminEventsPage } from './pages/admin/AdminEventsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import { TermsPage } from './pages/TermsPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route path="/*" element={
             <ProtectedRoute>
               <Layout>
