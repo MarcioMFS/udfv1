@@ -523,6 +523,12 @@ export async function importClassFromExcel(
   students: ExcelStudentImport[],
   events: ExcelEventImport[]
 ): Promise<ClassImportResult> {
+  console.log('🚀 INICIANDO IMPORTAÇÃO')
+  console.log('📋 Turma:', classInfo.className, `(${classInfo.classCode})`)
+  console.log('👥 Alunos para importar:', students.length)
+  console.log('📅 Eventos para importar:', events.length)
+  console.log('👨‍🏫 Email do instrutor:', classInfo.instructorEmail)
+
   const errors: string[] = []
   let classId: string | undefined
   let studentsImported = 0
@@ -530,14 +536,17 @@ export async function importClassFromExcel(
 
   try {
     // 1. Buscar instrutor por email
+    console.log('🔍 Buscando instrutor por email:', classInfo.instructorEmail)
     const { data: instructorData, error: instructorError } = await supabase
       .from('instructors')
-      .select('id')
+      .select('id, name, email')
       .eq('email', classInfo.instructorEmail)
       .limit(1)
 
     if (instructorError || !instructorData || instructorData.length === 0) {
-      errors.push(`Instrutor com email ${classInfo.instructorEmail} não encontrado. Erro: ${instructorError?.message || 'Nenhum instrutor encontrado'}`)
+      const errorMsg = `Instrutor com email ${classInfo.instructorEmail} não encontrado. Erro: ${instructorError?.message || 'Nenhum instrutor encontrado'}`
+      console.error('❌', errorMsg)
+      errors.push(errorMsg)
       return { success: false, studentsImported: 0, eventsImported: 0, errors }
     }
 
@@ -545,9 +554,13 @@ export async function importClassFromExcel(
     const instructor = Array.isArray(instructorData) ? instructorData[0] : instructorData
     const instructorId = instructor.id
 
-    console.log('Instrutor encontrado:', { instructorId, email: classInfo.instructorEmail })
+    console.log('✅ Instrutor encontrado!')
+    console.log('   Nome:', instructor.name)
+    console.log('   Email:', instructor.email)
+    console.log('   ID:', instructorId)
 
     // 2. Criar turma
+    console.log('🏫 Criando/atualizando turma...')
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .upsert({
