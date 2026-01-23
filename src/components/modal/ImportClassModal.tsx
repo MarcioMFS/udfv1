@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
 import { downloadClassImportTemplate } from '../../utils/excelTemplateUtils'
 import { EditEventDatesModal } from './EditEventDatesModal'
+import { useAuth } from '../../contexts/AuthContext'
 import type { ClassImportResult, ClassImportPreview, ExcelEventImport, EventType } from '../../types'
 
 type ImportClassModalProps = {
@@ -13,6 +14,7 @@ type ImportClassModalProps = {
 }
 
 export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModalProps) {
+  const { user } = useAuth()
   const [file, setFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [importResult, setImportResult] = useState<ClassImportResult | null>(null)
@@ -101,10 +103,15 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   }
 
   const performImport = async (classInfo: any, students: any[], events: any[]) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado')
+      return
+    }
+
     setIsLoading(true)
     try {
-      // Importar para o banco
-      const result = await importClassFromExcel(classInfo, students, events)
+      // Importar para o banco usando o ID do usuário logado
+      const result = await importClassFromExcel(classInfo, students, events, user.id)
 
       setImportResult(result)
       setShowConfirmation(false)

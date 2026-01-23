@@ -521,13 +521,15 @@ export async function previewClassImport(
 export async function importClassFromExcel(
   classInfo: ExcelClassImport,
   students: ExcelStudentImport[],
-  events: ExcelEventImport[]
+  events: ExcelEventImport[],
+  loggedInUserId?: string
 ): Promise<ClassImportResult> {
   console.log('🚀 INICIANDO IMPORTAÇÃO')
   console.log('📋 Turma:', classInfo.className, `(${classInfo.classCode})`)
   console.log('👥 Alunos para importar:', students.length)
   console.log('📅 Eventos para importar:', events.length)
-  console.log('👨‍🏫 Email do instrutor:', classInfo.instructorEmail)
+  console.log('👨‍🏫 Email do instrutor da planilha:', classInfo.instructorEmail)
+  console.log('👤 ID do usuário logado:', loggedInUserId)
 
   const errors: string[] = []
   let classId: string | undefined
@@ -535,32 +537,43 @@ export async function importClassFromExcel(
   let eventsImported = 0
 
   try {
-    // 1. Buscar instrutor por email
-    console.log('🔍 Buscando instrutor por email:', classInfo.instructorEmail)
-    const { data: instructorData, error: instructorError } = await supabase
-      .from('instructors')
-      .select('id, name, email')
-      .eq('email', classInfo.instructorEmail)
-      .limit(1)
+    // 1. Determinar qual instrutor usar
+    let instructorId: string
 
-    if (instructorError || !instructorData || instructorData.length === 0) {
-      const errorMsg = `Instrutor com email ${classInfo.instructorEmail} não encontrado. Erro: ${instructorError?.message || 'Nenhum instrutor encontrado'}`
-      console.error('❌', errorMsg)
-      errors.push(errorMsg)
-      return { success: false, studentsImported: 0, eventsImported: 0, errors }
+    if (loggedInUserId) {
+      // Se temos o ID do usuário logado, usar ele
+      console.log('✅ Usando usuário logado como instrutor da turma')
+      instructorId = loggedInUserId
+    } else {
+      // Se não, buscar instrutor por email da planilha (comportamento antigo)
+      console.log('🔍 Buscando instrutor por email:', classInfo.instructorEmail)
+      const { data: instructorData, error: instructorError } = await supabase
+        .from('instructors')
+        .select('id, name, email')
+        .eq('email', classInfo.instructorEmail)
+        .limit(1)
+
+      if (instructorError || !instructorData || instructorData.length === 0) {
+        const errorMsg = `Instrutor com email ${classInfo.instructorEmail} não encontrado. Erro: ${instructorError?.message || 'Nenhum instrutor encontrado'}`
+        console.error('❌', errorMsg)
+        errors.push(errorMsg)
+        return { success: false, studentsImported: 0, eventsImported: 0, errors }
+      }
+
+      // Pegar o primeiro instrutor (caso haja duplicados)
+      const instructor = Array.isArray(instructorData) ? instructorData[0] : instructorData
+      instructorId = instructor.id
+
+      console.log('✅ Instrutor encontrado!')
+      console.log('   Nome:', instructor.name)
+      console.log('   Email:', instructor.email)
+      console.log('   ID:', instructorId)
     }
 
-    // Pegar o primeiro instrutor (caso haja duplicados)
-    const instructor = Array.isArray(instructorData) ? instructorData[0] : instructorData
-    const instructorId = instructor.id
-
-    console.log('✅ Instrutor encontrado!')
-    console.log('   Nome:', instructor.name)
-    console.log('   Email:', instructor.email)
-    console.log('   ID:', instructorId)
-
-    // 2. Criar turma
+    // 2. Criar turma (SCOPED by instructor_id)
     console.log('🏫 Criando/atualizando turma...')
+    console.log(`   📌 Escopo: código="${classInfo.classCode}" + instructor_id="${instructorId}"`)
+
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .upsert({
@@ -569,7 +582,7 @@ export async function importClassFromExcel(
         instructor_id: instructorId,
         updated_at: new Date().toISOString()
       }, {
-        onConflict: 'code'
+        onConflict: 'code,instructor_id'  // ✅ FIXED: Composite key scoping
       })
       .select()
       .single()
@@ -581,6 +594,7 @@ export async function importClassFromExcel(
 
     classId = classData.id
     console.log(`✅ Turma criada/atualizada com sucesso: ${classInfo.classCode} (ID: ${classId})`)
+    console.log(`   🔒 Esta turma pertence ao instrutor: ${instructorId}`)
     console.log(`📋 Iniciando importação de ${students.length} alunos...`)
 
     // 3. Importar alunos
@@ -674,7 +688,7 @@ export async function importClassFromExcel(
       }
     }
 
-    // 4. Criar UM ÚNICO evento com múltiplos encontros no schedule
+    // 4. Criar UM ÚNICO evento com múltiplos encontros no schedule (IDEMPOTENT)
     if (events.length > 0) {
       try {
         console.log(`[IMPORT] Processando ${events.length} encontros para criar evento único`)
@@ -706,29 +720,20 @@ export async function importClassFromExcel(
           classId
         })
 
-        // Deletar eventos existentes da turma antes de criar novo
-        console.log(`[IMPORT] Deletando eventos existentes da turma ${classId}`)
-        const { error: deleteError } = await supabase
-          .from('events')
-          .delete()
-          .eq('class_id', classId)
+        // ✅ FIXED: Use deterministic event code based on class_id for idempotency
+        // Instead of random code, use a predictable pattern so re-imports are idempotent
+        const eventCode = `IMP-${classId.substring(0, 8).toUpperCase()}`
+        console.log(`[IMPORT] Código determinístico para o evento: ${eventCode}`)
+        console.log(`[IMPORT] 📌 Este código permite reimportação idempotente para esta turma`)
 
-        if (deleteError) {
-          console.error('[IMPORT] Erro ao deletar eventos antigos:', deleteError)
-        }
-
-        // Gerar código aleatório para o evento
-        const eventCode = generateEventCode()
-        console.log(`[IMPORT] Código gerado para o evento: ${eventCode}`)
-
-        console.log('[IMPORT] Inserindo evento no banco...')
+        console.log('[IMPORT] Usando UPSERT para evento (idempotente)...')
         const { data: eventData, error: eventError } = await supabase
           .from('events')
-          .insert({
-            code: eventCode,
+          .upsert({
+            code: eventCode,  // Deterministic code
+            class_id: classId,  // Scoping key
             name: classInfo.className,
             description: `${classInfo.className} - ${events.length} encontros`,
-            class_id: classId,
             instructor_id: instructorId,
             event_type: eventType,
             start_date: startDate,
@@ -736,15 +741,19 @@ export async function importClassFromExcel(
             schedule: schedules,
             difficulty: 'medium',
             time_limit: 30,
-            max_players: 50
+            max_players: 50,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'code,class_id'  // ✅ FIXED: Composite key scoping
           })
           .select()
 
         if (eventError) {
-          console.error('[IMPORT] Erro ao criar evento:', eventError)
+          console.error('[IMPORT] Erro ao criar/atualizar evento:', eventError)
           errors.push(`Erro ao criar evento: ${eventError.message}`)
         } else {
-          console.log('[IMPORT] Evento criado com sucesso:', eventData)
+          console.log('[IMPORT] Evento criado/atualizado com sucesso:', eventData)
+          console.log('[IMPORT] ✅ Idempotência garantida: reimportar substituirá este evento')
           eventsImported = events.length // Contar quantos encontros foram adicionados
         }
       } catch (error) {
