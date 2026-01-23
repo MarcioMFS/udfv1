@@ -457,15 +457,49 @@ function parseSchedule(scheduleStr: string, eventDate: string): { 'initial-time'
 export async function previewClassImport(
   classInfo: ExcelClassImport,
   students: ExcelStudentImport[],
-  events: ExcelEventImport[]
+  events: ExcelEventImport[],
+  loggedInUserId?: string
 ): Promise<ClassImportPreview> {
   try {
-    // Verificar se turma já existe
-    const { data: existingClass, error } = await supabase
-      .from('classes')
-      .select('id, code, description')
-      .eq('code', classInfo.classCode)
-      .maybeSingle()
+    // ✅ FIXED: Determinar qual instrutor será usado (mesmo lógica do import)
+    let instructorId: string | null = null
+
+    if (loggedInUserId) {
+      // Se temos o ID do usuário logado, usar ele
+      instructorId = loggedInUserId
+      console.log('[PREVIEW] Usando usuário logado:', instructorId)
+    } else {
+      // Se não, buscar instrutor por email da planilha
+      console.log('[PREVIEW] Buscando instrutor por email:', classInfo.instructorEmail)
+      const { data: instructorData } = await supabase
+        .from('instructors')
+        .select('id')
+        .eq('email', classInfo.instructorEmail)
+        .maybeSingle()
+
+      instructorId = instructorData?.id || null
+      console.log('[PREVIEW] Instrutor encontrado:', instructorId)
+    }
+
+    // ✅ FIXED: Verificar se turma já existe ESCOPADA por (code, instructor_id)
+    let existingClass = null
+    let error = null
+
+    if (instructorId) {
+      const result = await supabase
+        .from('classes')
+        .select('id, code, description, instructor_id')
+        .eq('code', classInfo.classCode)
+        .eq('instructor_id', instructorId)  // ✅ ADDED: Scoping by instructor
+        .maybeSingle()
+
+      existingClass = result.data
+      error = result.error
+
+      console.log('[PREVIEW] Turma existente para este instrutor:', existingClass ? 'SIM' : 'NÃO')
+    } else {
+      console.log('[PREVIEW] Instrutor não encontrado, turma será criada como nova')
+    }
 
     if (error) {
       console.error('Erro ao verificar turma existente:', error)

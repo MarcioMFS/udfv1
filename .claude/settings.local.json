@@ -24,7 +24,9 @@
       "Bash(node check-007-import.js:*)",
       "Bash(node analyze-007-excel.js:*)",
       "Bash(node test-007-import-as-iuri.js:*)",
-      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"\\d+ classes\")"
+      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"\\d+ classes\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

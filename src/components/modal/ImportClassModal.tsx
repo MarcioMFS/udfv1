@@ -82,8 +82,8 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
         return
       }
 
-      // Fazer preview e verificar se turma existe
-      const previewData = await previewClassImport(classInfo, students, eventsWithType)
+      // Fazer preview e verificar se turma existe (SCOPED por instrutor)
+      const previewData = await previewClassImport(classInfo, students, eventsWithType, user?.id)
       setPreview(previewData)
 
       // Se turma já existe, mostrar confirmação
@@ -133,7 +133,7 @@ export function ImportClassModal({ isOpen, onClose, onSuccess }: ImportClassModa
   }
 
   const handleConfirmUpdate = async () => {
-    if (!file) return
+    if (!file || !user?.id) return
 
     try {
       const { classInfo, students, events } = await readExcelFile(file)
