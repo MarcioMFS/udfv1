@@ -11,7 +11,20 @@
       "Bash(sudo apt-get update:*)",
       "Bash(sudo apt-get install:*)",
       "Bash(sudo -S apt-get:*)",
-      "Bash(sudo -S apt-get install:*)"
+      "Bash(sudo -S apt-get install:*)",
+      "Bash(npx supabase:*)",
+      "Bash(curl:*)",
+      "Bash(node update-jean-email.js:*)",
+      "Bash(echo:*)",
+      "Bash(tree:*)",
+      "Bash(npx tsc:*)",
+      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"SELECT event_id, player_id, satisfacao, lucro FROM match_results ORDER BY event_id, player_id LIMIT 20;\")",
+      "Bash(node test-admin-events.js:*)",
+      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@s-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"SELECT player_id, SUM(lucro) as total_lucro, SUM(satisfacao) as total_satisfacao, SUM(bonus_money) as total_bonus, COUNT(*) as num_matches FROM match_results WHERE event_id IN (SELECT id FROM events WHERE class_id = (SELECT id FROM classes WHERE code = ''ELIS COSTA'' LIMIT 1)) GROUP BY player_id ORDER BY total_lucro DESC LIMIT 10;\")",
+      "Bash(node check-007-import.js:*)",
+      "Bash(node analyze-007-excel.js:*)",
+      "Bash(node test-007-import-as-iuri.js:*)",
+      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"\\d+ classes\")"
     ],
     "deny": [],
     "ask": []

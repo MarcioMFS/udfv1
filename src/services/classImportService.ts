@@ -8,13 +8,7 @@ interface ProcessedExcelData {
   events: ExcelEventImport[]
 }
 
-/**
- * Gera um código aleatório de 8 caracteres para o evento
- */
-function generateEventCode(): string {
-  const uuid = crypto.randomUUID().replace(/-/g, '').toUpperCase()
-  return uuid.substring(0, 8)
-}
+// Removed: generateEventCode() - now using deterministic codes based on class_id
 
 /**
  * Lê o arquivo Excel e extrai os dados das 3 abas: Instrutor, Alunos e Encontros
@@ -689,7 +683,7 @@ export async function importClassFromExcel(
     }
 
     // 4. Criar UM ÚNICO evento com múltiplos encontros no schedule (IDEMPOTENT)
-    if (events.length > 0) {
+    if (events.length > 0 && classId) {
       try {
         console.log(`[IMPORT] Processando ${events.length} encontros para criar evento único`)
 
