@@ -7,6 +7,26 @@ import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks'
 import toast from 'react-hot-toast'
 
+/**
+ * Converte data ISO (2026-01-20T23:15:00.000Z) para formato datetime-local (2026-01-20T23:15)
+ */
+function formatDateForInput(isoString: string): string {
+  if (!isoString) return ''
+  try {
+    const date = new Date(isoString)
+    if (isNaN(date.getTime())) return ''
+    // Formato: YYYY-MM-DDTHH:mm (sem segundos, sem timezone)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  } catch {
+    return ''
+  }
+}
+
 interface EventFormData {
   name: string
   description: string
@@ -83,6 +103,12 @@ export function CreateEventPage() {
         return
       }
 
+      // Converter schedule do formato ISO para formato datetime-local
+      const convertedSchedule = (eventData.schedule || []).map((item: any) => ({
+        'initial-time': formatDateForInput(item['initial-time']),
+        'end-time': formatDateForInput(item['end-time'])
+      }))
+
       setFormData({
         name: eventData.name || '',
         description: eventData.description || '',
@@ -93,7 +119,7 @@ export function CreateEventPage() {
         instructions: eventData.instructions || '',
         class_id: eventData.class_id || '',
         event_type: eventData.event_type || 'training',
-        schedule: eventData.schedule || []
+        schedule: convertedSchedule
       })
 
       // Verificar se o evento já passou
