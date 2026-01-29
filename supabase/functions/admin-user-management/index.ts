@@ -87,6 +87,7 @@ serve(async (req) => {
 
     let result;
     let message;
+    let authUpdateStatus: 'success' | 'skipped' | 'failed' | 'not_needed' = 'not_needed';
 
     switch (operation) {
       case 'update_user': {
@@ -115,11 +116,21 @@ serve(async (req) => {
           }
         }
 
+        const table = user_type === 'player' ? 'players' : 'instructors';
+
+        // Get current user data BEFORE update (to retrieve old email)
+        const { data: currentUser } = await supabaseAdmin
+          .from(table)
+          .select('email')
+          .eq('id', user_id)
+          .single();
+
+        const oldEmail = currentUser?.email;
+
         const updateData: any = { updated_at: new Date().toISOString() };
         if (data.name) updateData.name = data.name;
         if (data.email) updateData.email = data.email;
 
-        const table = user_type === 'player' ? 'players' : 'instructors';
         const { data: updated, error: updateError } = await supabaseAdmin
           .from(table)
           .update(updateData)
@@ -129,21 +140,87 @@ serve(async (req) => {
 
         if (updateError) throw updateError;
 
-        // Update email in Supabase Auth if email was changed
+        // Try to update auth email (for both players and instructors)
         if (data.email) {
+          console.log(`[AUTH_UPDATE] Attempting to update auth email for user_id: ${user_id}`);
+          console.log(`[AUTH_UPDATE] Old email in table: ${oldEmail || 'N/A'}`);
+          console.log(`[AUTH_UPDATE] New email: ${data.email}`);
+          console.log(`[AUTH_UPDATE] User type: ${user_type}`);
+
           try {
-            await supabaseAdmin.auth.admin.updateUserById(user_id, {
-              email: data.email,
-              email_confirm: true
-            });
+            // Strategy: Try to find user by ID first, then by old email if ID fails
+            let authUserId = user_id;
+            let existingAuthUser = null;
+
+            // Try finding by ID
+            const { data: userById, error: checkByIdError } = await supabaseAdmin.auth.admin.getUserById(user_id);
+
+            if (userById && !checkByIdError) {
+              console.log(`[AUTH_UPDATE] ✓ Found user by ID. Current auth email: ${userById.user.email}`);
+              existingAuthUser = userById;
+              authUserId = user_id;
+            } else {
+              console.warn(`[AUTH_UPDATE] User not found by ID ${user_id}`);
+
+              // Try finding by old email from the database record BEFORE update
+              if (oldEmail) {
+                console.log(`[AUTH_UPDATE] Trying to find user by old email: ${oldEmail}`);
+                const { data: usersList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+
+                if (usersList && !listError) {
+                  const userByEmail = usersList.users.find(u => u.email === oldEmail);
+                  if (userByEmail) {
+                    console.log(`[AUTH_UPDATE] ✓ Found user by email! Auth ID: ${userByEmail.id}`);
+                    existingAuthUser = { user: userByEmail };
+                    authUserId = userByEmail.id;
+                  } else {
+                    console.warn(`[AUTH_UPDATE] User not found by email either: ${oldEmail}`);
+                  }
+                }
+              }
+            }
+
+            if (!existingAuthUser) {
+              console.warn(`[AUTH_UPDATE] ⚠️ User does NOT exist in auth.users (tried ID and email)`);
+              authUpdateStatus = 'not_found';
+            } else {
+              // Update email using the correct auth user ID
+              const { data: authUpdateResult, error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(
+                authUserId,
+                {
+                  email: data.email,
+                  email_confirm: true
+                }
+              );
+
+              if (authUpdateError) {
+                console.error(`[AUTH_UPDATE] ❌ Failed to update auth email:`, authUpdateError);
+                authUpdateStatus = 'failed';
+              } else {
+                console.log(`[AUTH_UPDATE] ✅ Auth email updated successfully to: ${data.email}`);
+                authUpdateStatus = 'success';
+              }
+            }
           } catch (authUpdateError) {
-            console.warn('Could not update auth user email:', authUpdateError);
-            // Continue even if auth update fails (user might not exist in auth)
+            console.error(`[AUTH_UPDATE] ❌ Exception during auth update:`, authUpdateError);
+            authUpdateStatus = 'failed';
           }
         }
 
         result = updated;
         message = 'Usuário atualizado com sucesso';
+
+        // Add auth update status to message
+        if (data.email) {
+          if (authUpdateStatus === 'success') {
+            message += ' (email também atualizado no sistema de autenticação)';
+          } else if (authUpdateStatus === 'not_found') {
+            message += ' ⚠️ (usuário não possui conta de autenticação)';
+          } else if (authUpdateStatus === 'failed') {
+            message += ' ⚠️ (falha ao atualizar email no sistema de autenticação)';
+          }
+        }
+
         break;
       }
 
