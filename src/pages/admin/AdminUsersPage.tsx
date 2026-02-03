@@ -1,16 +1,60 @@
-import { useState } from 'react'
-import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, X } from 'lucide-react'
 import { useAdminUsers, useUserManagement } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
+import { supabase } from '../../lib/supabase'
 
 type TabType = 'players' | 'instructors' | 'admins'
+
+type CreateUserType = 'player' | 'instructor'
+
+interface ClassOption {
+  id: string
+  code: string
+  name: string
+}
 
 export function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<TabType>('players')
   const [searchTerm, setSearchTerm] = useState('')
   const { players, instructors, admins, isLoading, error, refresh } = useAdminUsers()
-  const { updateUser, deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin } = useUserManagement()
+  const { updateUser, deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin, createPlayer, createInstructor } = useUserManagement()
+
+  // Estado para criação de usuário
+  const [createUserDialog, setCreateUserDialog] = useState<{
+    isOpen: boolean
+    userType: CreateUserType
+  }>({
+    isOpen: false,
+    userType: 'player'
+  })
+
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    udf_id: '',
+    class_code: '',
+    cpf: '',
+    registration_number: ''
+  })
+
+  const [classes, setClasses] = useState<ClassOption[]>([])
+  const [isCreating, setIsCreating] = useState(false)
+
+  // Buscar turmas disponíveis
+  useEffect(() => {
+    async function fetchClasses() {
+      const { data } = await supabase
+        .from('classes')
+        .select('id, code, name')
+        .order('name')
+      if (data) {
+        setClasses(data)
+      }
+    }
+    fetchClasses()
+  }, [])
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
@@ -36,6 +80,60 @@ export function AdminUsersPage() {
     name: '',
     email: ''
   })
+
+  const handleOpenCreateDialog = (userType: CreateUserType) => {
+    setCreateForm({
+      name: '',
+      email: '',
+      udf_id: '',
+      class_code: '',
+      cpf: '',
+      registration_number: ''
+    })
+    setCreateUserDialog({
+      isOpen: true,
+      userType
+    })
+  }
+
+  const handleCreateUser = async () => {
+    setIsCreating(true)
+    try {
+      let success = false
+
+      if (createUserDialog.userType === 'player') {
+        if (!createForm.name || !createForm.email || !createForm.udf_id || !createForm.class_code) {
+          throw new Error('Preencha todos os campos obrigatórios')
+        }
+        success = await createPlayer({
+          name: createForm.name,
+          email: createForm.email,
+          udf_id: createForm.udf_id,
+          class_code: createForm.class_code,
+          registration_number: createForm.registration_number || undefined
+        })
+      } else {
+        if (!createForm.name || !createForm.email || !createForm.udf_id || !createForm.cpf) {
+          throw new Error('Preencha todos os campos obrigatórios')
+        }
+        success = await createInstructor({
+          name: createForm.name,
+          email: createForm.email,
+          cpf: createForm.cpf,
+          udf_id: createForm.udf_id
+        })
+      }
+
+      if (success) {
+        setCreateUserDialog({ isOpen: false, userType: 'player' })
+        refresh()
+      }
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error)
+    } finally {
+      setIsCreating(false)
+    }
+  }
 
   // Filter users based on search term
   const filterUsers = <T extends Player | Instructor>(users: T[]): T[] => {
@@ -422,13 +520,31 @@ export function AdminUsersPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-          Gerenciar Usuários
-        </h1>
-        <p className="text-gray-600">
-          Visualize e gerencie todos os usuários do sistema
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+            Gerenciar Usuários
+          </h1>
+          <p className="text-gray-600">
+            Visualize e gerencie todos os usuários do sistema
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleOpenCreateDialog('player')}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Player
+          </button>
+          <button
+            onClick={() => handleOpenCreateDialog('instructor')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Instrutor
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -553,6 +669,133 @@ export function AdminUsersPage() {
         confirmLabel="Confirmar"
         cancelLabel="Cancelar"
       />
+
+      {/* Create User Dialog */}
+      {createUserDialog.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800">
+                {createUserDialog.userType === 'player' ? 'Novo Player' : 'Novo Instrutor'}
+              </h3>
+              <button
+                onClick={() => setCreateUserDialog({ isOpen: false, userType: 'player' })}
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nome completo"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  UDF ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.udf_id}
+                  onChange={(e) => setCreateForm({ ...createForm, udf_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="ID único do UDF"
+                />
+              </div>
+
+              {createUserDialog.userType === 'player' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Turma <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={createForm.class_code}
+                      onChange={(e) => setCreateForm({ ...createForm, class_code: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Selecione uma turma</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.code}>
+                          {cls.name} ({cls.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Matrícula (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.registration_number}
+                      onChange={(e) => setCreateForm({ ...createForm, registration_number: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Número de matrícula"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    CPF <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.cpf}
+                    onChange={(e) => setCreateForm({ ...createForm, cpf: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setCreateUserDialog({ isOpen: false, userType: 'player' })}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isCreating}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={isCreating}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Criando...
+                  </>
+                ) : (
+                  'Criar Usuário'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -29,6 +29,21 @@ interface ToggleAdminParams {
   make_admin: boolean
 }
 
+interface CreatePlayerParams {
+  name: string
+  email: string
+  udf_id: string
+  class_code: string
+  registration_number?: string
+}
+
+interface CreateInstructorParams {
+  name: string
+  email: string
+  cpf: string
+  udf_id: string
+}
+
 interface UseUserManagementReturn {
   isLoading: boolean
   updateUser: (params: UpdateUserParams) => Promise<boolean>
@@ -36,6 +51,8 @@ interface UseUserManagementReturn {
   promoteToInstructor: (params: PromoteToInstructorParams) => Promise<boolean>
   demoteToPlayer: (params: DemoteToPlayerParams) => Promise<boolean>
   toggleAdmin: (params: ToggleAdminParams) => Promise<boolean>
+  createPlayer: (params: CreatePlayerParams) => Promise<boolean>
+  createInstructor: (params: CreateInstructorParams) => Promise<boolean>
 }
 
 /**
@@ -201,12 +218,79 @@ export function useUserManagement(): UseUserManagementReturn {
     }
   }
 
+  const createPlayer = async (params: CreatePlayerParams): Promise<boolean> => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('webhook-players', {
+        body: {
+          nome: params.name,
+          email: params.email,
+          'udf-id': params.udf_id,
+          'class-code': params.class_code,
+          registration: params.registration_number
+        }
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao criar player')
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao criar player')
+      }
+
+      toast.success('Player criado com sucesso')
+      return true
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar player'
+      console.error('❌ [useUserManagement] Erro ao criar player:', error)
+      toast.error(errorMessage)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const createInstructor = async (params: CreateInstructorParams): Promise<boolean> => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('webhook-instructors', {
+        body: {
+          name: params.name,
+          email: params.email,
+          cpf: params.cpf,
+          'udf-id': params.udf_id
+        }
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao criar instrutor')
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao criar instrutor')
+      }
+
+      toast.success('Instrutor criado com sucesso')
+      return true
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar instrutor'
+      console.error('❌ [useUserManagement] Erro ao criar instrutor:', error)
+      toast.error(errorMessage)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return {
     isLoading,
     updateUser,
     deleteUser,
     promoteToInstructor,
     demoteToPlayer,
-    toggleAdmin
+    toggleAdmin,
+    createPlayer,
+    createInstructor
   }
 }
