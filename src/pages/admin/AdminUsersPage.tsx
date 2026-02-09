@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, X } from 'lucide-react'
+import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, X, Upload } from 'lucide-react'
 import { useAdminUsers, useUserManagement } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
+import { ImportPeopleModal } from '../../components/modal/ImportPeopleModal'
 import { supabase } from '../../lib/supabase'
 
 type TabType = 'players' | 'instructors' | 'admins'
@@ -20,6 +21,9 @@ export function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const { players, instructors, admins, isLoading, error, refresh } = useAdminUsers()
   const { updateUser, deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin, createPlayer, createInstructor } = useUserManagement()
+
+  // Estado para modal de importação
+  const [showImportModal, setShowImportModal] = useState(false)
 
   // Estado para criação de usuário
   const [createUserDialog, setCreateUserDialog] = useState<{
@@ -529,7 +533,14 @@ export function AdminUsersPage() {
             Visualize e gerencie todos os usuários do sistema
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Importar Planilha
+          </button>
           <button
             onClick={() => handleOpenCreateDialog('player')}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -668,6 +679,16 @@ export function AdminUsersPage() {
         onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
         confirmLabel="Confirmar"
         cancelLabel="Cancelar"
+      />
+
+      {/* Import People Modal */}
+      <ImportPeopleModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          setShowImportModal(false)
+          refresh()
+        }}
       />
 
       {/* Create User Dialog */}
