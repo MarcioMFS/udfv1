@@ -26,7 +26,15 @@
       "Bash(node test-007-import-as-iuri.js:*)",
       "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"\\d+ classes\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(psql \"postgresql://postgres.xfgsfmexaxmikkksndny:UDFv1supabase$@ws-0-us-east-1.pooler.supabase.com:6543/postgres\" -c \"SELECT id, name, email FROM players WHERE name ILIKE ''%isabella%'' OR email ILIKE ''%isabella%'';\")",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(node test-calendar-events.js:*)",
+      "Bash(export:*)",
+      "Bash(node test-calendar-events.cjs:*)",
+      "Bash(node test-calendar-events-v2.cjs:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

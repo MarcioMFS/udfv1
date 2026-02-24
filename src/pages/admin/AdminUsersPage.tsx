@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, X, Upload } from 'lucide-react'
+import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, X, Upload, FileSpreadsheet } from 'lucide-react'
 import { useAdminUsers, useUserManagement } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
 import { ImportPeopleModal } from '../../components/modal/ImportPeopleModal'
+import { ImportClassForInstructorModal } from '../../components/modal/ImportClassForInstructorModal'
 import { supabase } from '../../lib/supabase'
 
 type TabType = 'players' | 'instructors' | 'admins'
@@ -22,8 +23,11 @@ export function AdminUsersPage() {
   const { players, instructors, admins, isLoading, error, refresh } = useAdminUsers()
   const { updateUser, deleteUser, promoteToInstructor, demoteToPlayer, toggleAdmin, createPlayer, createInstructor } = useUserManagement()
 
-  // Estado para modal de importação
+  // Estado para modal de importação de pessoas
   const [showImportModal, setShowImportModal] = useState(false)
+  
+  // Estado para modal de importação de turmas para instrutor
+  const [showImportClassModal, setShowImportClassModal] = useState(false)
 
   // Estado para criação de usuário
   const [createUserDialog, setCreateUserDialog] = useState<{
@@ -535,6 +539,13 @@ export function AdminUsersPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
+            onClick={() => setShowImportClassModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Importar Turma
+          </button>
+          <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
@@ -817,6 +828,26 @@ export function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Importação de Pessoas */}
+      <ImportPeopleModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onSuccess={() => {
+          setShowImportModal(false)
+          refresh()
+        }}
+      />
+
+      {/* Modal de Importação de Turma para Instrutor */}
+      <ImportClassForInstructorModal
+        isOpen={showImportClassModal}
+        onClose={() => setShowImportClassModal(false)}
+        onSuccess={() => {
+          setShowImportClassModal(false)
+          refresh()
+        }}
+      />
     </div>
   )
 }
