@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download, Users, GraduationCap } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download, Users, GraduationCap, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
 import { downloadClassImportTemplate } from '../../utils/excelTemplateUtils'
@@ -21,6 +21,8 @@ type ImportClassForInstructorModalProps = {
 
 export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: ImportClassForInstructorModalProps) {
   const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([])
+  const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedInstructorId, setSelectedInstructorId] = useState<string>('')
   const [file, setFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -38,6 +40,20 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
       fetchInstructors()
     }
   }, [isOpen])
+  
+  // Filtrar instrutores baseado no termo de pesquisa
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredInstructors(instructors)
+    } else {
+      const term = searchTerm.toLowerCase()
+      const filtered = instructors.filter(inst =>
+        inst.name.toLowerCase().includes(term) ||
+        inst.email.toLowerCase().includes(term)
+      )
+      setFilteredInstructors(filtered)
+    }
+  }, [searchTerm, instructors])
 
   const fetchInstructors = async () => {
     try {
@@ -247,6 +263,8 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
     setPreview(null)
     setShowConfirmation(false)
     setSelectedInstructorId('')
+    setSearchTerm('')
+    setFilteredInstructors([])
     onClose()
   }
 
@@ -274,18 +292,39 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Selecione o Instrutor *
           </label>
+          
+          {/* Campo de Pesquisa */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Pesquisar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          
+          {/* Dropdown de Instrutores */}
           <select
             value={selectedInstructorId}
             onChange={(e) => setSelectedInstructorId(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Selecione um instrutor...</option>
-            {instructors.map((instructor) => (
+            {filteredInstructors.map((instructor) => (
               <option key={instructor.id} value={instructor.id}>
                 {instructor.name} ({instructor.email})
               </option>
             ))}
           </select>
+          
+          {filteredInstructors.length === 0 && searchTerm.trim() !== '' && (
+            <p className="mt-2 text-sm text-gray-500 italic">
+              Nenhum instrutor encontrado para "{searchTerm}"
+            </p>
+          )}
+          
           {selectedInstructorId && (
             <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
               <CheckCircle size={14} />
