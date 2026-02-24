@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download, Users, GraduationCap, Search } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, X, AlertTriangle, Download, Users, GraduationCap, Search, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { readExcelFile, previewClassImport, importClassFromExcel } from '../../services/classImportService'
 import { downloadClassImportTemplate } from '../../utils/excelTemplateUtils'
@@ -20,10 +20,12 @@ type ImportClassForInstructorModalProps = {
 }
 
 export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: ImportClassForInstructorModalProps) {
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [filteredInstructors, setFilteredInstructors] = useState<Instructor[]>([])
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedInstructorId, setSelectedInstructorId] = useState<string>('')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [importResult, setImportResult] = useState<ClassImportResult | null>(null)
@@ -40,6 +42,18 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
       fetchInstructors()
     }
   }, [isOpen])
+  
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
   
   // Filtrar instrutores baseado no termo de pesquisa
   useEffect(() => {
@@ -265,7 +279,19 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
     setSelectedInstructorId('')
     setSearchTerm('')
     setFilteredInstructors([])
+    setIsDropdownOpen(false)
     onClose()
+  }
+
+  const handleSelectInstructor = (instructorId: string) => {
+    setSelectedInstructorId(instructorId)
+    setIsDropdownOpen(false)
+  }
+
+  const handleOpenDropdown = () => {
+    setIsDropdownOpen(true)
+    setSearchTerm('')
+    setFilteredInstructors(instructors)
   }
 
   if (!isOpen) return null
@@ -292,39 +318,59 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Selecione o Instrutor *
           </label>
-          
-          {/* Campo de Pesquisa */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Pesquisar por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+
+          <div className="relative" ref={dropdownRef}>
+            {/* Campo de Pesquisa com Dropdown */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Pesquisar instrutor..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setIsDropdownOpen(true)
+                }}
+                onFocus={handleOpenDropdown}
+                readOnly={!isDropdownOpen}
+                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+              />
+              <ChevronDown
+                className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-transform ${
+                  isDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
+
+            {/* Dropdown List */}
+            {isDropdownOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {filteredInstructors.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-500">
+                    {searchTerm.trim() !== ''
+                      ? `Nenhum instrutor encontrado para "${searchTerm}"`
+                      : 'Nenhum instrutor disponível'}
+                  </div>
+                ) : (
+                  <ul className="py-1">
+                    {filteredInstructors.map((instructor) => (
+                      <li
+                        key={instructor.id}
+                        onClick={() => handleSelectInstructor(instructor.id)}
+                        className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                          selectedInstructorId === instructor.id ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900">{instructor.name}</div>
+                        <div className="text-sm text-gray-500">{instructor.email}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
-          
-          {/* Dropdown de Instrutores */}
-          <select
-            value={selectedInstructorId}
-            onChange={(e) => setSelectedInstructorId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Selecione um instrutor...</option>
-            {filteredInstructors.map((instructor) => (
-              <option key={instructor.id} value={instructor.id}>
-                {instructor.name} ({instructor.email})
-              </option>
-            ))}
-          </select>
-          
-          {filteredInstructors.length === 0 && searchTerm.trim() !== '' && (
-            <p className="mt-2 text-sm text-gray-500 italic">
-              Nenhum instrutor encontrado para "{searchTerm}"
-            </p>
-          )}
-          
+
           {selectedInstructorId && (
             <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
               <CheckCircle size={14} />
