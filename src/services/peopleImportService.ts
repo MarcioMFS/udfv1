@@ -298,67 +298,50 @@ export async function importPeopleFromExcel(
   console.log(`👨‍🏫 Líderes (Instrutores): ${leaders.length}`)
   console.log(`👥 Participantes (Players): ${participants.length}`)
 
-  // Importar instrutores (líderes)
+  // Importar instrutores (líderes) via edge function para criar no auth
   if (options.createInstructors && leaders.length > 0) {
-    for (const leader of leaders) {
-      try {
-        // Verificar se já existe por email
-        const { exists, id: existingId } = await checkEmailExists(leader.email, 'instructors')
+    console.log('📤 Enviando instrutores para edge function...')
 
-        if (exists && existingId) {
-          // Buscar dados atuais para comparar
-          const { data: existing } = await supabase
-            .from('instructors')
-            .select('name')
-            .eq('id', existingId)
-            .single()
+    try {
+      const instructorsToImport = leaders.map(leader => ({
+        name: leader.name,
+        email: leader.email,
+        udf_id: leader.code || undefined
+      }))
 
-          // Atualizar nome se diferente
-          if (existing && existing.name !== leader.name) {
-            const { error: updateError } = await supabase
-              .from('instructors')
-              .update({
-                name: leader.name,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', existingId)
+      const { data, error } = await supabase.functions.invoke('admin-import-instructors', {
+        body: { instructors: instructorsToImport }
+      })
 
-            if (updateError) {
-              errors.push(`Erro ao atualizar instrutor ${leader.email}: ${updateError.message}`)
-            } else {
-              instructorsUpdated++
-              console.log(`✅ Instrutor atualizado: ${leader.name}`)
-            }
-          } else {
-            instructorsUpdated++ // Conta como processado mesmo sem mudanças
-            console.log(`⏭️ Instrutor já existe (sem alterações): ${leader.name}`)
-          }
-        } else {
-          // Criar novo instrutor - gerar udf_id único
-          const baseUdfId = leader.code || `INS-${leader.email.split('@')[0]}`
-          const udfId = await generateUniqueUdfId(baseUdfId, 'instructors')
+      if (error) {
+        console.error('❌ Erro na edge function:', error)
+        errors.push(`Erro ao importar instrutores: ${error.message}`)
+      } else if (data) {
+        console.log('📥 Resposta da edge function:', data)
+        instructorsCreated = data.created || 0
+        instructorsUpdated = data.updated || 0
 
-          const { error: createError } = await supabase
-            .from('instructors')
-            .insert({
-              name: leader.name,
-              email: leader.email,
-              udf_id: udfId,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-
-          if (createError) {
-            errors.push(`Erro ao criar instrutor ${leader.email}: ${createError.message}`)
-          } else {
-            instructorsCreated++
-            console.log(`✨ Instrutor criado: ${leader.name} (udf_id: ${udfId})`)
-          }
+        if (data.errors && Array.isArray(data.errors)) {
+          errors.push(...data.errors)
         }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error)
-        errors.push(`Erro ao processar instrutor ${leader.email}: ${msg}`)
+
+        // Log detalhes
+        if (data.details && Array.isArray(data.details)) {
+          data.details.forEach((d: any) => {
+            if (d.status === 'created') {
+              console.log(`✨ Instrutor criado: ${d.email}`)
+            } else if (d.status === 'updated') {
+              console.log(`✅ Instrutor atualizado: ${d.email}`)
+            } else if (d.status === 'error') {
+              console.log(`❌ Erro: ${d.email} - ${d.message}`)
+            }
+          })
+        }
       }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error)
+      console.error('❌ Exceção ao chamar edge function:', error)
+      errors.push(`Erro ao importar instrutores: ${msg}`)
     }
   }
 
