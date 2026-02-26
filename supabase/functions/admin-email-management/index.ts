@@ -213,8 +213,11 @@ serve(async (req) => {
         );
       }
 
-      const eventDate = event.schedule
-        ? new Date(event.schedule).toLocaleDateString('pt-BR', {
+      // schedule é um array de objetos com initial-time
+      const firstSchedule = Array.isArray(event.schedule) && event.schedule[0];
+      const dateStr = firstSchedule?.['initial-time'] || firstSchedule?.initialTime;
+      const eventDate = dateStr
+        ? new Date(dateStr).toLocaleDateString('pt-BR', {
             weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
           })
         : 'Data não definida';

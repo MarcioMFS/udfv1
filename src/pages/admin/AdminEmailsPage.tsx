@@ -117,8 +117,7 @@ export function AdminEmailsPage() {
         supabase
           .from('events')
           .select('id, name, schedule, class_id, classes(code, description)')
-          .gte('schedule', new Date().toISOString().split('T')[0])
-          .order('schedule', { ascending: true }),
+          .order('created_at', { ascending: false }),
       ])
 
       setClasses(cls ?? [])
@@ -522,11 +521,16 @@ export function AdminEmailsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Selecione um evento</option>
-                    {events.map(e => (
-                      <option key={e.id} value={e.id}>
-                        {e.name} — {e.schedule ? new Date(e.schedule).toLocaleDateString('pt-BR') : 'Sem data'} · {e.class_name}
-                      </option>
-                    ))}
+                    {events.map(e => {
+                      const firstSchedule = Array.isArray(e.schedule) && e.schedule[0]
+                      const dateStr = firstSchedule?.['initial-time'] || firstSchedule?.initialTime
+                      const dateFormatted = dateStr ? new Date(dateStr).toLocaleDateString('pt-BR') : 'Sem data'
+                      return (
+                        <option key={e.id} value={e.id}>
+                          {e.name} — {dateFormatted} · {e.class_name}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
 
