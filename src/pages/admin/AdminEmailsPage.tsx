@@ -128,14 +128,26 @@ export function AdminEmailsPage() {
       ]
       setUsers(allUsers)
 
-      setEvents(
-        (evts ?? []).map((e: any) => ({
-          id: e.id,
-          name: e.name,
-          schedule: e.schedule,
-          class_name: e.classes?.code || e.classes?.description || '—',
-        }))
-      )
+      // Filtra apenas eventos futuros (schedule[0].initial-time >= hoje)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const futureEvents = (evts ?? [])
+        .map((e: any) => {
+          const firstSchedule = Array.isArray(e.schedule) && e.schedule[0]
+          const dateStr = firstSchedule?.['initial-time'] || firstSchedule?.initialTime
+          return {
+            id: e.id,
+            name: e.name,
+            schedule: e.schedule,
+            class_name: e.classes?.code || e.classes?.description || '—',
+            _date: dateStr ? new Date(dateStr) : null,
+          }
+        })
+        .filter((e: any) => e._date && e._date >= today)
+        .sort((a: any, b: any) => (a._date?.getTime() || 0) - (b._date?.getTime() || 0))
+
+      setEvents(futureEvents)
     }
     load()
   }, [])
