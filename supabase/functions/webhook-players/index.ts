@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateWebhook } from '../_shared/auth-middleware.ts';
+import { generateAndSendEmail } from '../_shared/email-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,12 +40,52 @@ serve(async (req)=>{
     if (turmaError || !turmaData) {
       throw new Error(`Turma com código ${codigoTurma} não encontrada: ${turmaError?.message}`);
     }
-    const { data: playerData, error: playerError } = await supabaseClient.from('players').upsert({
+
+    // Verificar se o player já existe (para saber se deve enviar email de primeiro acesso)
+    const { data: existingPlayer } = await supabaseClient
+      .from('players')
+      .select('id')
+      .eq('udf_id', idUdf)
+      .maybeSingle();
+
+    const isNewPlayer = !existingPlayer;
+
+    // Para novos players: criar conta em auth.users (necessário para login e reset de senha)
+    let playerAuthId: string | null = null;
+    if (isNewPlayer) {
+      // Verificar se já existe auth user com este email
+      const { data: usersList } = await supabaseClient.auth.admin.listUsers();
+      const existingAuthUser = usersList?.users?.find((u: any) => u.email === email);
+
+      if (existingAuthUser) {
+        playerAuthId = existingAuthUser.id;
+      } else {
+        const { data: authData, error: authError } = await supabaseClient.auth.admin.createUser({
+          email,
+          user_metadata: { name: nome, role: 'player' },
+          email_confirm: true,
+        });
+        if (authError) {
+          // Não bloqueia o cadastro do player, mas loga o erro
+          console.error(`[AUTH] Erro ao criar conta para ${email}:`, authError.message);
+        } else {
+          playerAuthId = authData.user.id;
+        }
+      }
+    }
+
+    // Montar upsert (novo player usa o UUID do auth para que login funcione)
+    const upsertData: any = {
       udf_id: idUdf,
       registration_number,
       name: nome,
-      email
-    }, {
+      email,
+    };
+    if (isNewPlayer && playerAuthId) {
+      upsertData.id = playerAuthId;
+    }
+
+    const { data: playerData, error: playerError } = await supabaseClient.from('players').upsert(upsertData, {
       onConflict: 'udf_id'
     }).select();
     if (playerError) {
@@ -71,6 +112,12 @@ serve(async (req)=>{
       console.error('Não retornou classPlayerData:', classPlayerData);
       throw new Error('Não retornou classPlayerData');
     }
+    // Enviar email de primeiro acesso via Render (não bloqueia a resposta)
+    if (isNewPlayer && playerAuthId) {
+      generateAndSendEmail(supabaseClient, 'first-access', email, nome, 'player')
+        .catch(err => console.error('[EMAIL] Erro ao enviar first-access:', err));
+    }
+
     return new Response(JSON.stringify({
       success: true,
       player: playerRow,

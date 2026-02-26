@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateWebhook } from '../_shared/auth-middleware.ts';
+import { generateAndSendEmail } from '../_shared/email-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,6 +73,10 @@ serve(async (req)=>{
         throw instructorError;
       }
       instructorData = newInstructor;
+
+      // Enviar email de primeiro acesso via Render (não bloqueia a resposta)
+      generateAndSendEmail(supabaseClient, 'first-access', email, name, 'instructor')
+        .catch(err => console.error('[EMAIL] Erro ao enviar first-access (instructor):', err));
     } else {
       const { data: updatedInstructor, error: updateError } = await supabaseClient.from('instructors').update({
         name,

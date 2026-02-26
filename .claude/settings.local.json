@@ -34,7 +34,12 @@
       "Bash(export:*)",
       "Bash(node test-calendar-events.cjs:*)",
       "Bash(node test-calendar-events-v2.cjs:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(xargs ls:*)",
+      "Bash(supabase --version:*)",
+      "Bash(supabase projects:*)",
+      "Bash(ls \"C:\\\\Users\\\\Marcio\\\\Documents\\\\GitHub\\\\udfv1\\\\supabase\\\\functions\"\" && echo \"---\" && ls \"C:UsersMarcioDocumentsGitHubudfv1supabasefunctions_shared\"\")",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

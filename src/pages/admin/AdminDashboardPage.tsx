@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Users, GraduationCap, Shield, Calendar, ChevronRight, Loader2 } from 'lucide-react'
+import { Users, GraduationCap, Shield, Calendar, ChevronRight, Loader2, FileSpreadsheet } from 'lucide-react'
 import { useAdminUsers, useAdminEvents } from '../../hooks'
 
 interface StatCardProps {
@@ -70,6 +70,13 @@ export function AdminDashboardPage() {
       icon: Users,
       color: "bg-blue-50 hover:bg-blue-100 text-blue-600",
       link: "/admin/users"
+    },
+    {
+      title: "Turmas e Importações",
+      description: "Visualizar todas as turmas e importar novas turmas via Excel",
+      icon: FileSpreadsheet,
+      color: "bg-green-50 hover:bg-green-100 text-green-600",
+      link: "/admin/classes"
     },
     {
       title: "Todos os Eventos",

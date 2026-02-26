@@ -278,20 +278,28 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
     setShowConfirmation(false)
     setSelectedInstructorId('')
     setSearchTerm('')
-    setFilteredInstructors([])
+    setFilteredInstructors(instructors)
     setIsDropdownOpen(false)
     onClose()
   }
 
   const handleSelectInstructor = (instructorId: string) => {
     setSelectedInstructorId(instructorId)
+    const instructor = instructors.find(i => i.id === instructorId)
+    if (instructor) {
+      setSearchTerm(instructor.name)
+    }
     setIsDropdownOpen(false)
   }
 
   const handleOpenDropdown = () => {
     setIsDropdownOpen(true)
-    setSearchTerm('')
-    setFilteredInstructors(instructors)
+    // Se já tem instrutor selecionado, mantém o nome no campo
+    // Se não, limpa para pesquisar
+    if (!selectedInstructorId) {
+      setSearchTerm('')
+      setFilteredInstructors(instructors)
+    }
   }
 
   if (!isOpen) return null
@@ -330,16 +338,32 @@ export function ImportClassForInstructorModal({ isOpen, onClose, onSuccess }: Im
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
                   setIsDropdownOpen(true)
+                  // Se estiver editando, limpa a seleção anterior
+                  if (selectedInstructorId && e.target.value !== instructors.find(i => i.id === selectedInstructorId)?.name) {
+                    setSelectedInstructorId('')
+                  }
                 }}
                 onFocus={handleOpenDropdown}
-                readOnly={!isDropdownOpen}
                 className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
               />
-              <ChevronDown
-                className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-transform ${
-                  isDropdownOpen ? 'rotate-180' : ''
-                }`}
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedInstructorId) {
+                    setSelectedInstructorId('')
+                    setSearchTerm('')
+                    setFilteredInstructors(instructors)
+                  }
+                  setIsDropdownOpen(!isDropdownOpen)
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ChevronDown
+                  className={`w-5 h-5 transition-transform ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Dropdown List */}

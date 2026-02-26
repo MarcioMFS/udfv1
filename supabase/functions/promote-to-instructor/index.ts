@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { generateAndSendEmail } from '../_shared/email-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -142,6 +143,13 @@ serve(async (req) => {
       .single();
 
     if (instructorError) throw instructorError;
+
+    // Enviar email de primeiro acesso via Render (não bloqueia a resposta)
+    const isNewAuthUser = !existingUser;
+    if (isNewAuthUser) {
+      generateAndSendEmail(supabaseAdmin, 'first-access', player_email, player_name, 'instructor')
+        .catch(err => console.error('[EMAIL] Erro ao enviar first-access (promote):', err));
+    }
 
     // Update event_participants status
     const { error: updateParticipantsError } = await supabaseAdmin

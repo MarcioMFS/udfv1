@@ -22,13 +22,13 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const { error } = await supabase.functions.invoke('trigger-password-reset', {
+        body: { email },
       })
 
       if (error) {
         console.error('Erro ao enviar e-mail de redefinição:', error)
-        toast.error('Erro ao enviar e-mail de redefinição. Verifique seu e-mail e tente novamente.')
+        toast.error('Erro ao enviar e-mail de redefinição. Tente novamente.')
       } else {
         toast.success('E-mail de redefinição enviado! Verifique sua caixa de entrada (e spam).')
         navigate('/login')

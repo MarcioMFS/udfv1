@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { generateAndSendEmail } from '../_shared/email-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -334,6 +335,12 @@ serve(async (req) => {
           .single();
 
         if (instructorError) throw instructorError;
+
+        // Enviar email de primeiro acesso apenas se a conta auth foi criada agora
+        if (!existingAuthUser) {
+          generateAndSendEmail(supabaseAdmin, 'first-access', player.email, player.name, 'instructor')
+            .catch(err => console.error('[EMAIL] Erro ao enviar first-access (admin promote):', err));
+        }
 
         // Delete player record
         await supabaseAdmin.from('players').delete().eq('id', user_id);
