@@ -12,7 +12,9 @@ type Operation =
   | 'send_event_reminder'
   | 'send_event_date_change'
   | 'resend_first_access'
-  | 'resend_password_reset';
+  | 'resend_password_reset'
+  | 'invite_instructor'
+  | 'send_bulk_emails';
 
 type RecipientType = 'all_players' | 'all_instructors' | 'by_class' | 'specific_user';
 
@@ -29,6 +31,11 @@ interface RequestPayload {
   new_date?: string; // usado em event_date_change
   // Para resend_first_access / resend_password_reset
   // usa user_id acima
+  // Para invite_instructor
+  instructor_name?: string;
+  instructor_email?: string;
+  // Para send_bulk_emails
+  emails?: string[];
 }
 
 serve(async (req) => {
@@ -294,6 +301,141 @@ serve(async (req) => {
       const label = operation === 'resend_first_access' ? 'Primeiro acesso' : 'Reset de senha';
       return new Response(
         JSON.stringify({ success: true, sent: 1, message: `${label} enviado para ${found.email}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // CONVIDAR INSTRUTOR
+    if (operation === 'invite_instructor') {
+      const { instructor_name, instructor_email } = payload;
+
+      if (!instructor_name || !instructor_email) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campos obrigatórios: instructor_name, instructor_email' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const email = instructor_email.trim().toLowerCase();
+      const name = instructor_name.trim();
+
+      // Verifica se já existe instrutor com esse email
+      const { data: existingInstructor } = await supabaseAdmin
+        .from('instructors')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingInstructor) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Já existe um instrutor com este email' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verifica se já existe player com esse email
+      const { data: existingPlayer } = await supabaseAdmin
+        .from('players')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingPlayer) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Já existe um player com este email. Promova-o a instrutor pela página de usuários.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Cria usuário auth
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        user_metadata: { name, role: 'instructor' },
+        email_confirm: true,
+      });
+
+      if (authError) {
+        console.error('[invite_instructor] Erro ao criar auth user:', authError);
+        return new Response(
+          JSON.stringify({ success: false, error: `Erro ao criar usuário: ${authError.message}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Cria registro do instrutor
+      const { error: insertError } = await supabaseAdmin
+        .from('instructors')
+        .insert({
+          id: authData.user.id,
+          name,
+          email,
+          is_admin: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (insertError) {
+        console.error('[invite_instructor] Erro ao inserir instrutor:', insertError);
+        // Tenta deletar o auth user criado
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return new Response(
+          JSON.stringify({ success: false, error: `Erro ao criar instrutor: ${insertError.message}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Envia email de primeiro acesso
+      await generateAndSendEmail(supabaseAdmin, 'first-access', email, name, 'instructor');
+
+      return new Response(
+        JSON.stringify({ success: true, sent: 1, message: `Instrutor ${name} criado e convite enviado para ${email}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ENVIO EM MASSA
+    if (operation === 'send_bulk_emails') {
+      const { emails, subject, body } = payload;
+
+      if (!emails || emails.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Nenhum email válido informado' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!subject || !body) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campos obrigatórios: subject, body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let sent = 0;
+      const errors: string[] = [];
+
+      for (const email of emails) {
+        try {
+          await sendEmail({
+            type: 'announcement',
+            to: email,
+            name: email.split('@')[0], // usa parte antes do @ como nome
+            subject,
+            body,
+          });
+          sent++;
+        } catch (err) {
+          console.error(`[send_bulk_emails] Erro ao enviar para ${email}:`, err);
+          errors.push(email);
+        }
+      }
+
+      const message = errors.length > 0
+        ? `Enviado para ${sent} de ${emails.length} email(s). Falhas: ${errors.join(', ')}`
+        : `Email enviado para ${sent} destinatário(s)`;
+
+      return new Response(
+        JSON.stringify({ success: true, sent, message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

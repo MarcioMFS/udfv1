@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  Mail, Send, Users, GraduationCap, User, Calendar, RefreshCw, AlertCircle, CheckCircle
+  Mail, Send, Users, GraduationCap, User, Calendar, RefreshCw, AlertCircle, CheckCircle, UserPlus, MailPlus
 } from 'lucide-react'
 import { useEmailManagement, RecipientType, EmailOperation } from '../../hooks/useEmailManagement'
 import { supabase } from '../../lib/supabase'
@@ -26,7 +26,7 @@ interface EventOption {
   class_name: string
 }
 
-type EmailType = 'announcement' | 'event-reminder' | 'event-date-change' | 'resend_first_access' | 'resend_password_reset'
+type EmailType = 'announcement' | 'event-reminder' | 'event-date-change' | 'resend_first_access' | 'resend_password_reset' | 'invite_instructor' | 'bulk_emails'
 
 const emailTypeOptions: { value: EmailType; label: string; icon: typeof Mail; description: string }[] = [
   {
@@ -34,6 +34,18 @@ const emailTypeOptions: { value: EmailType; label: string; icon: typeof Mail; de
     label: 'Comunicado Livre',
     icon: Mail,
     description: 'Escreva uma mensagem personalizada para os destinatários selecionados'
+  },
+  {
+    value: 'bulk_emails',
+    label: 'Envio em Massa',
+    icon: MailPlus,
+    description: 'Envie para múltiplos emails separados por vírgula'
+  },
+  {
+    value: 'invite_instructor',
+    label: 'Convidar Instrutor',
+    icon: UserPlus,
+    description: 'Cria um novo instrutor e envia email de primeiro acesso'
   },
   {
     value: 'event-reminder',
@@ -81,6 +93,11 @@ export function AdminEmailsPage() {
   const [body, setBody]                     = useState('')
   const [selectedEvent, setSelectedEvent]   = useState('')
   const [newDate, setNewDate]               = useState('')
+  // Convite instrutor
+  const [instructorName, setInstructorName] = useState('')
+  const [instructorEmail, setInstructorEmail] = useState('')
+  // Emails em massa
+  const [bulkEmails, setBulkEmails]         = useState('')
 
   // Data state
   const [classes, setClasses]   = useState<ClassOption[]>([])
@@ -143,12 +160,23 @@ export function AdminEmailsPage() {
     setUserSearch('')
     setSelectedEvent('')
     setNewDate('')
+    setInstructorName('')
+    setInstructorEmail('')
+    setBulkEmails('')
     setLastResult(null)
   }
 
   const handleTypeChange = (type: EmailType) => {
     setEmailType(type)
     resetForm()
+  }
+
+  // Parseia e valida emails em massa
+  const parseBulkEmails = (): string[] => {
+    return bulkEmails
+      .split(/[,;\n]+/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
   }
 
   const canSubmit = (): boolean => {
@@ -159,6 +187,10 @@ export function AdminEmailsPage() {
         if (recipientType === 'by_class' && !selectedClass) return false
         if (recipientType === 'specific_user' && !selectedUser) return false
         return true
+      case 'bulk_emails':
+        return !!subject.trim() && !!body.trim() && parseBulkEmails().length > 0
+      case 'invite_instructor':
+        return !!instructorName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(instructorEmail.trim())
       case 'event-reminder':
         return !!selectedEvent
       case 'event-date-change':
@@ -185,6 +217,21 @@ export function AdminEmailsPage() {
           body,
           ...(recipientType === 'by_class' ? { class_id: selectedClass } : {}),
           ...(recipientType === 'specific_user' ? { user_id: selectedUser!.id } : {}),
+        }
+        break
+      case 'bulk_emails':
+        operation = 'send_bulk_emails'
+        params = {
+          emails: parseBulkEmails(),
+          subject,
+          body,
+        }
+        break
+      case 'invite_instructor':
+        operation = 'invite_instructor'
+        params = {
+          instructor_name: instructorName.trim(),
+          instructor_email: instructorEmail.trim().toLowerCase(),
         }
         break
       case 'event-reminder':
@@ -374,6 +421,93 @@ export function AdminEmailsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   />
                   <p className="text-xs text-gray-400 mt-1">{body.length} caracteres</p>
+                </div>
+              </div>
+            )}
+
+            {/* ── ENVIO EM MASSA ── */}
+            {emailType === 'bulk_emails' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emails <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={bulkEmails}
+                    onChange={e => setBulkEmails(e.target.value)}
+                    placeholder="Digite os emails separados por vírgula, ponto e vírgula ou um por linha&#10;Ex: joao@email.com, maria@email.com"
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {parseBulkEmails().length} email(s) válido(s) detectado(s)
+                  </p>
+                </div>
+
+                {/* Assunto */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Assunto <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={e => setSubject(e.target.value)}
+                    placeholder="Ex: Comunicado importante"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Corpo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mensagem <span className="text-red-500">*</span></label>
+                  <textarea
+                    value={body}
+                    onChange={e => setBody(e.target.value)}
+                    placeholder="Escreva aqui o conteúdo do email..."
+                    rows={6}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{body.length} caracteres</p>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                  <p className="font-medium mb-1">📧 Envio em massa</p>
+                  <p>Os emails serão enviados para todos os endereços válidos informados acima, mesmo que não estejam cadastrados no sistema.</p>
+                </div>
+              </div>
+            )}
+
+            {/* ── CONVIDAR INSTRUTOR ── */}
+            {emailType === 'invite_instructor' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome do Instrutor <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={instructorName}
+                    onChange={e => setInstructorName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email do Instrutor <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={instructorEmail}
+                    onChange={e => setInstructorEmail(e.target.value)}
+                    placeholder="Ex: joao@email.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <p className="font-medium mb-1">🎓 Novo Instrutor</p>
+                  <p>Um novo instrutor será criado no sistema e receberá um email com link para definir sua senha. O link é válido por 24 horas.</p>
                 </div>
               </div>
             )}

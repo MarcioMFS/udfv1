@@ -8,6 +8,8 @@ export type EmailOperation =
   | 'send_event_date_change'
   | 'resend_first_access'
   | 'resend_password_reset'
+  | 'invite_instructor'
+  | 'send_bulk_emails'
 
 export type RecipientType = 'all_players' | 'all_instructors' | 'by_class' | 'specific_user'
 
@@ -22,6 +24,11 @@ export interface DispatchEmailParams {
   // Evento
   event_id?: string
   new_date?: string
+  // Convite instrutor
+  instructor_name?: string
+  instructor_email?: string
+  // Emails em massa
+  emails?: string[]
 }
 
 interface DispatchResult {
