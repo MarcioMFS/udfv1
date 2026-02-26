@@ -215,24 +215,24 @@ export function AdminEventsPage() {
               </tbody>
             </table>
           </div>
+        )}
 
-          {/* Paginação */}
-          {filteredEvents.length > 0 && (
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              totalItems={pagination.totalItems}
-              itemsPerPage={pagination.itemsPerPage}
-              startIndex={pagination.startIndex}
-              endIndex={pagination.endIndex}
-              onPageChange={pagination.goToPage}
-              showPerPageSelector
-              onPerPageChange={pagination.setItemsPerPage}
-              perPageOptions={[10, 15, 25, 50]}
-            />
-          )}
-        </div>
-      )}
+        {/* Paginação */}
+        {filteredEvents.length > 0 && !isLoading && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            onPageChange={pagination.goToPage}
+            showPerPageSelector
+            onPerPageChange={pagination.setItemsPerPage}
+            perPageOptions={[10, 15, 25, 50]}
+          />
+        )}
+      </div>
 
       {/* Reassign Dialog */}
       {reassignDialog.isOpen && reassignDialog.event && (
