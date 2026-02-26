@@ -184,7 +184,7 @@ serve(async (req) => {
       // Busca evento com turma e players
       const { data: event, error: eventError } = await supabaseAdmin
         .from('events')
-        .select('id, name, schedule, class_id, classes(name)')
+        .select('id, name, schedule, class_id, classes(code, description)')
         .eq('id', event_id)
         .single();
 

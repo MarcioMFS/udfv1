@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase'
 interface ClassOption {
   id: string
   code: string
-  name: string
+  description: string
 }
 
 interface UserOption {
@@ -111,12 +111,12 @@ export function AdminEmailsPage() {
   useEffect(() => {
     async function load() {
       const [{ data: cls, error: clsErr }, { data: players }, { data: instructors }, { data: evts, error: evtsErr }] = await Promise.all([
-        supabase.from('classes').select('id, code, name').order('name'),
+        supabase.from('classes').select('id, code, description').order('code'),
         supabase.from('players').select('id, name, email'),
         supabase.from('instructors').select('id, name, email'),
         supabase
           .from('events')
-          .select('id, name, schedule, classes(name)')
+          .select('id, name, schedule, class_id, classes(code, description)')
           .order('schedule', { ascending: false }),
       ])
 
@@ -137,7 +137,7 @@ export function AdminEmailsPage() {
           id: e.id,
           name: e.name,
           schedule: e.schedule,
-          class_name: e.classes?.name ?? '—',
+          class_name: e.classes?.code || e.classes?.description || '—',
         }))
       )
     }
@@ -349,7 +349,7 @@ export function AdminEmailsPage() {
                     >
                       <option value="">Selecione uma turma</option>
                       {classes.map(c => (
-                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                        <option key={c.id} value={c.id}>{c.code}{c.description ? ` - ${c.description}` : ''}</option>
                       ))}
                     </select>
                   </div>
