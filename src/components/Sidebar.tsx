@@ -157,10 +157,10 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
               }`}
               style={isAdminRoute && !adminOpen ? { backgroundColor: colors.primary } : {}}
             >
-              <Shield className="w-5 h-5 flex-shrink-0" />
-              <span className="flex-1 text-left">Administração</span>
+              <Shield className="w-5 h-5" />
+              <span>Administração</span>
               <ChevronDown
-                className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${adminOpen ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 ml-auto transition-transform duration-200 ${adminOpen ? 'rotate-180' : ''}`}
               />
             </button>
 
@@ -172,7 +172,7 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
                     <Link
                       key={sub.href}
                       to={sub.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
                         subActive
                           ? 'text-white font-medium shadow-sm'
                           : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
@@ -180,7 +180,7 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
                       style={subActive ? { backgroundColor: colors.primary } : {}}
                       onClick={toggleSidebar}
                     >
-                      <sub.icon className="w-4 h-4 flex-shrink-0" />
+                      <sub.icon className="w-4 h-4" />
                       <span>{sub.label}</span>
                     </Link>
                   )
