@@ -1,4 +1,5 @@
 export { useClassData } from './useClassData'
+export { usePagination } from './usePagination'
 export { useDashboardStats } from './useDashboardStats'
 export { useCalculations } from './useCalculations'
 export { useInstructorStats } from './useInstructorStats'

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Search, Trash2, RefreshCw, UserCheck } from 'lucide-react'
-import { useAdminEvents, useAdminUsers } from '../../hooks'
+import { useAdminEvents, useAdminUsers, usePagination } from '../../hooks'
 import { AdminEvent } from '../../hooks/useAdminEvents'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
+import { Pagination } from '../../components/ui/Pagination'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -44,6 +45,8 @@ export function AdminEventsPage() {
 
     setFilteredEvents(filtered)
   }, [events, searchTerm])
+
+  const pagination = usePagination(filteredEvents, 15, searchTerm)
 
   const handleDeleteEvent = (event: AdminEvent) => {
     setConfirmDialog({
@@ -168,7 +171,7 @@ export function AdminEventsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEvents.map((event) => (
+                {pagination.currentItems.map((event) => (
                   <tr key={event.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{event.title}</div>
@@ -212,8 +215,24 @@ export function AdminEventsPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+
+          {/* Paginação */}
+          {filteredEvents.length > 0 && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              itemsPerPage={pagination.itemsPerPage}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              onPageChange={pagination.goToPage}
+              showPerPageSelector
+              onPerPageChange={pagination.setItemsPerPage}
+              perPageOptions={[10, 15, 25, 50]}
+            />
+          )}
+        </div>
+      )}
 
       {/* Reassign Dialog */}
       {reassignDialog.isOpen && reassignDialog.event && (

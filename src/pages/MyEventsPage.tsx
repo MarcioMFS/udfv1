@@ -5,8 +5,9 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { useIsAdmin } from '../hooks'
+import { useIsAdmin, usePagination } from '../hooks'
 import { ConfirmDialog } from '../components/modal/DialogModal'
+import { Pagination } from '../components/ui/Pagination'
 import toast from 'react-hot-toast'
 
 interface Event {
@@ -63,6 +64,8 @@ export function MyEventsPage() {
 
     setFilteredEvents(filtered)
   }, [events, searchTerm])
+
+  const pagination = usePagination(filteredEvents, 9, searchTerm)
 
   const loadEvents = async () => {
     if (!user) {
@@ -235,7 +238,7 @@ export function MyEventsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event) => (
+          {pagination.currentItems.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               {/* Card Header */}
               <div className="mb-4">
@@ -297,6 +300,24 @@ export function MyEventsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Paginação */}
+      {filteredEvents.length > 0 && !isLoading && (
+        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            onPageChange={pagination.goToPage}
+            showPerPageSelector
+            onPerPageChange={pagination.setItemsPerPage}
+            perPageOptions={[6, 9, 18]}
+          />
         </div>
       )}
 

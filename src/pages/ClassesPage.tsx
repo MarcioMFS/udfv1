@@ -5,8 +5,9 @@ import { ptBR } from 'date-fns/locale'
 import { Upload, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { useIsAdmin } from '../hooks'
+import { useIsAdmin, usePagination } from '../hooks'
 import { ImportClassModal } from '../components/modal/ImportClassModal'
+import { Pagination } from '../components/ui/Pagination'
 
 interface Class {
   id: string
@@ -196,6 +197,8 @@ export function ClassesPage() {
     classItem.event?.subject?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const pagination = usePagination(filteredClasses, 12, searchTerm)
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Search and Import */}
@@ -231,7 +234,7 @@ export function ClassesPage() {
 
 {/* Class Cards */}
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-  {filteredClasses.map((classItem) => (
+  {pagination.currentItems.map((classItem) => (
     <div key={classItem.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-6 flex flex-col h-full">
       {/* Header */}
       <div className="mb-3">
@@ -313,6 +316,24 @@ export function ClassesPage() {
   ))}
 </div>
 
+
+      {/* Paginação */}
+      {filteredClasses.length > 0 && (
+        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            onPageChange={pagination.goToPage}
+            showPerPageSelector
+            onPerPageChange={pagination.setItemsPerPage}
+            perPageOptions={[6, 12, 24]}
+          />
+        </div>
+      )}
 
       {/* Import Modal */}
       <ImportClassModal

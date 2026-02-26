@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, Upload, X } from 'lucide-react'
-import { useAdminUsers, useUserManagement } from '../../hooks'
+import { useAdminUsers, useUserManagement, usePagination } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
 import { ImportPeopleModal } from '../../components/modal/ImportPeopleModal'
+import { Pagination } from '../../components/ui/Pagination'
 import { supabase } from '../../lib/supabase'
 
 type TabType = 'players' | 'instructors' | 'admins'
@@ -246,6 +247,15 @@ export function AdminUsersPage() {
     })
   }
 
+  // Listas filtradas no nível do componente (hooks não podem ficar dentro de funções)
+  const filteredPlayers     = filterUsers(players)
+  const filteredInstructors = filterUsers(instructors)
+  const filteredAdmins      = filterUsers(admins)
+
+  const playersPagination     = usePagination(filteredPlayers,     15, searchTerm + activeTab)
+  const instructorsPagination = usePagination(filteredInstructors, 15, searchTerm + activeTab)
+  const adminsPagination      = usePagination(filteredAdmins,      15, searchTerm + activeTab)
+
   const tabs = [
     { key: 'players' as TabType, label: 'Players', icon: Users, count: players.length },
     { key: 'instructors' as TabType, label: 'Instrutores', icon: GraduationCap, count: instructors.length },
@@ -253,7 +263,6 @@ export function AdminUsersPage() {
   ]
 
   const renderPlayersTable = () => {
-    const filteredPlayers = filterUsers(players)
 
     if (filteredPlayers.length === 0) {
       return (
@@ -267,6 +276,7 @@ export function AdminUsersPage() {
     }
 
     return (
+      <>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -279,7 +289,7 @@ export function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredPlayers.map((player) => (
+            {playersPagination.currentItems.map((player) => (
               <tr key={player.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{player.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{player.email}</td>
@@ -322,11 +332,23 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={playersPagination.currentPage}
+        totalPages={playersPagination.totalPages}
+        totalItems={playersPagination.totalItems}
+        itemsPerPage={playersPagination.itemsPerPage}
+        startIndex={playersPagination.startIndex}
+        endIndex={playersPagination.endIndex}
+        onPageChange={playersPagination.goToPage}
+        showPerPageSelector
+        onPerPageChange={playersPagination.setItemsPerPage}
+        perPageOptions={[10, 15, 25, 50]}
+      />
+      </>
     )
   }
 
   const renderInstructorsTable = () => {
-    const filteredInstructors = filterUsers(instructors)
 
     if (filteredInstructors.length === 0) {
       return (
@@ -340,6 +362,7 @@ export function AdminUsersPage() {
     }
 
     return (
+      <>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -353,7 +376,7 @@ export function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredInstructors.map((instructor) => (
+            {instructorsPagination.currentItems.map((instructor) => (
               <tr key={instructor.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{instructor.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{instructor.email}</td>
@@ -417,11 +440,23 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={instructorsPagination.currentPage}
+        totalPages={instructorsPagination.totalPages}
+        totalItems={instructorsPagination.totalItems}
+        itemsPerPage={instructorsPagination.itemsPerPage}
+        startIndex={instructorsPagination.startIndex}
+        endIndex={instructorsPagination.endIndex}
+        onPageChange={instructorsPagination.goToPage}
+        showPerPageSelector
+        onPerPageChange={instructorsPagination.setItemsPerPage}
+        perPageOptions={[10, 15, 25, 50]}
+      />
+      </>
     )
   }
 
   const renderAdminsTable = () => {
-    const filteredAdmins = filterUsers(admins)
 
     if (filteredAdmins.length === 0) {
       return (
@@ -435,6 +470,7 @@ export function AdminUsersPage() {
     }
 
     return (
+      <>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -447,7 +483,7 @@ export function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAdmins.map((admin) => (
+            {adminsPagination.currentItems.map((admin) => (
               <tr key={admin.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -502,6 +538,19 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={adminsPagination.currentPage}
+        totalPages={adminsPagination.totalPages}
+        totalItems={adminsPagination.totalItems}
+        itemsPerPage={adminsPagination.itemsPerPage}
+        startIndex={adminsPagination.startIndex}
+        endIndex={adminsPagination.endIndex}
+        onPageChange={adminsPagination.goToPage}
+        showPerPageSelector
+        onPerPageChange={adminsPagination.setItemsPerPage}
+        perPageOptions={[10, 15, 25, 50]}
+      />
+      </>
     )
   }
 

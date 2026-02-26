@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { FileSpreadsheet, Search, ChevronDown, ChevronUp, Users, Calendar, GraduationCap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { ImportClassForInstructorModal } from '../../components/modal/ImportClassForInstructorModal'
+import { usePagination } from '../../hooks'
+import { Pagination } from '../../components/ui/Pagination'
 
 interface Class {
   id: string
@@ -96,6 +98,8 @@ export function AdminClassesPage() {
     classItem.instructor?.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const pagination = usePagination(filteredClasses, 15, searchTerm)
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -162,7 +166,7 @@ export function AdminClassesPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredClasses.map((classItem) => (
+                  {pagination.currentItems.map((classItem) => (
                     <tr key={classItem.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -221,6 +225,22 @@ export function AdminClassesPage() {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {/* Paginação */}
+          {filteredClasses.length > 0 && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              itemsPerPage={pagination.itemsPerPage}
+              startIndex={pagination.startIndex}
+              endIndex={pagination.endIndex}
+              onPageChange={pagination.goToPage}
+              showPerPageSelector
+              onPerPageChange={pagination.setItemsPerPage}
+              perPageOptions={[10, 15, 25, 50]}
+            />
           )}
         </div>
       )}

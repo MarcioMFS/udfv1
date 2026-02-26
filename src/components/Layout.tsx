@@ -17,7 +17,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
 
-      <div className={`flex-1 transition-all duration-200 ease-in-out ${isSidebarOpen ? 'ml-64' : 'ml-0'} lg:ml-64`}>
+      <div className="flex-1 min-w-0 lg:ml-64">
         <Header toggleSidebar={toggleSidebar} />
         <main className="p-4 sm:p-6">
           {children}
