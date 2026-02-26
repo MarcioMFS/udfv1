@@ -20,9 +20,8 @@ interface UserOption {
 
 interface EventOption {
   id: string
-  title: string
-  date: string
-  location: string
+  name: string
+  schedule: string
   class_name: string
 }
 
@@ -111,15 +110,19 @@ export function AdminEmailsPage() {
   // Carrega dados iniciais
   useEffect(() => {
     async function load() {
-      const [{ data: cls }, { data: players }, { data: instructors }, { data: evts }] = await Promise.all([
+      const [{ data: cls, error: clsErr }, { data: players }, { data: instructors }, { data: evts, error: evtsErr }] = await Promise.all([
         supabase.from('classes').select('id, code, name').order('name'),
         supabase.from('players').select('id, name, email'),
         supabase.from('instructors').select('id, name, email'),
         supabase
           .from('events')
-          .select('id, title, date, location, classes(name)')
-          .order('date', { ascending: false }),
+          .select('id, name, schedule, classes(name)')
+          .order('schedule', { ascending: false }),
       ])
+
+      console.log('📧 [AdminEmails] Classes:', cls?.length, clsErr)
+      console.log('📧 [AdminEmails] Events:', evts?.length, evtsErr)
+      console.log('📧 [AdminEmails] Events data:', evts)
 
       setClasses(cls ?? [])
 
@@ -132,9 +135,8 @@ export function AdminEmailsPage() {
       setEvents(
         (evts ?? []).map((e: any) => ({
           id: e.id,
-          title: e.title,
-          date: e.date,
-          location: e.location,
+          name: e.name,
+          schedule: e.schedule,
           class_name: e.classes?.name ?? '—',
         }))
       )
@@ -525,7 +527,7 @@ export function AdminEmailsPage() {
                     <option value="">Selecione um evento</option>
                     {events.map(e => (
                       <option key={e.id} value={e.id}>
-                        {e.title} — {new Date(e.date).toLocaleDateString('pt-BR')} · {e.class_name}
+                        {e.name} — {e.schedule ? new Date(e.schedule).toLocaleDateString('pt-BR') : 'Sem data'} · {e.class_name}
                       </option>
                     ))}
                   </select>

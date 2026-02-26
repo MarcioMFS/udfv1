@@ -184,7 +184,7 @@ serve(async (req) => {
       // Busca evento com turma e players
       const { data: event, error: eventError } = await supabaseAdmin
         .from('events')
-        .select('id, title, date, location, class_id, classes(name)')
+        .select('id, name, schedule, class_id, classes(name)')
         .eq('id', event_id)
         .single();
 
@@ -213,9 +213,11 @@ serve(async (req) => {
         );
       }
 
-      const eventDate = new Date(event.date).toLocaleDateString('pt-BR', {
-        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-      });
+      const eventDate = event.schedule
+        ? new Date(event.schedule).toLocaleDateString('pt-BR', {
+            weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+          })
+        : 'Data não definida';
 
       let sent = 0;
 
@@ -225,9 +227,8 @@ serve(async (req) => {
             type: 'event-reminder',
             to: r.email,
             name: r.name,
-            eventTitle: event.title,
+            eventTitle: event.name,
             eventDate,
-            eventLocation: event.location,
           });
           sent++;
         }
@@ -254,10 +255,9 @@ serve(async (req) => {
           type: 'event-date-change',
           to: r.email,
           name: r.name,
-          eventTitle: event.title,
+          eventTitle: event.name,
           oldDate: eventDate,
           newDate: newDateFormatted,
-          eventLocation: event.location,
         });
         sent++;
       }
