@@ -110,19 +110,16 @@ export function AdminEmailsPage() {
   // Carrega dados iniciais
   useEffect(() => {
     async function load() {
-      const [{ data: cls, error: clsErr }, { data: players }, { data: instructors }, { data: evts, error: evtsErr }] = await Promise.all([
+      const [{ data: cls }, { data: players }, { data: instructors }, { data: evts }] = await Promise.all([
         supabase.from('classes').select('id, code, description').order('code'),
         supabase.from('players').select('id, name, email'),
         supabase.from('instructors').select('id, name, email'),
         supabase
           .from('events')
           .select('id, name, schedule, class_id, classes(code, description)')
-          .order('schedule', { ascending: false }),
+          .gte('schedule', new Date().toISOString().split('T')[0])
+          .order('schedule', { ascending: true }),
       ])
-
-      console.log('📧 [AdminEmails] Classes:', cls?.length, clsErr)
-      console.log('📧 [AdminEmails] Events:', evts?.length, evtsErr)
-      console.log('📧 [AdminEmails] Events data:', evts)
 
       setClasses(cls ?? [])
 
