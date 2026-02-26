@@ -1,0 +1,314 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail, generateAndSendEmail } from '../_shared/email-service.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+type Operation =
+  | 'send_announcement'
+  | 'send_event_reminder'
+  | 'send_event_date_change'
+  | 'resend_first_access'
+  | 'resend_password_reset';
+
+type RecipientType = 'all_players' | 'all_instructors' | 'by_class' | 'specific_user';
+
+interface RequestPayload {
+  operation: Operation;
+  // Para send_announcement
+  recipient_type?: RecipientType;
+  class_id?: string;
+  user_id?: string;
+  subject?: string;
+  body?: string;
+  // Para send_event_reminder / send_event_date_change
+  event_id?: string;
+  new_date?: string; // usado em event_date_change
+  // Para resend_first_access / resend_password_reset
+  // usa user_id acima
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    // ── Autenticação admin ──────────────────────────────────────────────────────
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authorization header obrigatório' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Autenticação inválida' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: instructor } = await supabaseClient
+      .from('instructors')
+      .select('id, is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!instructor || !instructor.is_admin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Apenas administradores podem executar esta operação' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── Cliente admin (service role) ───────────────────────────────────────────
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const payload: RequestPayload = await req.json();
+    const { operation } = payload;
+
+    if (!operation) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Campo obrigatório: operation' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── Operações ──────────────────────────────────────────────────────────────
+
+    // COMUNICADO LIVRE
+    if (operation === 'send_announcement') {
+      const { recipient_type, class_id, user_id, subject, body } = payload;
+
+      if (!subject || !body) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campos obrigatórios: subject, body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let recipients: { email: string; name: string }[] = [];
+
+      if (recipient_type === 'all_players') {
+        const { data } = await supabaseAdmin.from('players').select('name, email');
+        recipients = (data ?? []).map((r: any) => ({ email: r.email, name: r.name }));
+
+      } else if (recipient_type === 'all_instructors') {
+        const { data } = await supabaseAdmin.from('instructors').select('name, email');
+        recipients = (data ?? []).map((r: any) => ({ email: r.email, name: r.name }));
+
+      } else if (recipient_type === 'by_class') {
+        if (!class_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Campo obrigatório para turma: class_id' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const { data } = await supabaseAdmin
+          .from('class_players')
+          .select('players(name, email)')
+          .eq('class_id', class_id);
+        recipients = (data ?? [])
+          .map((r: any) => r.players)
+          .filter(Boolean)
+          .map((p: any) => ({ email: p.email, name: p.name }));
+
+      } else if (recipient_type === 'specific_user') {
+        if (!user_id) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Campo obrigatório para usuário específico: user_id' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        // Tenta em players depois em instructors
+        const { data: player } = await supabaseAdmin
+          .from('players').select('name, email').eq('id', user_id).maybeSingle();
+        const { data: inst } = await supabaseAdmin
+          .from('instructors').select('name, email').eq('id', user_id).maybeSingle();
+        const found = player ?? inst;
+        if (found) recipients = [{ email: found.email, name: found.name }];
+      }
+
+      if (recipients.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Nenhum destinatário encontrado' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      let sent = 0;
+      for (const r of recipients) {
+        await sendEmail({ type: 'announcement', to: r.email, name: r.name, subject, body });
+        sent++;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, sent, message: `Comunicado enviado para ${sent} destinatário(s)` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // LEMBRETE DE EVENTO
+    if (operation === 'send_event_reminder' || operation === 'send_event_date_change') {
+      const { event_id, new_date } = payload;
+
+      if (!event_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campo obrigatório: event_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Busca evento com turma e players
+      const { data: event, error: eventError } = await supabaseAdmin
+        .from('events')
+        .select('id, title, date, location, class_id, classes(name)')
+        .eq('id', event_id)
+        .single();
+
+      if (eventError || !event) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Evento não encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Busca players da turma
+      const { data: classPlayers } = await supabaseAdmin
+        .from('class_players')
+        .select('players(name, email)')
+        .eq('class_id', event.class_id);
+
+      const recipients = (classPlayers ?? [])
+        .map((r: any) => r.players)
+        .filter(Boolean)
+        .map((p: any) => ({ email: p.email, name: p.name }));
+
+      if (recipients.length === 0) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Nenhum player encontrado na turma deste evento' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const eventDate = new Date(event.date).toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+      });
+
+      let sent = 0;
+
+      if (operation === 'send_event_reminder') {
+        for (const r of recipients) {
+          await sendEmail({
+            type: 'event-reminder',
+            to: r.email,
+            name: r.name,
+            eventTitle: event.title,
+            eventDate,
+            eventLocation: event.location,
+          });
+          sent++;
+        }
+        return new Response(
+          JSON.stringify({ success: true, sent, message: `Lembrete enviado para ${sent} player(s)` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // send_event_date_change
+      if (!new_date) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campo obrigatório para alteração: new_date' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const newDateFormatted = new Date(new_date).toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
+      });
+
+      for (const r of recipients) {
+        await sendEmail({
+          type: 'event-date-change',
+          to: r.email,
+          name: r.name,
+          eventTitle: event.title,
+          oldDate: eventDate,
+          newDate: newDateFormatted,
+          eventLocation: event.location,
+        });
+        sent++;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, sent, message: `Aviso de alteração enviado para ${sent} player(s)` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // REENVIAR PRIMEIRO ACESSO / RESET DE SENHA
+    if (operation === 'resend_first_access' || operation === 'resend_password_reset') {
+      const { user_id } = payload;
+
+      if (!user_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Campo obrigatório: user_id' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Busca usuário em players ou instructors
+      const { data: player } = await supabaseAdmin
+        .from('players').select('name, email').eq('id', user_id).maybeSingle();
+      const { data: inst } = await supabaseAdmin
+        .from('instructors').select('name, email').eq('id', user_id).maybeSingle();
+      const found = player ?? inst;
+
+      if (!found) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Usuário não encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const emailType = operation === 'resend_first_access' ? 'first-access' : 'reset-password';
+      const role = inst ? 'instructor' : 'player';
+
+      await generateAndSendEmail(supabaseAdmin, emailType, found.email, found.name, role);
+
+      const label = operation === 'resend_first_access' ? 'Primeiro acesso' : 'Reset de senha';
+      return new Response(
+        JSON.stringify({ success: true, sent: 1, message: `${label} enviado para ${found.email}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: false, error: `Operação desconhecida: ${operation}` }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('[admin-email-management] Exceção:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: msg }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

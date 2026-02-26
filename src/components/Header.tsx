@@ -26,6 +26,7 @@ function usePageTitle(): RouteInfo {
     '/admin/users':   { title: 'Usuários',          subtitle: 'Gerenciar usuários do sistema' },
     '/admin/classes': { title: 'Turmas',            subtitle: 'Gerenciar turmas do sistema' },
     '/admin/events':  { title: 'Eventos',           subtitle: 'Gerenciar eventos do sistema' },
+    '/admin/emails':  { title: 'Central de Emails', subtitle: 'Dispare emails para players e instrutores' },
   }
 
   if (exact[pathname]) return exact[pathname]

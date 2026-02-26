@@ -3,12 +3,18 @@
  *
  * Variáveis de ambiente necessárias (Supabase Secrets):
  *   RESEND_API_KEY  → Chave da API do Resend (https://resend.com/api-keys)
- *   EMAIL_FROM      → Remetente verificado  (ex: "UDF <noreply@seudominio.com>")
+ *   EMAIL_FROM      → Remetente verificado  (ex: "Ignição <noreply@seudominio.com>")
  *   APP_URL         → URL do frontend       (ex: https://seu-app.com)
  */
 
-export type EmailType = 'first-access' | 'reset-password';
-export type UserRole  = 'player' | 'instructor';
+export type EmailType =
+  | 'first-access'
+  | 'reset-password'
+  | 'announcement'
+  | 'event-reminder'
+  | 'event-date-change';
+
+export type UserRole = 'player' | 'instructor';
 
 // ─── Templates HTML ────────────────────────────────────────────────────────────
 
@@ -21,13 +27,13 @@ const baseCard = (content: string) => `
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f4f6;margin:0;padding:0;">
   <div style="max-width:600px;margin:40px auto;background:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.07);overflow:hidden;">
-    <div style="background:#1d4ed8;padding:32px 40px;text-align:center;">
-      <h1 style="color:#fff;margin:0;font-size:24px;font-weight:700;">UDF</h1>
+    <div style="background:#1d4ed8;padding:28px 40px;text-align:center;">
+      <img src="https://xfgsfmexaxmikkksndny.supabase.co/storage/v1/object/public/assets/logo.png" alt="Ignição" style="max-height:56px;max-width:200px;object-fit:contain;" />
     </div>
     ${content}
     <div style="background:#f9fafb;padding:20px 40px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #e5e7eb;">
-      <p>Este link expira em 24 horas. Se você não solicitou este acesso, ignore este e-mail.</p>
-      <p>© ${new Date().getFullYear()} UDF. Todos os direitos reservados.</p>
+      <p>Se você não solicitou este email, pode ignorá-lo com segurança.</p>
+      <p>© ${new Date().getFullYear()} Ignição. Todos os direitos reservados.</p>
     </div>
   </div>
 </body>
@@ -47,7 +53,7 @@ function firstAccessHtml(name: string, link: string, role: UserRole): string {
     <div style="padding:40px;">
       <h2 style="color:#1f2937;font-size:22px;margin-top:0;">Bem-vindo(a), ${name}! 👋</h2>
       <p style="color:#4b5563;line-height:1.6;">
-        Sua conta UDF foi criada com sucesso como <strong>${roleLabel}</strong>.
+        Sua conta Ignição foi criada com sucesso como <strong>${roleLabel}</strong>.
         Clique no botão abaixo para definir sua senha e começar a usar o sistema.
       </p>
       ${btn(link, 'Definir Minha Senha')}
@@ -60,12 +66,52 @@ function resetPasswordHtml(name: string, link: string): string {
       <h2 style="color:#1f2937;font-size:22px;margin-top:0;">Redefinição de Senha</h2>
       <p style="color:#4b5563;line-height:1.6;">
         Olá, <strong>${name || 'usuário'}</strong>!
-        Recebemos uma solicitação para redefinir a senha da sua conta UDF.
+        Recebemos uma solicitação para redefinir a senha da sua conta Ignição.
       </p>
       ${btn(link, 'Redefinir Minha Senha')}
       <p style="color:#ef4444;font-size:13px;margin-top:24px;">
         ⚠️ Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
       </p>
+    </div>`);
+}
+
+function announcementHtml(name: string, subject: string, body: string): string {
+  return baseCard(`
+    <div style="padding:40px;">
+      <h2 style="color:#1f2937;font-size:22px;margin-top:0;">${subject}</h2>
+      <p style="color:#4b5563;font-size:14px;margin-bottom:16px;">Olá, <strong>${name || 'usuário'}</strong>!</p>
+      <div style="color:#374151;line-height:1.75;font-size:15px;white-space:pre-line;">${body}</div>
+    </div>`);
+}
+
+function eventReminderHtml(name: string, eventTitle: string, eventDate: string, eventLocation: string): string {
+  return baseCard(`
+    <div style="padding:40px;">
+      <div style="display:inline-block;background:#dbeafe;color:#1d4ed8;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px;">📅 Lembrete de Evento</div>
+      <h2 style="color:#1f2937;font-size:22px;margin-top:0;">${eventTitle}</h2>
+      <p style="color:#4b5563;line-height:1.6;">Olá, <strong>${name}</strong>! Este é um lembrete sobre o próximo evento da sua turma.</p>
+      <div style="background:#f3f4f6;border-radius:8px;padding:20px;margin:20px 0;">
+        <p style="margin:0 0 8px 0;color:#374151;"><strong>📅 Data:</strong> ${eventDate}</p>
+        <p style="margin:0;color:#374151;"><strong>📍 Local:</strong> ${eventLocation}</p>
+      </div>
+      <p style="color:#6b7280;font-size:13px;">Não se esqueça! Qualquer dúvida, entre em contato com seu instrutor.</p>
+    </div>`);
+}
+
+function eventDateChangeHtml(name: string, eventTitle: string, oldDate: string, newDate: string, eventLocation: string): string {
+  return baseCard(`
+    <div style="padding:40px;">
+      <div style="display:inline-block;background:#fef3c7;color:#d97706;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px;">⚠️ Data Alterada</div>
+      <h2 style="color:#1f2937;font-size:22px;margin-top:0;">${eventTitle}</h2>
+      <p style="color:#4b5563;line-height:1.6;">Olá, <strong>${name}</strong>! Informamos que a data do evento foi alterada.</p>
+      <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:20px;margin:20px 0;">
+        <p style="margin:0 0 8px 0;color:#92400e;"><strong>❌ Data anterior:</strong> <span style="text-decoration:line-through;">${oldDate}</span></p>
+        <p style="margin:0;color:#065f46;"><strong>✅ Nova data:</strong> ${newDate}</p>
+      </div>
+      <div style="background:#f3f4f6;border-radius:8px;padding:16px;margin:16px 0;">
+        <p style="margin:0;color:#374151;"><strong>📍 Local:</strong> ${eventLocation}</p>
+      </div>
+      <p style="color:#6b7280;font-size:13px;">Anote a nova data na sua agenda. Qualquer dúvida, entre em contato com seu instrutor.</p>
     </div>`);
 }
 
@@ -78,8 +124,8 @@ interface ResendPayload {
 }
 
 async function callResend(payload: ResendPayload): Promise<void> {
-  const apiKey  = Deno.env.get('RESEND_API_KEY') ?? '';
-  const from    = Deno.env.get('EMAIL_FROM') ?? 'UDF <onboarding@resend.dev>';
+  const apiKey = Deno.env.get('RESEND_API_KEY') ?? '';
+  const from   = Deno.env.get('EMAIL_FROM') ?? 'Ignição <onboarding@resend.dev>';
 
   if (!apiKey) {
     console.warn('[EMAIL] RESEND_API_KEY não configurada. Email não enviado.');
@@ -106,27 +152,72 @@ async function callResend(payload: ResendPayload): Promise<void> {
 
 // ─── Funções públicas ──────────────────────────────────────────────────────────
 
+export interface SendEmailParams {
+  type: EmailType;
+  to: string;
+  name: string;
+  link?: string;
+  role?: UserRole;
+  // Para announcement
+  subject?: string;
+  body?: string;
+  // Para event-reminder / event-date-change
+  eventTitle?: string;
+  eventDate?: string;
+  eventLocation?: string;
+  oldDate?: string;
+  newDate?: string;
+}
+
 /**
  * Envia um email via Resend.
  * Não lança exceção — apenas loga o erro para não bloquear o fluxo principal.
  */
-export async function sendEmail(params: {
-  type: EmailType;
-  to: string;
-  name: string;
-  link: string;
-  role?: UserRole;
-}): Promise<void> {
+export async function sendEmail(params: SendEmailParams): Promise<void> {
   try {
     let subject: string;
     let html: string;
 
-    if (params.type === 'first-access') {
-      subject = 'Bem-vindo(a)! Defina sua senha para acessar a UDF';
-      html    = firstAccessHtml(params.name, params.link, params.role ?? 'player');
-    } else {
-      subject = 'Redefinição de senha — UDF';
-      html    = resetPasswordHtml(params.name, params.link);
+    switch (params.type) {
+      case 'first-access':
+        subject = 'Bem-vindo(a)! Defina sua senha para acessar a Ignição';
+        html    = firstAccessHtml(params.name, params.link ?? '', params.role ?? 'player');
+        break;
+
+      case 'reset-password':
+        subject = 'Redefinição de senha — Ignição';
+        html    = resetPasswordHtml(params.name, params.link ?? '');
+        break;
+
+      case 'announcement':
+        subject = params.subject ?? 'Comunicado — Ignição';
+        html    = announcementHtml(params.name, params.subject ?? 'Comunicado', params.body ?? '');
+        break;
+
+      case 'event-reminder':
+        subject = `Lembrete: ${params.eventTitle ?? 'Evento'} — Ignição`;
+        html    = eventReminderHtml(
+          params.name,
+          params.eventTitle ?? 'Evento',
+          params.eventDate ?? '',
+          params.eventLocation ?? '',
+        );
+        break;
+
+      case 'event-date-change':
+        subject = `Data alterada: ${params.eventTitle ?? 'Evento'} — Ignição`;
+        html    = eventDateChangeHtml(
+          params.name,
+          params.eventTitle ?? 'Evento',
+          params.oldDate ?? '',
+          params.newDate ?? '',
+          params.eventLocation ?? '',
+        );
+        break;
+
+      default:
+        console.warn(`[EMAIL] Tipo desconhecido: ${params.type}`);
+        return;
     }
 
     await callResend({ to: params.to, subject, html });
@@ -141,12 +232,12 @@ export async function sendEmail(params: {
  */
 export async function generateAndSendEmail(
   supabaseAdmin: any,
-  type: EmailType,
+  type: 'first-access' | 'reset-password',
   email: string,
   name: string,
   role: UserRole = 'player',
 ): Promise<void> {
-  const appUrl    = Deno.env.get('APP_URL') ?? '';
+  const appUrl     = Deno.env.get('APP_URL') ?? '';
   const redirectTo = `${appUrl}/auth/reset-password`;
 
   try {

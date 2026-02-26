@@ -7,7 +7,8 @@ import {
   Home,
   Calendar,
   X,
-  Shield
+  Shield,
+  Mail
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
@@ -47,7 +48,10 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
       disabled: true,
       title: 'Essa funcionalidade será desbloqueada em breve 🕹️'
     },
-    ...(isAdmin ? [{ href: '/admin', icon: Shield, label: 'Administração' }] : []),
+    ...(isAdmin ? [
+      { href: '/admin', icon: Shield, label: 'Administração' },
+      { href: '/admin/emails', icon: Mail, label: 'Emails' },
+    ] : []),
     { href: '/profile', icon: User, label: 'Perfil' }
   ]
 

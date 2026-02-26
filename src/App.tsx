@@ -17,6 +17,7 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import { AdminEventsPage } from './pages/admin/AdminEventsPage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
+import { AdminEmailsPage } from './pages/admin/AdminEmailsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import { TermsPage } from './pages/TermsPage'
@@ -62,6 +63,11 @@ function App() {
                   <Route path="/admin/events" element={
                     <AdminRoute>
                       <AdminEventsPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/admin/emails" element={
+                    <AdminRoute>
+                      <AdminEmailsPage />
                     </AdminRoute>
                   } />
                 </Routes>
