@@ -47,19 +47,28 @@ export function useEmailManagement() {
         body: params,
       })
 
-      if (error) throw new Error(error.message)
+      // Se há erro, tenta extrair a mensagem real da resposta
+      if (error) {
+        // O erro pode conter a resposta JSON da função
+        const errorData = data as { error?: string; message?: string } | null
+        const errorMsg = errorData?.error || errorData?.message || error.message
+        throw new Error(errorMsg)
+      }
 
       const result = data as DispatchResult
 
       if (!result?.success) {
-        throw new Error(result?.message || 'Erro ao enviar email')
+        // Captura erro ou message do resultado
+        const errorMsg = (data as any)?.error || result?.message || 'Erro ao enviar email'
+        throw new Error(errorMsg)
       }
 
       toast.success(result.message ?? `Email(s) enviado(s) com sucesso`)
       return true
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido'
-      toast.error(`Erro ao enviar: ${msg}`)
+      console.error('[useEmailManagement] Erro:', err)
+      toast.error(`Erro: ${msg}`)
       return false
     } finally {
       setIsLoading(false)

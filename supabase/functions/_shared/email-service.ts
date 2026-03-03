@@ -241,14 +241,34 @@ export async function generateAndSendEmail(
   const redirectTo = `${appUrl}/auth/reset-password`;
 
   try {
+    // Para primeiro acesso, usa 'magiclink' que funciona para qualquer usuário confirmado
+    // Para reset de senha, usa 'recovery' que requer usuário existente
+    const linkType = type === 'first-access' ? 'magiclink' : 'recovery';
+
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
+      type: linkType,
       email,
       options: { redirectTo },
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.error(`[EMAIL] Erro ao gerar link para ${email}:`, linkError?.message);
+      console.error(`[EMAIL] Erro ao gerar link (${linkType}) para ${email}:`, linkError?.message);
+
+      // Se falhou com magiclink, tenta com recovery
+      if (linkType === 'magiclink') {
+        console.log(`[EMAIL] Tentando fallback com recovery...`);
+        const { data: fallbackData, error: fallbackError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email,
+          options: { redirectTo },
+        });
+
+        if (!fallbackError && fallbackData?.properties?.action_link) {
+          await sendEmail({ type, to: email, name, link: fallbackData.properties.action_link, role });
+          return;
+        }
+        console.error(`[EMAIL] Fallback também falhou:`, fallbackError?.message);
+      }
       return;
     }
 

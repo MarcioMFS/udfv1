@@ -297,12 +297,53 @@ serve(async (req) => {
         );
       }
 
-      // Verifica se o usuário existe no auth
+      // Verifica se o usuário existe no auth pelo ID
       const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user_id);
 
-      // Se não existe no auth, cria a conta primeiro
+      // Se não existe no auth pelo ID, tenta buscar pelo email
       if (!authUser?.user) {
-        console.log(`[resend] Usuário ${found.email} não existe no auth. Criando conta...`);
+        console.log(`[resend] Usuário ${found.email} não existe no auth pelo ID ${user_id}. Verificando por email...`);
+
+        // Busca todos os usuários auth para encontrar por email
+        const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingAuthByEmail = allUsers?.users?.find(u => u.email?.toLowerCase() === found.email.toLowerCase());
+
+        if (existingAuthByEmail) {
+          // Usuário existe no auth com outro ID - atualiza o ID na tabela
+          console.log(`[resend] Encontrado auth user pelo email. Auth ID: ${existingAuthByEmail.id}`);
+
+          const table = isInstructor ? 'instructors' : 'players';
+          const { error: updateError } = await supabaseAdmin
+            .from(table)
+            .update({ id: existingAuthByEmail.id, updated_at: new Date().toISOString() })
+            .eq('id', user_id);
+
+          if (updateError) {
+            console.error('[resend] Erro ao atualizar ID do usuário:', updateError);
+            return new Response(
+              JSON.stringify({ success: false, error: `Erro ao vincular conta existente: ${updateError.message}` }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
+          console.log(`[resend] ID atualizado na tabela. Enviando email...`);
+
+          // Envia email de primeiro acesso
+          await generateAndSendEmail(supabaseAdmin, 'first-access', found.email, found.name, isInstructor ? 'instructor' : 'player');
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              sent: 1,
+              message: `Conta vinculada e convite enviado para ${found.email}`,
+              note: 'Usuário tinha conta de autenticação com ID diferente. Foi vinculado.'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Não existe no auth - cria nova conta
+        console.log(`[resend] Criando nova conta auth para ${found.email}...`);
 
         const { data: newAuthUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
           email: found.email,
