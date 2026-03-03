@@ -284,10 +284,11 @@ serve(async (req) => {
 
       // Busca usuário em players ou instructors
       const { data: player } = await supabaseAdmin
-        .from('players').select('name, email').eq('id', user_id).maybeSingle();
+        .from('players').select('id, name, email').eq('id', user_id).maybeSingle();
       const { data: inst } = await supabaseAdmin
-        .from('instructors').select('name, email').eq('id', user_id).maybeSingle();
+        .from('instructors').select('id, name, email').eq('id', user_id).maybeSingle();
       const found = player ?? inst;
+      const isInstructor = !!inst;
 
       if (!found) {
         return new Response(
@@ -296,8 +297,63 @@ serve(async (req) => {
         );
       }
 
+      // Verifica se o usuário existe no auth
+      const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user_id);
+
+      // Se não existe no auth, cria a conta primeiro
+      if (!authUser?.user) {
+        console.log(`[resend] Usuário ${found.email} não existe no auth. Criando conta...`);
+
+        const { data: newAuthUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+          email: found.email,
+          user_metadata: { name: found.name, role: isInstructor ? 'instructor' : 'player' },
+          email_confirm: true,
+        });
+
+        if (createAuthError) {
+          console.error('[resend] Erro ao criar usuário no auth:', createAuthError);
+          return new Response(
+            JSON.stringify({ success: false, error: `Erro ao criar conta: ${createAuthError.message}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Atualiza o ID na tabela para corresponder ao novo auth user
+        const table = isInstructor ? 'instructors' : 'players';
+        const { error: updateError } = await supabaseAdmin
+          .from(table)
+          .update({ id: newAuthUser.user.id, updated_at: new Date().toISOString() })
+          .eq('id', user_id);
+
+        if (updateError) {
+          console.error('[resend] Erro ao atualizar ID do usuário:', updateError);
+          // Deleta o auth user criado para evitar inconsistência
+          await supabaseAdmin.auth.admin.deleteUser(newAuthUser.user.id);
+          return new Response(
+            JSON.stringify({ success: false, error: `Erro ao vincular conta: ${updateError.message}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[resend] Conta auth criada e vinculada. Novo ID: ${newAuthUser.user.id}`);
+
+        // Envia email com o novo user
+        await generateAndSendEmail(supabaseAdmin, 'first-access', found.email, found.name, isInstructor ? 'instructor' : 'player');
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            sent: 1,
+            message: `Conta criada e convite enviado para ${found.email}`,
+            note: 'Usuário não tinha conta de autenticação. Foi criada uma nova conta.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Usuário já existe no auth - apenas reenvia o email
       const emailType = operation === 'resend_first_access' ? 'first-access' : 'reset-password';
-      const role = inst ? 'instructor' : 'player';
+      const role = isInstructor ? 'instructor' : 'player';
 
       await generateAndSendEmail(supabaseAdmin, emailType, found.email, found.name, role);
 
