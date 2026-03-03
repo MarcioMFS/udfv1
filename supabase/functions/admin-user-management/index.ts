@@ -13,6 +13,7 @@ interface RequestPayload {
   operation: Operation;
   user_id: string;
   user_type?: 'player' | 'instructor';
+  force_cascade?: boolean; // Se true, deleta turmas vinculadas junto
   data?: {
     name?: string;
     email?: string;
@@ -80,7 +81,7 @@ serve(async (req) => {
     );
 
     const payload: RequestPayload = await req.json();
-    const { operation, user_id, user_type, data } = payload;
+    const { operation, user_id, user_type, data, force_cascade } = payload;
 
     if (!operation || !user_id) {
       throw new Error('Campos obrigatórios ausentes: operation, user_id');
@@ -232,11 +233,47 @@ serve(async (req) => {
         if (user_type === 'instructor') {
           const { data: classes } = await supabaseAdmin
             .from('classes')
-            .select('id')
+            .select('id, name')
             .eq('instructor_id', user_id);
 
           if (classes && classes.length > 0) {
-            throw new Error('Não é possível excluir instrutor que possui turmas. Reatribua as turmas primeiro.');
+            // Se não tem force_cascade, retorna erro com lista de turmas
+            if (!force_cascade) {
+              return new Response(JSON.stringify({
+                success: false,
+                error: 'Instrutor possui turmas vinculadas',
+                requires_confirmation: true,
+                linked_classes: classes.map(c => ({ id: c.id, name: c.name })),
+                message: `Este instrutor possui ${classes.length} turma(s) vinculada(s). Deseja excluir o instrutor e todas as turmas?`
+              }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 400
+              });
+            }
+
+            // force_cascade = true, deletar turmas primeiro
+            console.log(`[CASCADE DELETE] Deletando ${classes.length} turmas do instrutor ${user_id}`);
+
+            // Deletar players das turmas (class_players)
+            for (const cls of classes) {
+              await supabaseAdmin
+                .from('class_players')
+                .delete()
+                .eq('class_id', cls.id);
+            }
+
+            // Deletar as turmas
+            const { error: classDeleteError } = await supabaseAdmin
+              .from('classes')
+              .delete()
+              .eq('instructor_id', user_id);
+
+            if (classDeleteError) {
+              console.error('[CASCADE DELETE] Erro ao deletar turmas:', classDeleteError);
+              throw new Error('Erro ao deletar turmas vinculadas');
+            }
+
+            console.log(`[CASCADE DELETE] Turmas deletadas com sucesso`);
           }
 
           // Check if it's the last admin
@@ -273,7 +310,9 @@ serve(async (req) => {
         }
 
         result = { deleted_id: user_id };
-        message = 'Usuário excluído com sucesso';
+        message = force_cascade
+          ? 'Instrutor e turmas vinculadas excluídos com sucesso'
+          : 'Usuário excluído com sucesso';
         break;
       }
 

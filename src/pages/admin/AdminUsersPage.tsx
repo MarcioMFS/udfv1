@@ -73,6 +73,17 @@ export function AdminUsersPage() {
     onConfirm: () => {}
   })
 
+  // Estado para confirmação de cascade delete
+  const [cascadeDeleteDialog, setCascadeDeleteDialog] = useState<{
+    isOpen: boolean
+    user: (Player | Instructor) | null
+    linkedClasses: { id: string; name: string }[]
+  }>({
+    isOpen: false,
+    user: null,
+    linkedClasses: []
+  })
+
   const [editDialog, setEditDialog] = useState<{
     isOpen: boolean
     user: (Player | Instructor) | null
@@ -184,16 +195,43 @@ export function AdminUsersPage() {
       title: 'Confirmar Exclusão',
       message: `Tem certeza que deseja excluir o usuário "${user.name}"? Esta ação não pode ser desfeita.`,
       onConfirm: async () => {
-        const success = await deleteUser({
+        const result = await deleteUser({
           user_id: user.id,
           user_type: user.userType
         })
-        if (success) {
+
+        // Se requer confirmação de cascade (tem turmas vinculadas)
+        if (result.requires_confirmation && result.linked_classes) {
+          setConfirmDialog({ ...confirmDialog, isOpen: false })
+          setCascadeDeleteDialog({
+            isOpen: true,
+            user,
+            linkedClasses: result.linked_classes
+          })
+          return
+        }
+
+        if (result.success) {
           refresh()
         }
         setConfirmDialog({ ...confirmDialog, isOpen: false })
       }
     })
+  }
+
+  const handleCascadeDelete = async () => {
+    if (!cascadeDeleteDialog.user) return
+
+    const result = await deleteUser({
+      user_id: cascadeDeleteDialog.user.id,
+      user_type: cascadeDeleteDialog.user.userType,
+      force_cascade: true
+    })
+
+    if (result.success) {
+      refresh()
+    }
+    setCascadeDeleteDialog({ isOpen: false, user: null, linkedClasses: [] })
   }
 
   const handlePromote = (player: Player) => {
@@ -729,6 +767,55 @@ export function AdminUsersPage() {
         confirmLabel="Confirmar"
         cancelLabel="Cancelar"
       />
+
+      {/* Cascade Delete Confirmation Dialog */}
+      {cascadeDeleteDialog.isOpen && cascadeDeleteDialog.user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 bg-red-50">
+              <h3 className="text-xl font-bold text-red-700 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" />
+                Atenção: Exclusão em Cascata
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-700">
+                O instrutor <strong>{cascadeDeleteDialog.user.name}</strong> possui{' '}
+                <strong>{cascadeDeleteDialog.linkedClasses.length}</strong> turma(s) vinculada(s):
+              </p>
+              <ul className="bg-gray-50 rounded-lg p-4 space-y-2 max-h-48 overflow-y-auto">
+                {cascadeDeleteDialog.linkedClasses.map((cls) => (
+                  <li key={cls.id} className="flex items-center gap-2 text-sm text-gray-600">
+                    <GraduationCap className="w-4 h-4 text-blue-500" />
+                    {cls.name}
+                  </li>
+                ))}
+              </ul>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 text-sm font-medium">
+                  Ao confirmar, o instrutor e todas as turmas listadas acima serão excluídos permanentemente.
+                  Os players das turmas NÃO serão excluídos, apenas desvinculados.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setCascadeDeleteDialog({ isOpen: false, user: null, linkedClasses: [] })}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCascadeDelete}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Excluir Tudo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import People Modal */}
       <ImportPeopleModal

@@ -14,6 +14,19 @@ interface UpdateUserParams {
 interface DeleteUserParams {
   user_id: string
   user_type: 'player' | 'instructor'
+  force_cascade?: boolean
+}
+
+interface LinkedClass {
+  id: string
+  name: string
+}
+
+interface DeleteUserResult {
+  success: boolean
+  requires_confirmation?: boolean
+  linked_classes?: LinkedClass[]
+  message?: string
 }
 
 interface PromoteToInstructorParams {
@@ -47,7 +60,7 @@ interface CreateInstructorParams {
 interface UseUserManagementReturn {
   isLoading: boolean
   updateUser: (params: UpdateUserParams) => Promise<boolean>
-  deleteUser: (params: DeleteUserParams) => Promise<boolean>
+  deleteUser: (params: DeleteUserParams) => Promise<DeleteUserResult>
   promoteToInstructor: (params: PromoteToInstructorParams) => Promise<boolean>
   demoteToPlayer: (params: DemoteToPlayerParams) => Promise<boolean>
   toggleAdmin: (params: ToggleAdminParams) => Promise<boolean>
@@ -94,14 +107,15 @@ export function useUserManagement(): UseUserManagementReturn {
     }
   }
 
-  const deleteUser = async (params: DeleteUserParams): Promise<boolean> => {
+  const deleteUser = async (params: DeleteUserParams): Promise<DeleteUserResult> => {
     setIsLoading(true)
     try {
       const { data, error } = await supabase.functions.invoke('admin-user-management', {
         body: {
           operation: 'delete_user',
           user_id: params.user_id,
-          user_type: params.user_type
+          user_type: params.user_type,
+          force_cascade: params.force_cascade
         }
       })
 
@@ -109,17 +123,27 @@ export function useUserManagement(): UseUserManagementReturn {
         throw new Error(error.message || 'Erro ao excluir usuário')
       }
 
+      // Se requer confirmação (tem turmas vinculadas), retorna info sem mostrar erro
+      if (data?.requires_confirmation) {
+        return {
+          success: false,
+          requires_confirmation: true,
+          linked_classes: data.linked_classes || [],
+          message: data.message
+        }
+      }
+
       if (!data?.success) {
         throw new Error(data?.error || 'Erro ao excluir usuário')
       }
 
       toast.success(data.message || 'Usuário excluído com sucesso')
-      return true
+      return { success: true }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao excluir usuário'
       console.error('❌ [useUserManagement] Erro ao excluir:', error)
       toast.error(errorMessage)
-      return false
+      return { success: false }
     } finally {
       setIsLoading(false)
     }

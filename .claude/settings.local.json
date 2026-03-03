@@ -39,7 +39,17 @@
       "Bash(supabase --version:*)",
       "Bash(supabase projects:*)",
       "Bash(ls \"C:\\\\Users\\\\Marcio\\\\Documents\\\\GitHub\\\\udfv1\\\\supabase\\\\functions\"\" && echo \"---\" && ls \"C:UsersMarcioDocumentsGitHubudfv1supabasefunctions_shared\"\")",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(where:*)",
+      "Bash(qwen:*)",
+      "WebFetch(domain:www.mercadopago.com.br)",
+      "WebFetch(domain:documenter.getpostman.com)",
+      "WebSearch",
+      "WebFetch(domain:www.mercadopago.com.mx)",
+      "WebFetch(domain:helena.readme.io)",
+      "Bash(git -C backend status)",
+      "Bash(git worktree:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []
