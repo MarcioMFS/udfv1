@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, Upload, X } from 'lucide-react'
+import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, Upload, X, LogIn } from 'lucide-react'
 import { useAdminUsers, useUserManagement, usePagination } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
@@ -95,6 +95,17 @@ export function AdminUsersPage() {
   const [editForm, setEditForm] = useState({
     name: '',
     email: ''
+  })
+
+  // Estado para impersonate (entrar como outro usuário)
+  const [impersonateDialog, setImpersonateDialog] = useState<{
+    isOpen: boolean
+    instructor: Instructor | null
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    instructor: null,
+    isLoading: false
   })
 
   const handleOpenCreateDialog = (userType: CreateUserType) => {
@@ -285,6 +296,44 @@ export function AdminUsersPage() {
     })
   }
 
+  const handleImpersonate = (instructor: Instructor) => {
+    setImpersonateDialog({
+      isOpen: true,
+      instructor,
+      isLoading: false
+    })
+  }
+
+  const confirmImpersonate = async () => {
+    if (!impersonateDialog.instructor) return
+
+    setImpersonateDialog(prev => ({ ...prev, isLoading: true }))
+
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-impersonate', {
+        body: {
+          instructor_id: impersonateDialog.instructor.id
+        }
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao entrar como instrutor')
+      }
+
+      if (data?.success && data?.redirect_url) {
+        // Redirecionar para o link de login mágico
+        window.location.href = data.redirect_url
+      } else {
+        throw new Error(data?.error || 'Erro ao gerar link de acesso')
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao processar solicitação'
+      console.error('Erro ao entrar como instrutor:', error)
+      alert(errorMessage)
+      setImpersonateDialog({ isOpen: false, instructor: null, isLoading: false })
+    }
+  }
+
   // Listas filtradas no nível do componente (hooks não podem ficar dentro de funções)
   const filteredPlayers     = filterUsers(players)
   const filteredInstructors = filterUsers(instructors)
@@ -440,6 +489,13 @@ export function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
                     <button
+                      onClick={() => handleImpersonate(instructor)}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Entrar como este instrutor"
+                    >
+                      <LogIn className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => handleEditUser(instructor)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Editar Instrutor"
@@ -541,6 +597,13 @@ export function AdminUsersPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleImpersonate(admin)}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Entrar como este administrador"
+                    >
+                      <LogIn className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleEditUser(admin)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -963,6 +1026,66 @@ export function AdminUsersPage() {
           refresh()
         }}
       />
+
+      {/* Impersonate Dialog */}
+      {impersonateDialog.isOpen && impersonateDialog.instructor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 bg-indigo-50">
+              <h3 className="text-xl font-bold text-indigo-700 flex items-center gap-2">
+                <LogIn className="w-5 h-5" />
+                Entrar como outro usuário
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800 text-sm font-medium">
+                  Atenção: Você será desconectado da sua conta atual para entrar como:
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="font-medium text-gray-900">{impersonateDialog.instructor.name}</p>
+                <p className="text-sm text-gray-600">{impersonateDialog.instructor.email}</p>
+                {impersonateDialog.instructor.is_admin && (
+                  <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                    <Shield className="w-3 h-3" />
+                    Administrador
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600">
+                Para voltar à sua conta, você precisará fazer login novamente com suas credenciais.
+              </p>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => setImpersonateDialog({ isOpen: false, instructor: null, isLoading: false })}
+                disabled={impersonateDialog.isLoading}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmImpersonate}
+                disabled={impersonateDialog.isLoading}
+                className="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {impersonateDialog.isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Entrando...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4" />
+                    Entrar como {impersonateDialog.instructor.name.split(' ')[0]}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

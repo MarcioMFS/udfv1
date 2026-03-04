@@ -92,7 +92,7 @@ serve(async (req) => {
     if (!operation) {
       return new Response(
         JSON.stringify({ success: false, error: 'Campo obrigatório: operation' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -105,7 +105,7 @@ serve(async (req) => {
       if (!subject || !body) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campos obrigatórios: subject, body' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -123,7 +123,7 @@ serve(async (req) => {
         if (!class_id) {
           return new Response(
             JSON.stringify({ success: false, error: 'Campo obrigatório para turma: class_id' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         const { data } = await supabaseAdmin
@@ -139,7 +139,7 @@ serve(async (req) => {
         if (!user_id) {
           return new Response(
             JSON.stringify({ success: false, error: 'Campo obrigatório para usuário específico: user_id' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
         // Tenta em players depois em instructors
@@ -154,7 +154,7 @@ serve(async (req) => {
       if (recipients.length === 0) {
         return new Response(
           JSON.stringify({ success: false, error: 'Nenhum destinatário encontrado' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -177,7 +177,7 @@ serve(async (req) => {
       if (!event_id) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campo obrigatório: event_id' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -191,7 +191,7 @@ serve(async (req) => {
       if (eventError || !event) {
         return new Response(
           JSON.stringify({ success: false, error: 'Evento não encontrado' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -209,7 +209,7 @@ serve(async (req) => {
       if (recipients.length === 0) {
         return new Response(
           JSON.stringify({ success: false, error: 'Nenhum player encontrado na turma deste evento' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -245,7 +245,7 @@ serve(async (req) => {
       if (!new_date) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campo obrigatório para alteração: new_date' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -278,7 +278,7 @@ serve(async (req) => {
       if (!user_id) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campo obrigatório: user_id' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -293,7 +293,7 @@ serve(async (req) => {
       if (!found) {
         return new Response(
           JSON.stringify({ success: false, error: 'Usuário não encontrado' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -309,24 +309,102 @@ serve(async (req) => {
         const existingAuthByEmail = allUsers?.users?.find(u => u.email?.toLowerCase() === found.email.toLowerCase());
 
         if (existingAuthByEmail) {
-          // Usuário existe no auth com outro ID - atualiza o ID na tabela
+          // Usuário existe no auth com outro ID - precisa atualizar todas as referências
           console.log(`[resend] Encontrado auth user pelo email. Auth ID: ${existingAuthByEmail.id}`);
+          const newId = existingAuthByEmail.id;
 
-          const table = isInstructor ? 'instructors' : 'players';
-          const { error: updateError } = await supabaseAdmin
-            .from(table)
-            .update({ id: existingAuthByEmail.id, updated_at: new Date().toISOString() })
-            .eq('id', user_id);
+          if (isInstructor) {
+            // Atualiza referências em outras tabelas primeiro (antes de mudar o ID do instrutor)
+            console.log(`[resend] Atualizando referências de ${user_id} para ${newId}...`);
 
-          if (updateError) {
-            console.error('[resend] Erro ao atualizar ID do usuário:', updateError);
-            return new Response(
-              JSON.stringify({ success: false, error: `Erro ao vincular conta existente: ${updateError.message}` }),
-              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
+            // Atualiza events
+            await supabaseAdmin
+              .from('events')
+              .update({ instructor_id: newId })
+              .eq('instructor_id', user_id);
+
+            // Atualiza classes
+            await supabaseAdmin
+              .from('classes')
+              .update({ instructor_id: newId })
+              .eq('instructor_id', user_id);
+
+            // Deleta o registro antigo e insere com novo ID (para evitar problemas de FK)
+            const { data: oldInstructor } = await supabaseAdmin
+              .from('instructors')
+              .select('*')
+              .eq('id', user_id)
+              .single();
+
+            if (oldInstructor) {
+              // Deleta o antigo
+              await supabaseAdmin
+                .from('instructors')
+                .delete()
+                .eq('id', user_id);
+
+              // Verifica se já existe instrutor com o novo ID
+              const { data: existingWithNewId } = await supabaseAdmin
+                .from('instructors')
+                .select('id')
+                .eq('id', newId)
+                .maybeSingle();
+
+              if (!existingWithNewId) {
+                // Insere com o novo ID
+                await supabaseAdmin
+                  .from('instructors')
+                  .insert({
+                    ...oldInstructor,
+                    id: newId,
+                    updated_at: new Date().toISOString()
+                  });
+              }
+            }
+          } else {
+            // Para players, também pode ter referências
+            await supabaseAdmin
+              .from('class_players')
+              .update({ player_id: newId })
+              .eq('player_id', user_id);
+
+            await supabaseAdmin
+              .from('match_results')
+              .update({ player_id: newId })
+              .eq('player_id', user_id);
+
+            // Deleta e reinsere o player
+            const { data: oldPlayer } = await supabaseAdmin
+              .from('players')
+              .select('*')
+              .eq('id', user_id)
+              .single();
+
+            if (oldPlayer) {
+              await supabaseAdmin
+                .from('players')
+                .delete()
+                .eq('id', user_id);
+
+              const { data: existingWithNewId } = await supabaseAdmin
+                .from('players')
+                .select('id')
+                .eq('id', newId)
+                .maybeSingle();
+
+              if (!existingWithNewId) {
+                await supabaseAdmin
+                  .from('players')
+                  .insert({
+                    ...oldPlayer,
+                    id: newId,
+                    updated_at: new Date().toISOString()
+                  });
+              }
+            }
           }
 
-          console.log(`[resend] ID atualizado na tabela. Enviando email...`);
+          console.log(`[resend] Referências atualizadas. Enviando email...`);
 
           // Envia email de primeiro acesso
           await generateAndSendEmail(supabaseAdmin, 'first-access', found.email, found.name, isInstructor ? 'instructor' : 'player');
@@ -355,28 +433,82 @@ serve(async (req) => {
           console.error('[resend] Erro ao criar usuário no auth:', createAuthError);
           return new Response(
             JSON.stringify({ success: false, error: `Erro ao criar conta: ${createAuthError.message}` }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
-        // Atualiza o ID na tabela para corresponder ao novo auth user
-        const table = isInstructor ? 'instructors' : 'players';
-        const { error: updateError } = await supabaseAdmin
-          .from(table)
-          .update({ id: newAuthUser.user.id, updated_at: new Date().toISOString() })
-          .eq('id', user_id);
+        const newId = newAuthUser.user.id;
 
-        if (updateError) {
-          console.error('[resend] Erro ao atualizar ID do usuário:', updateError);
-          // Deleta o auth user criado para evitar inconsistência
-          await supabaseAdmin.auth.admin.deleteUser(newAuthUser.user.id);
-          return new Response(
-            JSON.stringify({ success: false, error: `Erro ao vincular conta: ${updateError.message}` }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        // Atualiza referências em outras tabelas primeiro
+        if (isInstructor) {
+          console.log(`[resend] Atualizando referências de ${user_id} para ${newId}...`);
+
+          await supabaseAdmin
+            .from('events')
+            .update({ instructor_id: newId })
+            .eq('instructor_id', user_id);
+
+          await supabaseAdmin
+            .from('classes')
+            .update({ instructor_id: newId })
+            .eq('instructor_id', user_id);
+
+          // Deleta e reinsere com novo ID
+          const { data: oldInstructor } = await supabaseAdmin
+            .from('instructors')
+            .select('*')
+            .eq('id', user_id)
+            .single();
+
+          if (oldInstructor) {
+            await supabaseAdmin
+              .from('instructors')
+              .delete()
+              .eq('id', user_id);
+
+            await supabaseAdmin
+              .from('instructors')
+              .insert({
+                ...oldInstructor,
+                id: newId,
+                updated_at: new Date().toISOString()
+              });
+          }
+        } else {
+          // Para players
+          await supabaseAdmin
+            .from('class_players')
+            .update({ player_id: newId })
+            .eq('player_id', user_id);
+
+          await supabaseAdmin
+            .from('match_results')
+            .update({ player_id: newId })
+            .eq('player_id', user_id);
+
+          const { data: oldPlayer } = await supabaseAdmin
+            .from('players')
+            .select('*')
+            .eq('id', user_id)
+            .single();
+
+          if (oldPlayer) {
+            await supabaseAdmin
+              .from('players')
+              .delete()
+              .eq('id', user_id);
+
+            await supabaseAdmin
+              .from('players')
+              .insert({
+                ...oldPlayer,
+                id: newId,
+                updated_at: new Date().toISOString()
+              });
+          }
         }
 
-        console.log(`[resend] Conta auth criada e vinculada. Novo ID: ${newAuthUser.user.id}`);
+        console.log(`[resend] Conta auth criada e vinculada. Novo ID: ${newId}`);
 
         // Envia email com o novo user
         await generateAndSendEmail(supabaseAdmin, 'first-access', found.email, found.name, isInstructor ? 'instructor' : 'player');
@@ -412,38 +544,30 @@ serve(async (req) => {
       if (!instructor_name || !instructor_email) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campos obrigatórios: instructor_name, instructor_email' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       const email = instructor_email.trim().toLowerCase();
       const name = instructor_name.trim();
 
-      // Verifica se já existe instrutor com esse email
-      const { data: existingInstructor } = await supabaseAdmin
-        .from('instructors')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+      // Verifica existência em paralelo (mais rápido)
+      const [instructorCheck, playerCheck] = await Promise.all([
+        supabaseAdmin.from('instructors').select('id, name').eq('email', email).maybeSingle(),
+        supabaseAdmin.from('players').select('id, name').eq('email', email).maybeSingle()
+      ]);
 
-      if (existingInstructor) {
+      if (instructorCheck.data) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Já existe um instrutor com este email' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: false, error: `Já existe um instrutor com este email: ${instructorCheck.data.name}` }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Verifica se já existe player com esse email
-      const { data: existingPlayer } = await supabaseAdmin
-        .from('players')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingPlayer) {
+      if (playerCheck.data) {
         return new Response(
-          JSON.stringify({ success: false, error: 'Já existe um player com este email. Promova-o a instrutor pela página de usuários.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: false, error: `Já existe um player com este email (${playerCheck.data.name}). Use "Promover a Instrutor" na página de usuários.` }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -458,7 +582,7 @@ serve(async (req) => {
         console.error('[invite_instructor] Erro ao criar auth user:', authError);
         return new Response(
           JSON.stringify({ success: false, error: `Erro ao criar usuário: ${authError.message}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -480,7 +604,7 @@ serve(async (req) => {
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         return new Response(
           JSON.stringify({ success: false, error: `Erro ao criar instrutor: ${insertError.message}` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -500,14 +624,14 @@ serve(async (req) => {
       if (!emails || emails.length === 0) {
         return new Response(
           JSON.stringify({ success: false, error: 'Nenhum email válido informado' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       if (!subject || !body) {
         return new Response(
           JSON.stringify({ success: false, error: 'Campos obrigatórios: subject, body' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -542,7 +666,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: false, error: `Operação desconhecida: ${operation}` }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
