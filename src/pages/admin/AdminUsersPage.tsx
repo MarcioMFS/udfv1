@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Users, GraduationCap, Shield, Search, Trash2, UserPlus, UserMinus, ShieldCheck, Edit, Plus, Upload, X, LogIn } from 'lucide-react'
 import { useAdminUsers, useUserManagement, usePagination } from '../../hooks'
 import { Player, Instructor } from '../../hooks/useAdminUsers'
@@ -1028,7 +1029,7 @@ export function AdminUsersPage() {
       />
 
       {/* Impersonate Dialog */}
-      {impersonateDialog.isOpen && impersonateDialog.instructor && (
+      {impersonateDialog.isOpen && impersonateDialog.instructor && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 bg-indigo-50">
@@ -1084,7 +1085,8 @@ export function AdminUsersPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
