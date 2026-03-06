@@ -750,7 +750,8 @@ export async function importClassFromExcel(
 
         // ✅ FIXED: Use deterministic event code based on class_id for idempotency
         // Instead of random code, use a predictable pattern so re-imports are idempotent
-        const eventCode = `IMP-${classId.substring(0, 8).toUpperCase()}`
+        // Limite de 8 caracteres para compatibilidade com o app
+        const eventCode = classId.substring(0, 8).toUpperCase()
         console.log(`[IMPORT] Código determinístico para o evento: ${eventCode}`)
         console.log(`[IMPORT] 📌 Este código permite reimportação idempotente para esta turma`)
 
