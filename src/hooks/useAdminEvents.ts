@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 export interface AdminEvent {
   id: string
+  code: string
   title: string
   date: string
   location: string
@@ -20,6 +21,7 @@ export interface AdminEvent {
   class?: {
     id: string
     name: string
+    code: string
   }
 }
 

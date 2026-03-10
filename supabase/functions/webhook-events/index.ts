@@ -66,6 +66,11 @@ serve(async (req) => {
       throw new Error('Campos obrigatórios ausentes: event-code, event-type, event-name, participants');
     }
 
+    // Validar que o código do evento tem exatamente 8 caracteres
+    if (eventCode.length !== 8) {
+      throw new Error(`O código do evento deve ter exatamente 8 caracteres. Recebido: "${eventCode}" (${eventCode.length} caracteres)`);
+    }
+
     // 1. Criar ou encontrar classe baseada no event-code
     // Usamos event-code como class-code para manter compatibilidade
     let classData;

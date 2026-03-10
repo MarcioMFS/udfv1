@@ -286,6 +286,21 @@ serve(async (req)=>{
         status: 400
       });
     }
+
+    // Validar que o código do evento tem exatamente 8 caracteres
+    if (eventCode.length !== 8) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: `O código do evento deve ter exatamente 8 caracteres. Recebido: "${eventCode}" (${eventCode.length} caracteres)`
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        status: 400
+      });
+    }
+
     const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
     // Buscar evento com informações da turma

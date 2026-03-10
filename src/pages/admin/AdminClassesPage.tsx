@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileSpreadsheet, Search, ChevronDown, ChevronUp, Users, Calendar, GraduationCap } from 'lucide-react'
+import { FileSpreadsheet, Search, Users, Calendar, GraduationCap } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { ImportClassForInstructorModal } from '../../components/modal/ImportClassForInstructorModal'
 import { usePagination } from '../../hooks'
@@ -25,7 +25,6 @@ export function AdminClassesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showImportModal, setShowImportModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [expandedClassCodes, setExpandedClassCodes] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadClasses()
@@ -77,18 +76,6 @@ export function AdminClassesPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const toggleClassCode = (classId: string) => {
-    setExpandedClassCodes(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(classId)) {
-        newSet.delete(classId)
-      } else {
-        newSet.add(classId)
-      }
-      return newSet
-    })
   }
 
   const filteredClasses = classes.filter(classItem =>
@@ -158,6 +145,7 @@ export function AdminClassesPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turma</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instrutor</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alunos</th>
@@ -168,29 +156,16 @@ export function AdminClassesPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {pagination.currentItems.map((classItem) => (
                     <tr key={classItem.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <code className={`text-xs font-mono px-2 py-1 rounded ${
+                          classItem.code.length !== 8 || classItem.code.startsWith('IMP')
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-blue-700'
+                        }`}>{classItem.code}</code>
+                      </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleClassCode(classItem.id)}
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
-                            title={expandedClassCodes.has(classItem.id) ? "Ocultar código" : "Ver código da turma"}
-                          >
-                            {expandedClassCodes.has(classItem.id) ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )}
-                          </button>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {classItem.description || classItem.code}
-                            </div>
-                            {expandedClassCodes.has(classItem.id) && (
-                              <div className="text-xs text-gray-500 font-mono mt-1">
-                                Código: {classItem.code}
-                              </div>
-                            )}
-                          </div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {classItem.description || classItem.code}
                         </div>
                       </td>
                       <td className="px-6 py-4">

@@ -35,11 +35,14 @@ export function AdminEventsPage() {
     let filtered = events
 
     if (searchTerm) {
+      const search = searchTerm.toLowerCase()
       filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.instructor?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.class?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        event.code?.toLowerCase().includes(search) ||
+        event.title.toLowerCase().includes(search) ||
+        event.location?.toLowerCase().includes(search) ||
+        event.instructor?.name.toLowerCase().includes(search) ||
+        event.class?.name?.toLowerCase().includes(search) ||
+        event.class?.code?.toLowerCase().includes(search)
       )
     }
 
@@ -162,9 +165,9 @@ export function AdminEventsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evento</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Local</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instrutor</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turma</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
@@ -173,6 +176,9 @@ export function AdminEventsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {pagination.currentItems.map((event) => (
                   <tr key={event.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-blue-700">{event.code || '—'}</code>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{event.title}</div>
                       {event.description && (
@@ -182,15 +188,15 @@ export function AdminEventsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {format(new Date(event.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {event.location}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{event.instructor?.name || '—'}</div>
                       <div className="text-sm text-gray-500">{event.instructor?.email || '—'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {event.class?.name || '—'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">{event.class?.name || '—'}</div>
+                      {event.class?.code && (
+                        <code className="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded text-gray-500">{event.class.code}</code>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">

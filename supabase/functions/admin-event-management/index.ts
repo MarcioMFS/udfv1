@@ -108,8 +108,8 @@ serve(async (req) => {
           instructor: event.instructors,
           class: event.classes ? {
             id: event.classes.id,
-            name: event.classes.code,
-            description: event.classes.description
+            name: event.classes.description || event.classes.code,
+            code: event.classes.code
           } : null,
           date: event.start_date,
           title: event.name
@@ -166,8 +166,8 @@ serve(async (req) => {
           instructor: updated.instructors,
           class: updated.classes ? {
             id: updated.classes.id,
-            name: updated.classes.code,
-            description: updated.classes.description
+            name: updated.classes.description || updated.classes.code,
+            code: updated.classes.code
           } : null,
           date: updated.start_date,
           title: updated.name
@@ -249,8 +249,8 @@ serve(async (req) => {
           instructor: updated.instructors,
           class: updated.classes ? {
             id: updated.classes.id,
-            name: updated.classes.code,
-            description: updated.classes.description
+            name: updated.classes.description || updated.classes.code,
+            code: updated.classes.code
           } : null,
           date: updated.start_date,
           title: updated.name

@@ -245,7 +245,12 @@ serve(async (req)=>{
     if ((!playerUdfId && !playerEmail) || !eventCode || matchNumber === undefined) {
       throw new Error('Campos obrigatórios ausentes no payload: (player-udf-id OU player-email), event-code, match-number');
     }
-    
+
+    // Validar que o código do evento tem exatamente 8 caracteres
+    if (eventCode.length !== 8) {
+      throw new Error(`O código do evento deve ter exatamente 8 caracteres. Recebido: "${eventCode}" (${eventCode.length} caracteres)`);
+    }
+
     // 1. Busca IDs do jogador e do evento - aceita tanto udf_id quanto email
     let playerData, playerError;
     if (playerUdfId) {
