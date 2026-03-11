@@ -235,19 +235,24 @@ export function ImportPeopleModal({ isOpen, onClose, onSuccess }: ImportPeopleMo
             </div>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+          <div
+            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+            onClick={() => {
+              const input = document.getElementById('excel-file-people') as HTMLInputElement
+              if (input && !isLoading) {
+                input.click()
+              }
+            }}
+          >
             <input
               type="file"
               id="excel-file-people"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
-              className="hidden"
+              className="sr-only"
               disabled={isLoading}
             />
-            <label
-              htmlFor="excel-file-people"
-              className="cursor-pointer flex flex-col items-center"
-            >
+            <div className="flex flex-col items-center">
               <Upload size={48} className="text-gray-400 mb-2" />
               {file ? (
                 <div className="text-green-600 font-medium">{file.name}</div>
@@ -256,7 +261,7 @@ export function ImportPeopleModal({ isOpen, onClose, onSuccess }: ImportPeopleMo
                   Clique para selecionar um arquivo Excel
                 </div>
               )}
-            </label>
+            </div>
           </div>
         </div>
 

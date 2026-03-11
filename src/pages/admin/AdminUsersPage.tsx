@@ -881,16 +881,6 @@ export function AdminUsersPage() {
         </div>
       )}
 
-      {/* Import People Modal */}
-      <ImportPeopleModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onSuccess={() => {
-          setShowImportModal(false)
-          refresh()
-        }}
-      />
-
       {/* Create User Dialog */}
       {createUserDialog.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
