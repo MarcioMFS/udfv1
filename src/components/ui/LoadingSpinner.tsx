@@ -1,3 +1,5 @@
+import Logo from '../../assets/logo.png'
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Loader padronizado do Sistema Ignição
 
@@ -84,7 +86,7 @@ function RocketLoader({ size }: { size: number }) {
         }}
       >
         <img
-          src="/logo.png"
+          src={Logo}
           alt="Ignição"
           className="rocket-float w-full h-full object-contain"
           draggable={false}
