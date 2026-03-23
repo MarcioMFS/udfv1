@@ -18,6 +18,7 @@ import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import { AdminEventsPage } from './pages/admin/AdminEventsPage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
 import { AdminEmailsPage } from './pages/admin/AdminEmailsPage'
+import { AdminBillingPage } from './pages/admin/AdminBillingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import { TermsPage } from './pages/TermsPage'
@@ -25,7 +26,7 @@ import { TermsPage } from './pages/TermsPage'
 function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ backgroundColor: '#F0F2F7' }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
@@ -68,6 +69,11 @@ function App() {
                   <Route path="/admin/emails" element={
                     <AdminRoute>
                       <AdminEmailsPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/admin/faturamento" element={
+                    <AdminRoute>
+                      <AdminBillingPage />
                     </AdminRoute>
                   } />
                 </Routes>

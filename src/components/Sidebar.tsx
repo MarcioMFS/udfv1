@@ -12,10 +12,10 @@ import {
   LayoutDashboard,
   GraduationCap,
   Mail,
+  Receipt,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
-import { colors } from '../lib/colors'
 import Logo from '../assets/logo.png'
 import { ConfirmDialog } from './modal/DialogModal'
 import { useState, useEffect } from 'react'
@@ -26,11 +26,12 @@ interface SidebarProps {
 }
 
 const adminSubItems = [
-  { href: '/admin',         icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/admin/users',   icon: Users,           label: 'Usuários' },
-  { href: '/admin/classes', icon: GraduationCap,   label: 'Turmas' },
-  { href: '/admin/events',  icon: Calendar,        label: 'Eventos' },
-  { href: '/admin/emails',  icon: Mail,            label: 'Emails' },
+  { href: '/admin',              icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/admin/users',        icon: Users,           label: 'Usuários' },
+  { href: '/admin/classes',      icon: GraduationCap,   label: 'Turmas' },
+  { href: '/admin/events',       icon: Calendar,        label: 'Eventos' },
+  { href: '/admin/emails',       icon: Mail,            label: 'Emails' },
+  { href: '/admin/faturamento',  icon: Receipt,         label: 'Faturamento' },
 ]
 
 export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
@@ -69,12 +70,9 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
   const isActive = (href: string) => {
     if (location.pathname === href) return true
     switch (href) {
-      case '/classes':
-        return location.pathname.startsWith('/classes/')
-      case '/my-events':
-        return location.pathname.startsWith('/events/')
-      default:
-        return false
+      case '/classes':   return location.pathname.startsWith('/classes/')
+      case '/my-events': return location.pathname.startsWith('/events/')
+      default:           return false
     }
   }
 
@@ -85,127 +83,124 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed top-0 left-0 w-64 h-screen shadow-xl flex flex-col border-r border-gray-200 bg-white
+      className={`fixed top-0 left-0 w-64 h-screen flex flex-col
         transform transition-transform duration-200 ease-in-out z-50
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0`}
+      style={{ backgroundColor: '#0D1B3E' }}
     >
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-8">
+      {/* Logo area */}
+      <div className="px-5 pt-6 pb-4 border-b border-white/10">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center shadow-md">
-              <img src={Logo} alt="logo" />
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 p-1.5">
+              <img src={Logo} alt="logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Sistema</h1>
-              <p className="text-sm text-gray-600">Ignição</p>
+              <p className="text-white font-display font-700 text-sm leading-tight tracking-wide">Sistema</p>
+              <p className="text-white/40 text-xs font-body">Ignição</p>
             </div>
           </div>
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            className="lg:hidden p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
-
-        <nav className="space-y-2">
-          {navItems.map((item) => {
-            const active = isActive(item.href)
-
-            if (item.disabled) {
-              return (
-                <div
-                  key={item.href}
-                  className="relative flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 cursor-not-allowed opacity-60 group"
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                  {item.title && (
-                    <div
-                      className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 text-sm text-white bg-slate-800 rounded-lg shadow-lg
-                                 whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100
-                                 transition-opacity duration-300 z-[60]
-                                 after:content-[''] after:absolute after:right-full after:top-1/2 after:-translate-y-1/2
-                                 after:border-[6px] after:border-transparent after:border-r-slate-800"
-                    >
-                      {item.title}
-                    </div>
-                  )}
-                </div>
-              )
-            }
-
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  active
-                    ? 'text-white font-medium shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                }`}
-                style={active ? { backgroundColor: colors.primary } : {}}
-                onClick={toggleSidebar}
-              >
-                <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-
-          {/* Dropdown Administração */}
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => setAdminOpen(o => !o)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isAdminRoute && !adminOpen
-                    ? 'text-white font-medium shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                }`}
-                style={isAdminRoute && !adminOpen ? { backgroundColor: colors.primary } : {}}
-              >
-                <Shield className="w-5 h-5" />
-                <span>Administração</span>
-                <ChevronDown className={`w-4 h-4 ml-auto transition-transform duration-200 ${adminOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {adminOpen && (
-                <div className="ml-4 pl-3 border-l-2 border-gray-200 space-y-1">
-                  {adminSubItems.map((sub) => {
-                    const subActive = isSubActive(sub.href)
-                    return (
-                      <Link
-                        key={sub.href}
-                        to={sub.href}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 text-sm ${
-                          subActive
-                            ? 'text-white font-medium'
-                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                        }`}
-                        style={subActive ? { backgroundColor: colors.primary } : {}}
-                        onClick={toggleSidebar}
-                      >
-                        <sub.icon className="w-4 h-4" />
-                        <span>{sub.label}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </nav>
       </div>
 
-      <div className="mt-auto p-6">
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {navItems.map((item) => {
+          const active = isActive(item.href)
+
+          if (item.disabled) {
+            return (
+              <div
+                key={item.href}
+                className="relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/25 cursor-not-allowed group"
+                title={item.title}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm font-body">{item.label}</span>
+                <span className="ml-auto text-[10px] bg-white/10 text-white/30 px-1.5 py-0.5 rounded font-body">Em breve</span>
+              </div>
+            )
+          }
+
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={toggleSidebar}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 group ${
+                active
+                  ? 'bg-white/15 text-white'
+                  : 'text-white/50 hover:bg-white/10 hover:text-white/80'
+              }`}
+            >
+              {active && (
+                <span className="absolute left-0 w-0.5 h-5 rounded-r bg-blue-400 -ml-3" />
+              )}
+              <item.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? 'text-blue-300' : 'text-white/40 group-hover:text-white/60'}`} />
+              <span className={`text-sm font-body font-medium ${active ? 'text-white' : ''}`}>{item.label}</span>
+            </Link>
+          )
+        })}
+
+        {/* Admin dropdown */}
+        {isAdmin && (
+          <div className="pt-3">
+            <p className="px-3 text-[10px] font-display font-600 uppercase tracking-widest text-white/25 mb-1.5">Admin</p>
+
+            <button
+              onClick={() => setAdminOpen(o => !o)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 ${
+                isAdminRoute
+                  ? 'text-white/80'
+                  : 'text-white/50 hover:bg-white/10 hover:text-white/80'
+              }`}
+            >
+              <Shield className="w-4 h-4 text-white/40 flex-shrink-0" />
+              <span className="text-sm font-body font-medium flex-1 text-left">Administração</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-white/30 transition-transform duration-200 ${adminOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {adminOpen && (
+              <div className="ml-3 pl-3 mt-0.5 border-l border-white/10 space-y-0.5">
+                {adminSubItems.map((sub) => {
+                  const subActive = isSubActive(sub.href)
+                  return (
+                    <Link
+                      key={sub.href}
+                      to={sub.href}
+                      onClick={toggleSidebar}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all duration-150 text-sm ${
+                        subActive
+                          ? 'bg-white/15 text-white'
+                          : 'text-white/40 hover:bg-white/10 hover:text-white/70'
+                      }`}
+                    >
+                      <sub.icon className={`w-3.5 h-3.5 flex-shrink-0 ${subActive ? 'text-blue-300' : 'text-white/30'}`} />
+                      <span className="font-body">{sub.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </nav>
+
+      {/* Logout */}
+      <div className="px-3 pb-5 border-t border-white/10 pt-3">
         <button
           onClick={handleLogoutClick}
-          className="flex items-center gap-3 w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+          className="flex items-center gap-3 w-full px-3 py-2.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-150"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Sair</span>
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-body font-medium">Sair</span>
         </button>
       </div>
 

@@ -19,17 +19,15 @@ interface StatCardProps {
 
 function StatCard({ icon: Icon, value, label, color }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 lg:p-6 min-h-[100px] sm:min-h-[120px] flex flex-col">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <div className={`w-10 h-10 sm:w-12 sm:h-12 ${color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-        </div>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
+      <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+        <Icon className="w-5 h-5 text-white" />
       </div>
-      <div className="flex-1 flex flex-col justify-end">
-        <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-1 truncate">
+      <div>
+        <p className="text-3xl font-display font-800 text-gray-900 leading-none mb-1">
           {formatCompactNumber(value)}
-        </h3>
-        <p className="text-gray-600 text-xs sm:text-sm truncate" title={label}>
+        </p>
+        <p className="text-gray-400 text-xs font-body font-medium uppercase tracking-wide">
           {label}
         </p>
       </div>
@@ -140,15 +138,15 @@ export function DashboardPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <main className="p-4 sm:p-6">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                Olá, {user?.name}! 👋
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 tracking-tight">
+                Olá, {user?.name?.split(' ')[0]}
               </h2>
-              <p className="text-gray-600">
-                Aqui está um resumo das suas atividades no Sistema Ignição
+              <p className="text-gray-400 text-sm font-body">
+                Resumo das suas atividades no Sistema Ignição
               </p>
             </div>
 
@@ -179,39 +177,45 @@ export function DashboardPage() {
               />
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h3 className="text-base font-display font-bold text-gray-800 mb-4 tracking-tight">
                 Ações Rápidas
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {quickActions.map((action, index) => (
                   <Link
                     key={index}
                     to={action.link}
-                    className={`p-4 sm:p-6 rounded-lg transition-all duration-200 text-left hover:scale-105 active:scale-95 ${action.color} min-h-[120px] flex flex-col justify-center`}
+                    className={`p-5 rounded-xl transition-all duration-200 text-left active:scale-95 ${action.color} flex items-center gap-4 group`}
                   >
-                    <action.icon className="w-6 h-6 sm:w-8 sm:h-8 mb-3 flex-shrink-0" />
-                    <h4 className="font-medium mb-1 text-sm sm:text-base">{action.title}</h4>
-                    <p className="text-xs sm:text-sm opacity-80">{action.description}</p>
+                    <div className="w-10 h-10 rounded-xl bg-current/10 flex items-center justify-center flex-shrink-0">
+                      <action.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-semibold text-sm">{action.title}</h4>
+                      <p className="text-xs opacity-70 font-body mt-0.5">{action.description}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 ml-auto opacity-40 group-hover:opacity-70 transition-opacity" />
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xl font-bold text-gray-800">
+            <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-display font-bold text-gray-800 tracking-tight">
                   Minhas conquistas
                 </h3>
-                <Link 
+                <Link
                   to="/profile"
-                  className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+                  className="flex items-center gap-1 text-sm font-body font-medium transition-colors"
+                  style={{ color: '#28377F' }}
                 >
                   Ver mais
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
-              <p className='text-x text-gray-500 mb-3' >Conquistas mais avançadas</p>
+              <p className="text-xs text-gray-400 font-body mb-4">Conquistas mais avançadas</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {dashboardBadges.map((badge) => (
                   <BadgeCard key={badge.id} badge={badge} />
