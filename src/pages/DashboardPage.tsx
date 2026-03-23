@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Users, Calendar, BookOpen, Activity, ChevronRight } from 'lucide-react'
 
 import { useInstructorStats } from '../hooks/useInstructorStats'
+import { useCountUp } from '../hooks/useCountUp'
 import { useAuth } from '../contexts/AuthContext'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { PageLoading, ErrorMessage } from '../components/ui'
@@ -15,17 +16,22 @@ interface StatCardProps {
   value: number
   label: string
   color: string
+  delay?: number
 }
 
-function StatCard({ icon: Icon, value, label, color }: StatCardProps) {
+function StatCard({ icon: Icon, value, label, color, delay = 0 }: StatCardProps) {
+  const animated = useCountUp(value, 900, delay)
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
+    <div
+      className="animate-fade-slide-up bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
         <p className="text-3xl font-display font-800 text-gray-900 leading-none mb-1">
-          {formatCompactNumber(value)}
+          {formatCompactNumber(animated)}
         </p>
         <p className="text-gray-400 text-xs font-body font-medium uppercase tracking-wide">
           {label}
@@ -141,7 +147,7 @@ export function DashboardPage() {
       <div className="min-h-screen">
         <main className="p-4 sm:p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
+            <div className="animate-fade-slide-up mb-8" style={{ animationDelay: '0ms' }}>
               <h2 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 mb-1 tracking-tight">
                 Olá, {user?.name?.split(' ')[0]}
               </h2>
@@ -151,33 +157,13 @@ export function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-              <StatCard 
-                icon={Users} 
-                value={instructorStats.classes} 
-                label="Turmas Criadas" 
-                color="bg-blue-500" 
-              />
-              <StatCard 
-                icon={BookOpen} 
-                value={instructorStats.students} 
-                label="Alunos Total" 
-                color="bg-purple-500" 
-              />
-              <StatCard 
-                icon={Activity} 
-                value={instructorStats.matches} 
-                label="Partidas Realizadas" 
-                color="bg-orange-500" 
-              />
-              <StatCard 
-                icon={Calendar} 
-                value={instructorStats.events} 
-                label="Eventos Organizados" 
-                color="bg-green-500" 
-              />
+              <StatCard icon={Users}     value={instructorStats.classes} label="Turmas Criadas"     color="bg-blue-500"   delay={80} />
+              <StatCard icon={BookOpen}  value={instructorStats.students} label="Alunos Total"       color="bg-purple-500" delay={160} />
+              <StatCard icon={Activity}  value={instructorStats.matches}  label="Partidas Realizadas" color="bg-orange-500" delay={240} />
+              <StatCard icon={Calendar}  value={instructorStats.events}   label="Eventos Organizados" color="bg-green-500"  delay={320} />
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="animate-fade-slide-up bg-white rounded-2xl border border-gray-100 shadow-sm p-6" style={{ animationDelay: '400ms' }}>
               <h3 className="text-base font-display font-bold text-gray-800 mb-4 tracking-tight">
                 Ações Rápidas
               </h3>
@@ -201,7 +187,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="animate-fade-slide-up mt-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6" style={{ animationDelay: '480ms' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-display font-bold text-gray-800 tracking-tight">
                   Minhas conquistas

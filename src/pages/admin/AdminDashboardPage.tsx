@@ -1,23 +1,29 @@
 import { Link } from 'react-router-dom'
 import { Users, GraduationCap, Shield, Calendar, ChevronRight, Loader2, FileSpreadsheet, Receipt } from 'lucide-react'
 import { useAdminUsers, useAdminEvents } from '../../hooks'
+import { useCountUp } from '../../hooks/useCountUp'
 
 interface StatCardProps {
   icon: typeof Users
-  value: number | string
+  value: number
   label: string
   accent: string
+  delay?: number
 }
 
-function StatCard({ icon: Icon, value, label, accent }: StatCardProps) {
+function StatCard({ icon: Icon, value, label, accent, delay = 0 }: StatCardProps) {
+  const animated = useCountUp(value, 900, delay)
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 hover:shadow-md transition-shadow duration-200">
+    <div
+      className="animate-fade-slide-up bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className={`w-10 h-10 ${accent} rounded-xl flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
         <p className="text-3xl font-display font-800 text-gray-900 leading-none mb-1">
-          {value}
+          {animated}
         </p>
         <p className="text-gray-400 text-xs font-body font-medium uppercase tracking-wide">
           {label}
@@ -103,7 +109,7 @@ export function AdminDashboardPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl">
-      <div className="mb-8">
+      <div className="animate-fade-slide-up mb-8" style={{ animationDelay: '0ms' }}>
         <h1 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight mb-1">
           Painel Administrativo
         </h1>
@@ -114,14 +120,14 @@ export function AdminDashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={Users}        value={players.length}     label="Players"          accent="bg-blue-500" />
-        <StatCard icon={GraduationCap} value={instructors.length} label="Instrutores"      accent="bg-emerald-500" />
-        <StatCard icon={Shield}        value={admins.length}      label="Administradores"  accent="bg-purple-500" />
-        <StatCard icon={Calendar}      value={events.length}      label="Eventos"          accent="bg-amber-500" />
+        <StatCard icon={Users}         value={players.length}     label="Players"         accent="bg-blue-500"    delay={80} />
+        <StatCard icon={GraduationCap} value={instructors.length} label="Instrutores"     accent="bg-emerald-500" delay={160} />
+        <StatCard icon={Shield}        value={admins.length}      label="Administradores" accent="bg-purple-500"  delay={240} />
+        <StatCard icon={Calendar}      value={events.length}      label="Eventos"         accent="bg-amber-500"   delay={320} />
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+      <div className="animate-fade-slide-up bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6" style={{ animationDelay: '400ms' }}>
         <h2 className="text-base font-display font-bold text-gray-800 mb-4 tracking-tight">Ações Rápidas</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {quickActions.map((action) => (
@@ -131,7 +137,7 @@ export function AdminDashboardPage() {
       </div>
 
       {/* Info */}
-      <div className="rounded-xl px-5 py-4 flex items-center gap-3 border" style={{ backgroundColor: '#EFF4FF', borderColor: '#C7D7F5' }}>
+      <div className="animate-fade-slide-up rounded-xl px-5 py-4 flex items-center gap-3 border" style={{ backgroundColor: '#EFF4FF', borderColor: '#C7D7F5', animationDelay: '480ms' }}>
         <Shield className="w-4 h-4 flex-shrink-0" style={{ color: '#28377F' }} />
         <p className="text-sm font-body" style={{ color: '#28377F' }}>
           Modo Administrador ativo — tenha cuidado ao realizar ações que afetam outros usuários.

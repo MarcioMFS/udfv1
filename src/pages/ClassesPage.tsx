@@ -235,7 +235,7 @@ export function ClassesPage() {
 {/* Class Cards */}
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
   {pagination.currentItems.map((classItem) => (
-    <div key={classItem.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-6 flex flex-col h-full">
+    <div key={classItem.id} className="animate-fade-slide-up bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-4 sm:p-6 flex flex-col h-full">
       {/* Header */}
       <div className="mb-3">
         <div className="flex items-start justify-between gap-2">
