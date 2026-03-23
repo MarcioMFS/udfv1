@@ -226,6 +226,45 @@ export async function sendEmail(params: SendEmailParams): Promise<void> {
   }
 }
 
+// ─── Admin Alert ───────────────────────────────────────────────────────────────
+
+/**
+ * Envia alerta de inconsistência para o email de administração.
+ * Usa ADMIN_ALERT_EMAIL (env var) como destinatário.
+ * Não lança exceção — apenas loga o erro.
+ */
+export async function sendAdminAlert(subject: string, issues: string[]): Promise<void> {
+  const to = Deno.env.get('ADMIN_ALERT_EMAIL') ?? '00marciomendonca@gmail.com';
+
+  const rows = issues.map(i => `
+    <tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;color:#374151;font-size:14px;">
+        ⚠️ ${i}
+      </td>
+    </tr>`).join('');
+
+  const html = baseCard(`
+    <div style="padding:40px;">
+      <div style="display:inline-block;background:#fef3c7;color:#d97706;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:20px;">
+        🚨 Alerta do Sistema
+      </div>
+      <h2 style="color:#1f2937;font-size:20px;margin-top:0;">${subject}</h2>
+      <p style="color:#4b5563;font-size:14px;">As seguintes inconsistências foram detectadas:</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        ${rows}
+      </table>
+      <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
+        Gerado automaticamente em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+      </p>
+    </div>`);
+
+  try {
+    await callResend({ to, subject: `[Ignição] ${subject}`, html });
+  } catch (err) {
+    console.error('[ADMIN ALERT] Erro ao enviar alerta:', err);
+  }
+}
+
 /**
  * Gera o link de acesso/recuperação via Supabase Admin API
  * e envia o email via Resend.

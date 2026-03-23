@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { validateWebhook } from '../_shared/auth-middleware.ts';
+import { sendAdminAlert } from '../_shared/email-service.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -331,6 +332,12 @@ serve(async (req)=>{
       .order('created_at', { ascending: false });
 
     if (playerError || !players || players.length === 0) {
+      // Alerta: email não existe no sistema
+      sendAdminAlert('Email de jogador não encontrado', [
+        `Email: ${playerEmail}`,
+        `Evento: ${eventCode} | App Serial: ${appSerial}`,
+        `O jogo enviou uma partida para um email que não está cadastrado no sistema.`,
+      ]);
       return new Response(JSON.stringify({
         success: false,
         error: `Jogador com email '${playerEmail}' não encontrado.`
@@ -360,6 +367,13 @@ serve(async (req)=>{
     }
 
     if (!player) {
+      // Alerta: jogador existe no sistema mas não está inscrito nesta turma
+      sendAdminAlert('Jogador não inscrito na turma', [
+        `Email: ${playerEmail}`,
+        `Evento: ${eventCode} | Turma ID: ${eventData.class_id}`,
+        `O jogador existe no sistema mas não está inscrito na turma deste evento.`,
+        `Verifique se o jogador foi adicionado à turma correta.`,
+      ]);
       return new Response(JSON.stringify({
         success: false,
         error: `Jogador '${playerEmail}' não está inscrito na turma deste evento.`
@@ -375,6 +389,7 @@ serve(async (req)=>{
     const { data: match, error: matchError } = await supabase.from('matches').insert({
       player_id: player.id,
       event_id: eventData.id,
+      class_id: eventData.class_id,
       match_number: matchNumber,
       app_serial: appSerial,
       match_date: new Date().toISOString()
