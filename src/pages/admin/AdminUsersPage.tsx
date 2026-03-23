@@ -6,6 +6,7 @@ import { Player, Instructor } from '../../hooks/useAdminUsers'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
 import { ImportPeopleModal } from '../../components/modal/ImportPeopleModal'
 import { Pagination } from '../../components/ui/Pagination'
+import { SectionLoading, ButtonSpinner } from '../../components/ui/LoadingSpinner'
 import { supabase } from '../../lib/supabase'
 
 type TabType = 'players' | 'instructors' | 'admins'
@@ -753,12 +754,7 @@ export function AdminUsersPage() {
 
         {/* Table Content */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando usuários...</p>
-            </div>
-          </div>
+          <SectionLoading message="Carregando usuários..." />
         ) : (
           <div className="p-6">
             {activeTab === 'players' && renderPlayersTable()}
@@ -996,7 +992,7 @@ export function AdminUsersPage() {
               >
                 {isCreating ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <ButtonSpinner />
                     Criando...
                   </>
                 ) : (
@@ -1063,7 +1059,7 @@ export function AdminUsersPage() {
               >
                 {impersonateDialog.isLoading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <ButtonSpinner />
                     Entrando...
                   </>
                 ) : (

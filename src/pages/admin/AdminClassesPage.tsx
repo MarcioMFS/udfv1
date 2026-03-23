@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { ImportClassForInstructorModal } from '../../components/modal/ImportClassForInstructorModal'
 import { usePagination } from '../../hooks'
 import { Pagination } from '../../components/ui/Pagination'
+import { SectionLoading } from '../../components/ui/LoadingSpinner'
 
 interface Class {
   id: string
@@ -124,9 +125,8 @@ export function AdminClassesPage() {
 
       {/* Loading */}
       {isLoading && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando turmas...</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <SectionLoading message="Carregando turmas..." />
         </div>
       )}
 

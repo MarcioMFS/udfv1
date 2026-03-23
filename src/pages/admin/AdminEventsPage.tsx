@@ -4,6 +4,7 @@ import { useAdminEvents, useAdminUsers, usePagination } from '../../hooks'
 import { AdminEvent } from '../../hooks/useAdminEvents'
 import { ConfirmDialog } from '../../components/modal/DialogModal'
 import { Pagination } from '../../components/ui/Pagination'
+import { SectionLoading } from '../../components/ui/LoadingSpinner'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -147,12 +148,7 @@ export function AdminEventsPage() {
       {/* Events Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando eventos...</p>
-            </div>
-          </div>
+          <SectionLoading message="Carregando eventos..." />
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />

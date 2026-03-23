@@ -34,6 +34,59 @@
   animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Rocket Loader ───────────────────────────────────────────────── */
+
+@keyframes spin-cw {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-ccw {
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes rocket-float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-4px) scale(1.03); }
+}
+
+@keyframes dot-pulse {
+  0%, 60%, 100% { transform: translateY(0);   opacity: 0.2; }
+  30%           { transform: translateY(-7px); opacity: 1;   }
+}
+
+.rocket-ring-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #3461BE;
+  border-right-color: rgba(52, 97, 190, 0.25);
+  animation: spin-cw 0.9s linear infinite;
+}
+
+.rocket-ring-inner {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-bottom-color: rgba(52, 97, 190, 0.35);
+  border-left-color: rgba(52, 97, 190, 0.12);
+  animation: spin-ccw 1.5s linear infinite;
+}
+
+.rocket-float {
+  animation: rocket-float 2.2s ease-in-out infinite;
+}
+
+.rocket-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #3461BE;
+  animation: dot-pulse 1.3s ease-in-out infinite;
+}
+
 body {
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   margin: 0;

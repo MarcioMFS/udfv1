@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin, usePagination } from '../hooks'
 import { ConfirmDialog } from '../components/modal/DialogModal'
 import { Pagination } from '../components/ui/Pagination'
+import { SectionLoading } from '../components/ui/LoadingSpinner'
 import toast from 'react-hot-toast'
 
 interface Event {
@@ -197,11 +198,8 @@ export function MyEventsPage() {
 
       {/* Events List */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Carregando eventos...</p>
-          </div>
+        <div className="flex items-center justify-center">
+          <SectionLoading message="Carregando eventos..." />
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">

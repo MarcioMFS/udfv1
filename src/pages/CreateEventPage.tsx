@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { ArrowLeft, Save, Calendar, BookOpen } from 'lucide-react'
 import { CreateEventModal } from '../components/modal/CreateEventModal'
+import { PageLoading, ButtonSpinner } from '../components/ui/LoadingSpinner'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks'
@@ -162,11 +163,8 @@ export function CreateEventPage() {
   // Aguardar o carregamento da verificação de admin
   if (isAdminLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Verificando permissões...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F0F2F7' }}>
+        <PageLoading message="Verificando permissões..." />
       </div>
     )
   }
@@ -562,7 +560,7 @@ export function CreateEventPage() {
               >
                 {isLoading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <ButtonSpinner />
                     {isEditing ? 'Atualizando...' : 'Criando...'}
                   </>
                 ) : (

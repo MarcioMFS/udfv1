@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { SectionLoading } from '../components/ui/LoadingSpinner'
 import {
   BarChart,
   Bar,
@@ -407,11 +408,8 @@ export function ReportsPage() {
   if (isLoading) {
     return (
       <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Carregando relatórios...</p>
-          </div>
+        <div className="flex items-center justify-center">
+          <SectionLoading message="Carregando relatórios..." />
         </div>
       </div>
     )

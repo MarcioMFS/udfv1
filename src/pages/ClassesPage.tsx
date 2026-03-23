@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin, usePagination } from '../hooks'
 import { ImportClassModal } from '../components/modal/ImportClassModal'
 import { Pagination } from '../components/ui/Pagination'
+import { SectionLoading } from '../components/ui/LoadingSpinner'
 
 interface Class {
   id: string
@@ -229,7 +230,7 @@ export function ClassesPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="text-center text-gray-500 mb-6">Carregando turmas...</div>
+        {isLoading && <SectionLoading message="Carregando turmas..." />}
       )}
 
 {/* Class Cards */}
