@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   ChevronLeft, ChevronRight, Printer, GraduationCap, Users, BookOpen, Zap,
   TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, AlertTriangle,
@@ -247,32 +247,41 @@ export function AdminBillingPage() {
   useEffect(() => { setInstrPage(1) }, [instrSearch])
   useEffect(() => { setPlayerPage(1) }, [playerSearch, playerInstructor, playerShowTest])
 
-  // Filtered lists
-  const filteredInstructors = newInstructorsList.filter(i =>
-    !instrSearch ||
-    i.name.toLowerCase().includes(instrSearch.toLowerCase()) ||
-    i.email.toLowerCase().includes(instrSearch.toLowerCase())
-  )
-  const filteredPlayers = newPlayersList.filter(p => {
-    if (playerSearch &&
-      !p.name.toLowerCase().includes(playerSearch.toLowerCase()) &&
-      !p.email.toLowerCase().includes(playerSearch.toLowerCase())) return false
-    if (playerInstructor && p.instructorName !== playerInstructor) return false
-    if (playerShowTest && !p.isTestOnly) return false
-    return true
-  })
+  const filteredInstructors = useMemo(() =>
+    newInstructorsList.filter(i =>
+      !instrSearch ||
+      i.name.toLowerCase().includes(instrSearch.toLowerCase()) ||
+      i.email.toLowerCase().includes(instrSearch.toLowerCase())
+    ), [newInstructorsList, instrSearch])
 
-  // Paginated
-  const pagedInstructors = filteredInstructors.slice((instrPage - 1) * PAGE_SIZE, instrPage * PAGE_SIZE)
-  const pagedPlayers = filteredPlayers.slice((playerPage - 1) * PAGE_SIZE, playerPage * PAGE_SIZE)
-  const groupedPagedPlayers = groupByInstructor(pagedPlayers)
+  const filteredPlayers = useMemo(() =>
+    newPlayersList.filter(p => {
+      if (playerSearch &&
+        !p.name.toLowerCase().includes(playerSearch.toLowerCase()) &&
+        !p.email.toLowerCase().includes(playerSearch.toLowerCase())) return false
+      if (playerInstructor && p.instructorName !== playerInstructor) return false
+      if (playerShowTest && !p.isTestOnly) return false
+      return true
+    }), [newPlayersList, playerSearch, playerInstructor, playerShowTest])
 
-  // Instructor options for select
-  const instructorOptions = Array.from(
-    new Set(newPlayersList.map(p => p.instructorName).filter(Boolean) as string[])
-  ).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const pagedInstructors = useMemo(() =>
+    filteredInstructors.slice((instrPage - 1) * PAGE_SIZE, instrPage * PAGE_SIZE),
+    [filteredInstructors, instrPage])
 
-  const testOnlyCount = newPlayersList.filter(p => p.isTestOnly).length
+  const pagedPlayers = useMemo(() =>
+    filteredPlayers.slice((playerPage - 1) * PAGE_SIZE, playerPage * PAGE_SIZE),
+    [filteredPlayers, playerPage])
+
+  const groupedPagedPlayers = useMemo(() => groupByInstructor(pagedPlayers), [pagedPlayers])
+
+  const instructorOptions = useMemo(() =>
+    Array.from(new Set(newPlayersList.map(p => p.instructorName).filter(Boolean) as string[]))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [newPlayersList])
+
+  const testOnlyCount = useMemo(() =>
+    newPlayersList.filter(p => p.isTestOnly).length,
+    [newPlayersList])
   const issuedAt = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   const prevMonth = () => {

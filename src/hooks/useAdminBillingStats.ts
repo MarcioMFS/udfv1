@@ -12,16 +12,25 @@ export interface MonthlyBillingStats {
   totalPlayers: number
 }
 
+// Deduplicates concurrent callers: both hooks on the same page share one in-flight request.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _testIdsPromise: Promise<string[]> | null = null
 async function getTestClassIds(): Promise<string[]> {
-  const { data } = await supabase.from('classes').select('id').eq('is_test', true)
-  return (data ?? []).map((c: { id: string }) => c.id)
+  if (!_testIdsPromise) {
+    _testIdsPromise = supabase
+      .from('classes').select('id').eq('is_test', true)
+      .then(({ data }) => {
+        _testIdsPromise = null
+        return (data ?? []).map((c: { id: string }) => c.id)
+      }) as Promise<string[]>
+  }
+  return _testIdsPromise
 }
 
-function applyTestClassFilter<T>(
-  query: T,
-  testIds: string[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+// Supabase query builder doesn't expose a stable public type for chaining,
+// so we use any to call .not() dynamically on the builder object.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyTestClassFilter<T>(query: T, testIds: string[]): T {
   if (testIds.length === 0) return query
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (query as any).not('class_id', 'in', `(${testIds.join(',')})`)

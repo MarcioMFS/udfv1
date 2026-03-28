@@ -90,12 +90,10 @@ export function ChangelogPage() {
   const changelogRef = useRef<HTMLDivElement>(null)
   const [scrollUnlocked, setScrollUnlocked] = useState(false)
 
-  // Força o topo imediatamente antes do primeiro paint
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  // Trava o scroll por LOCK_DURATION e depois libera
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
@@ -113,7 +111,6 @@ export function ChangelogPage() {
     }
   }, [])
 
-  // Scroll-reveal via IntersectionObserver
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
