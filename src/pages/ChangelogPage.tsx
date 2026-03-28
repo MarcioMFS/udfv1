@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { ChevronDown, Rocket } from 'lucide-react'
 import Logo from '../assets/logo.png'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -10,7 +11,7 @@ interface ChangelogEntry {
   date: string
   version: string
   title: string
-  items: { type: ItemType; text: string }[]
+  items: { type: ItemType; text: string; adminOnly?: boolean }[]
 }
 
 const CHANGELOG: ChangelogEntry[] = [
@@ -19,13 +20,13 @@ const CHANGELOG: ChangelogEntry[] = [
     version: 'v1.4',
     title: 'Relatório de Faturamento Detalhado',
     items: [
-      { type: 'feat',        text: 'Lista de instrutores novos com nome e e-mail por mês' },
-      { type: 'feat',        text: 'Lista de alunos novos com nome, e-mail e instrutor de origem' },
-      { type: 'feat',        text: 'Filtros por nome, instrutor e turmas de teste' },
-      { type: 'feat',        text: 'Paginação de 10 itens por página nas listas detalhadas' },
-      { type: 'feat',        text: '"Exportar detalhes" gera PDF separado com os filtros aplicados' },
-      { type: 'feat',        text: '"PDF completo" — resumo na pág. 1 e detalhamento na pág. 2' },
-      { type: 'feat',        text: 'Marcar turmas como "Teste" para excluir das contagens de faturamento' },
+      { type: 'feat',        text: 'Lista de instrutores novos com nome e e-mail por mês',           adminOnly: true },
+      { type: 'feat',        text: 'Lista de alunos novos com nome, e-mail e instrutor de origem',    adminOnly: true },
+      { type: 'feat',        text: 'Filtros por nome, instrutor e turmas de teste',                   adminOnly: true },
+      { type: 'feat',        text: 'Paginação de 10 itens por página nas listas detalhadas',          adminOnly: true },
+      { type: 'feat',        text: '"Exportar detalhes" gera PDF separado com os filtros aplicados',  adminOnly: true },
+      { type: 'feat',        text: '"PDF completo" — resumo na pág. 1 e detalhamento na pág. 2',     adminOnly: true },
+      { type: 'feat',        text: 'Marcar turmas como "Teste" para excluir das contagens de faturamento', adminOnly: true },
     ],
   },
   {
@@ -36,7 +37,7 @@ const CHANGELOG: ChangelogEntry[] = [
       { type: 'fix',         text: 'Partidas de todas as turmas chegando corretamente — problema de autenticação resolvido' },
       { type: 'feat',        text: 'Instrutores podem corrigir o e-mail de alunos diretamente na lista da turma' },
       { type: 'improvement', text: 'Health check diário envia alertas apenas para turmas com eventos recentes — sem ruído' },
-      { type: 'improvement', text: 'Alertas do sistema chegam simultaneamente para Marcio e Iuri' },
+      { type: 'improvement', text: 'Alertas do sistema chegam simultaneamente para Marcio e Iuri', adminOnly: true },
     ],
   },
   {
@@ -44,8 +45,8 @@ const CHANGELOG: ChangelogEntry[] = [
     version: 'v1.2',
     title: 'Dashboard de Faturamento e Redesign Visual',
     items: [
-      { type: 'feat',        text: 'Dashboard de faturamento com resumo mensal e histórico anual clicável' },
-      { type: 'feat',        text: 'Geração de PDF do demonstrativo de uso' },
+      { type: 'feat',        text: 'Dashboard de faturamento com resumo mensal e histórico anual clicável', adminOnly: true },
+      { type: 'feat',        text: 'Geração de PDF do demonstrativo de uso', adminOnly: true },
       { type: 'improvement', text: 'Novo visual: fontes Syne + DM Sans, azul vibrante e bordas mais orgânicas' },
       { type: 'improvement', text: 'Cards com animação de entrada escalonada e contadores animados' },
       { type: 'improvement', text: 'Loader padronizado com a logo do Ignição e anel orbital' },
@@ -83,32 +84,13 @@ const TYPE_CONFIG: Record<ItemType, { label: string; dot: string; badge: string 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-const LOCK_DURATION = 3000 // ms
-
 export function ChangelogPage() {
+  const { isAdmin } = useIsAdmin()
   const entryRefs = useRef<(HTMLDivElement | null)[]>([])
   const changelogRef = useRef<HTMLDivElement>(null)
-  const [scrollUnlocked, setScrollUnlocked] = useState(false)
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
-  }, [])
-
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-
-    const timer = setTimeout(() => {
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-      setScrollUnlocked(true)
-    }, LOCK_DURATION)
-
-    return () => {
-      clearTimeout(timer)
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-    }
   }, [])
 
   useEffect(() => {
@@ -150,14 +132,6 @@ export function ChangelogPage() {
         @keyframes cl-bounce {
           0%, 100% { transform: translateY(0);    opacity: 0.45; }
           50%      { transform: translateY(10px);  opacity: 1; }
-        }
-        @keyframes cl-progress {
-          from { width: 0%; }
-          to   { width: 100%; }
-        }
-        @keyframes cl-unlock {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes cl-fade-in {
           from { opacity: 0; transform: translateY(16px); }
@@ -325,49 +299,25 @@ export function ChangelogPage() {
           </p>
         </div>
 
-        {/* Barra de progresso — desaparece após 3s */}
-        {!scrollUnlocked && (
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-            background: 'rgba(255,255,255,0.08)',
-          }}>
-            <div style={{
-              height: '100%',
-              background: 'linear-gradient(to right, #3461BE, #60a5fa)',
-              animation: `cl-progress ${LOCK_DURATION}ms linear forwards`,
-            }} />
-          </div>
-        )}
-
-        {/* Scroll cue — aparece após 3s */}
+        {/* Scroll cue */}
         <div style={{
           position: 'absolute', bottom: '2rem',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
         }}>
-          {!scrollUnlocked ? (
-            <span style={{
-              fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em',
-              textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
-            }}>
-              carregando...
+          <button
+            onClick={scrollToChangelog}
+            className="cl-bounce"
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'rgba(255,255,255,0.55)',
+            }}
+          >
+            <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+              Notas de atualização
             </span>
-          ) : (
-            <button
-              onClick={scrollToChangelog}
-              className="cl-bounce"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'rgba(255,255,255,0.55)',
-                animation: 'cl-unlock 0.5s ease both, cl-bounce 2s ease-in-out 0.5s infinite',
-              }}
-            >
-              <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                Notas de atualização
-              </span>
-              <ChevronDown size={18} />
-            </button>
-          )}
+            <ChevronDown size={18} />
+          </button>
         </div>
       </div>
 
@@ -415,7 +365,10 @@ export function ChangelogPage() {
           }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-            {CHANGELOG.map((entry, idx) => (
+            {CHANGELOG.map((entry, idx) => {
+              const visibleItems = entry.items.filter(item => !item.adminOnly || isAdmin)
+              if (visibleItems.length === 0) return null
+              return (
               <div
                 key={idx}
                 ref={el => { entryRefs.current[idx] = el }}
@@ -480,7 +433,7 @@ export function ChangelogPage() {
 
                   {/* Items */}
                   <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {entry.items.map((item, i) => {
+                    {visibleItems.map((item, i) => {
                       const cfg = TYPE_CONFIG[item.type]
                       return (
                         <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
@@ -505,7 +458,8 @@ export function ChangelogPage() {
                   </ul>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Timeline end cap */}
