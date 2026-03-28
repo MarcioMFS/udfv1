@@ -36,7 +36,7 @@ const CHANGELOG: ChangelogEntry[] = [
     items: [
       { type: 'fix',         text: 'Partidas de todas as turmas chegando corretamente — problema de autenticação resolvido' },
       { type: 'feat',        text: 'Instrutores podem corrigir o e-mail de alunos diretamente na lista da turma' },
-      { type: 'improvement', text: 'Health check diário envia alertas apenas para turmas com eventos recentes — sem ruído' },
+      { type: 'improvement', text: 'Health check diário envia alertas apenas para turmas com eventos recentes — sem ruído', adminOnly: true },
       { type: 'improvement', text: 'Alertas do sistema chegam simultaneamente para Marcio e Iuri', adminOnly: true },
     ],
   },
@@ -58,8 +58,8 @@ const CHANGELOG: ChangelogEntry[] = [
     title: 'Correção de Partidas e Sistema de Alertas',
     items: [
       { type: 'fix',         text: 'Partidas vinculadas corretamente às turmas — 28 registros históricos corrigidos' },
-      { type: 'feat',        text: 'Alerta imediato quando aluno não encontrado ou não inscrito na turma do evento' },
-      { type: 'feat',        text: 'Health check diário com relatório de inconsistências no banco de dados' },
+      { type: 'feat',        text: 'Alerta imediato quando aluno não encontrado ou não inscrito na turma do evento', adminOnly: true },
+      { type: 'feat',        text: 'Health check diário com relatório de inconsistências no banco de dados', adminOnly: true },
     ],
   },
   {
@@ -71,7 +71,7 @@ const CHANGELOG: ChangelogEntry[] = [
       { type: 'feat',        text: 'Ranking de alunos por turma e evento' },
       { type: 'feat',        text: 'Integração com o app Unity via webhook seguro' },
       { type: 'feat',        text: 'Acesso por instrutor com visão das próprias turmas' },
-      { type: 'feat',        text: 'Painel administrativo completo' },
+      { type: 'feat',        text: 'Painel administrativo completo', adminOnly: true },
     ],
   },
 ]
