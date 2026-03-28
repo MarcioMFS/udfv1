@@ -142,6 +142,27 @@ export function ChangelogPage() {
           100% { opacity: 0.15; }
         }
 
+        /* howTo tooltip */
+        .cl-howto { position: relative; display: inline-flex; align-items: center; }
+        .cl-howto-tip {
+          visibility: hidden; opacity: 0;
+          position: absolute; bottom: calc(100% + 8px); left: 0;
+          width: 260px;
+          background: #1e293b; color: #e2e8f0;
+          font-size: 0.75rem; font-family: 'DM Sans', sans-serif; line-height: 1.5;
+          padding: 0.55rem 0.75rem; border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+          transition: opacity 0.18s ease;
+          z-index: 50; pointer-events: none;
+        }
+        .cl-howto-tip::after {
+          content: '';
+          position: absolute; top: 100%; left: 14px;
+          border: 5px solid transparent;
+          border-top-color: #1e293b;
+        }
+        .cl-howto:hover .cl-howto-tip { visibility: visible; opacity: 1; }
+
         .cl-logo-glow   { animation: cl-glow       3s ease-in-out infinite; }
         .cl-orbit-cw    { animation: cl-orbit-cw   8s linear     infinite; }
         .cl-orbit-ccw   { animation: cl-orbit-ccw  5s linear     infinite; }
@@ -445,7 +466,7 @@ export function ChangelogPage() {
                           }} className={cfg.badge}>
                             {cfg.label}
                           </span>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                             <span style={{
                               fontSize: '0.875rem', color: '#374151',
                               fontFamily: 'DM Sans, sans-serif', lineHeight: 1.55,
@@ -453,23 +474,19 @@ export function ChangelogPage() {
                               {item.text}
                             </span>
                             {item.howTo && (
-                              <div style={{
-                                display: 'flex', alignItems: 'flex-start', gap: '0.4rem',
-                                background: '#f0f4ff',
-                                border: '1px solid rgba(52,97,190,0.15)',
-                                borderRadius: 8,
-                                padding: '0.45rem 0.65rem',
-                              }}>
-                                <Info size={13} style={{ color: '#3461BE', flexShrink: 0, marginTop: 2 }} />
+                              <span className="cl-howto">
                                 <span style={{
-                                  fontSize: '0.78rem', color: '#3461BE',
-                                  fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5,
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.2rem',
+                                  fontSize: '0.72rem', color: '#3461BE', fontFamily: 'DM Sans, sans-serif',
+                                  cursor: 'default', userSelect: 'none',
                                 }}>
-                                  {item.howTo}
+                                  <Info size={11} />
+                                  como usar
                                 </span>
-                              </div>
+                                <span className="cl-howto-tip">{item.howTo}</span>
+                              </span>
                             )}
-                          </div>
+                          </span>
                         </li>
                       )
                     })}
