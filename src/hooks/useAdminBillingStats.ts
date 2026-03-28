@@ -12,6 +12,21 @@ export interface MonthlyBillingStats {
   totalPlayers: number
 }
 
+async function getTestClassIds(): Promise<string[]> {
+  const { data } = await supabase.from('classes').select('id').eq('is_test', true)
+  return (data ?? []).map((c: { id: string }) => c.id)
+}
+
+function applyTestClassFilter<T>(
+  query: T,
+  testIds: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any {
+  if (testIds.length === 0) return query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (query as any).not('class_id', 'in', `(${testIds.join(',')})`)
+}
+
 export function useAdminBillingStats(month: number, year: number) {
   const [stats, setStats] = useState<MonthlyBillingStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -24,6 +39,15 @@ export function useAdminBillingStats(month: number, year: number) {
     try {
       const start = new Date(year, month - 1, 1).toISOString()
       const end = new Date(year, month, 1).toISOString()
+
+      const testIds = await getTestClassIds()
+
+      let matchesMonthQuery = supabase
+        .from('matches')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', start)
+        .lt('created_at', end)
+      matchesMonthQuery = applyTestClassFilter(matchesMonthQuery, testIds)
 
       const [
         { count: newInstructors },
@@ -47,12 +71,9 @@ export function useAdminBillingStats(month: number, year: number) {
           .from('classes')
           .select('*', { count: 'exact', head: true })
           .gte('created_at', start)
-          .lt('created_at', end),
-        supabase
-          .from('matches')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', start)
-          .lt('created_at', end),
+          .lt('created_at', end)
+          .neq('is_test', true),
+        matchesMonthQuery,
         supabase
           .from('instructors')
           .select('*', { count: 'exact', head: true })
@@ -108,6 +129,15 @@ export function useAdminYearlyBilling(year: number) {
       const yearStart = new Date(year, 0, 1).toISOString()
       const yearEnd = new Date(year + 1, 0, 1).toISOString()
 
+      const testIds = await getTestClassIds()
+
+      let matchesYearQuery = supabase
+        .from('matches')
+        .select('created_at')
+        .gte('created_at', yearStart)
+        .lt('created_at', yearEnd)
+      matchesYearQuery = applyTestClassFilter(matchesYearQuery, testIds)
+
       const [
         { data: instructors },
         { data: players },
@@ -128,12 +158,9 @@ export function useAdminYearlyBilling(year: number) {
           .from('classes')
           .select('created_at')
           .gte('created_at', yearStart)
-          .lt('created_at', yearEnd),
-        supabase
-          .from('matches')
-          .select('created_at')
-          .gte('created_at', yearStart)
-          .lt('created_at', yearEnd),
+          .lt('created_at', yearEnd)
+          .neq('is_test', true),
+        matchesYearQuery,
       ])
 
       const rows: YearlyBillingSummary[] = Array.from({ length: 12 }, (_, i) => {
@@ -163,4 +190,110 @@ export function useAdminYearlyBilling(year: number) {
   }, [fetchYearly])
 
   return { summary, isLoading, error }
+}
+
+// ── Detail lists ────────────────────────────────────────────────────────────
+
+export interface BillingInstructor {
+  id: string
+  name: string
+  email: string
+}
+
+export interface BillingPlayer {
+  id: string
+  name: string
+  email: string
+  instructorName: string | null
+  className: string | null
+  isTestOnly: boolean
+}
+
+type RawClassPlayer = {
+  classes: {
+    id: string
+    description: string | null
+    is_test: boolean | null
+    instructors: { name: string } | null
+  } | null
+}
+
+type RawPlayer = {
+  id: string
+  name: string
+  email: string
+  class_players: RawClassPlayer[]
+}
+
+export function useAdminBillingDetails(month: number, year: number) {
+  const [instructors, setInstructors] = useState<BillingInstructor[]>([])
+  const [players, setPlayers] = useState<BillingPlayer[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchDetails = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const start = new Date(year, month - 1, 1).toISOString()
+      const end = new Date(year, month, 1).toISOString()
+
+      const [{ data: instructorData }, { data: playerData }] = await Promise.all([
+        supabase
+          .from('instructors')
+          .select('id, name, email')
+          .gte('created_at', start)
+          .lt('created_at', end)
+          .order('name'),
+        supabase
+          .from('players')
+          .select(`
+            id, name, email,
+            class_players(
+              classes(
+                id, description, is_test,
+                instructors:instructor_id(name)
+              )
+            )
+          `)
+          .gte('created_at', start)
+          .lt('created_at', end)
+          .order('name'),
+      ])
+
+      setInstructors(
+        (instructorData ?? []).map((i: BillingInstructor) => ({
+          id: i.id,
+          name: i.name,
+          email: i.email,
+        }))
+      )
+
+      const processed: BillingPlayer[] = ((playerData ?? []) as RawPlayer[]).map(p => {
+        const enrollments = p.class_players ?? []
+        const realEnrollment = enrollments.find(e => e.classes && !e.classes.is_test)
+        const anyEnrollment = enrollments[0]
+        const allTest =
+          enrollments.length > 0 && enrollments.every(e => e.classes?.is_test === true)
+
+        const target = realEnrollment ?? anyEnrollment
+        return {
+          id: p.id,
+          name: p.name,
+          email: p.email,
+          instructorName: target?.classes?.instructors?.name ?? null,
+          className: target?.classes?.description ?? null,
+          isTestOnly: allTest,
+        }
+      })
+
+      setPlayers(processed)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [month, year])
+
+  useEffect(() => {
+    fetchDetails()
+  }, [fetchDetails])
+
+  return { instructors, players, isLoading }
 }

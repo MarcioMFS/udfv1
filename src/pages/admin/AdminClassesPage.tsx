@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FileSpreadsheet, Search, Users, Calendar, GraduationCap } from 'lucide-react'
+import { FileSpreadsheet, Search, Users, Calendar, GraduationCap, FlaskConical } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { ImportClassForInstructorModal } from '../../components/modal/ImportClassForInstructorModal'
 import { usePagination } from '../../hooks'
@@ -11,6 +11,7 @@ interface Class {
   code: string
   description: string | null
   instructor_id: string | null
+  is_test: boolean
   created_at: string
   updated_at: string
   studentsCount: number
@@ -26,10 +27,31 @@ export function AdminClassesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showImportModal, setShowImportModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   useEffect(() => {
     loadClasses()
   }, [])
+
+  const toggleTestClass = async (classItem: Class) => {
+    setTogglingId(classItem.id)
+    // Optimistic update
+    setClasses(prev =>
+      prev.map(c => c.id === classItem.id ? { ...c, is_test: !c.is_test } : c)
+    )
+    const { error } = await supabase
+      .from('classes')
+      .update({ is_test: !classItem.is_test })
+      .eq('id', classItem.id)
+    if (error) {
+      // Revert on failure
+      setClasses(prev =>
+        prev.map(c => c.id === classItem.id ? { ...c, is_test: classItem.is_test } : c)
+      )
+      console.error('Erro ao atualizar turma:', error)
+    }
+    setTogglingId(null)
+  }
 
   const loadClasses = async () => {
     setIsLoading(true)
@@ -62,10 +84,11 @@ export function AdminClassesPage() {
 
           return {
             ...classItem,
+            is_test: classItem.is_test ?? false,
             studentsCount: studentsCount || 0,
             eventsCount: eventsCount || 0,
-            instructor: Array.isArray(classItem.instructors) 
-              ? classItem.instructors[0] 
+            instructor: Array.isArray(classItem.instructors)
+              ? classItem.instructors[0]
               : classItem.instructors
           }
         })
@@ -151,6 +174,7 @@ export function AdminClassesPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alunos</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Eventos</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criada em</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -194,6 +218,22 @@ export function AdminClassesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {new Date(classItem.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => toggleTestClass(classItem)}
+                          disabled={togglingId === classItem.id}
+                          title={classItem.is_test ? 'Marcar como turma real' : 'Marcar como turma de teste'}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                            classItem.is_test
+                              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          } disabled:opacity-50`}
+                        >
+                          {classItem.is_test
+                            ? <><FlaskConical className="w-3 h-3" /> Teste</>
+                            : <><GraduationCap className="w-3 h-3" /> Real</>}
+                        </button>
                       </td>
                     </tr>
                   ))}
