@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { ChevronDown, Rocket } from 'lucide-react'
+import { ChevronDown, Rocket, Info } from 'lucide-react'
 import Logo from '../assets/logo.png'
 import { useIsAdmin } from '../hooks/useIsAdmin'
 
@@ -11,7 +11,7 @@ interface ChangelogEntry {
   date: string
   version: string
   title: string
-  items: { type: ItemType; text: string; adminOnly?: boolean }[]
+  items: { type: ItemType; text: string; adminOnly?: boolean; howTo?: string }[]
 }
 
 const CHANGELOG: ChangelogEntry[] = [
@@ -26,7 +26,7 @@ const CHANGELOG: ChangelogEntry[] = [
       { type: 'feat',        text: 'Paginação de 10 itens por página nas listas detalhadas',          adminOnly: true },
       { type: 'feat',        text: '"Exportar detalhes" gera PDF separado com os filtros aplicados',  adminOnly: true },
       { type: 'feat',        text: '"PDF completo" — resumo na pág. 1 e detalhamento na pág. 2',     adminOnly: true },
-      { type: 'feat',        text: 'Marcar turmas como "Teste" para excluir das contagens de faturamento', adminOnly: true },
+      { type: 'feat',        text: 'Marcar turmas como "Teste" para excluir das contagens de faturamento', adminOnly: true, howTo: 'Em Admin → Turmas, clique no botão de status ao lado do nome da turma para alternar entre Real e Teste. Turmas de Teste não entram nas contagens de alunos, instrutores ou partidas do faturamento.' },
     ],
   },
   {
@@ -35,7 +35,7 @@ const CHANGELOG: ChangelogEntry[] = [
     title: 'Correção de Dados e Infraestrutura',
     items: [
       { type: 'fix',         text: 'Partidas de todas as turmas chegando corretamente — problema de autenticação resolvido' },
-      { type: 'feat',        text: 'Instrutores podem corrigir o e-mail de alunos diretamente na lista da turma' },
+      { type: 'feat',        text: 'Instrutores podem corrigir o e-mail de alunos diretamente na lista da turma', howTo: 'Na página da turma, passe o mouse sobre o e-mail do aluno e clique no ícone de lápis que aparece. Digite o novo e-mail e pressione Enter para salvar, ou Esc para cancelar.' },
       { type: 'improvement', text: 'Health check diário envia alertas apenas para turmas com eventos recentes — sem ruído', adminOnly: true },
       { type: 'improvement', text: 'Alertas do sistema chegam simultaneamente para Marcio e Iuri', adminOnly: true },
     ],
@@ -445,12 +445,31 @@ export function ChangelogPage() {
                           }} className={cfg.badge}>
                             {cfg.label}
                           </span>
-                          <span style={{
-                            fontSize: '0.875rem', color: '#374151',
-                            fontFamily: 'DM Sans, sans-serif', lineHeight: 1.55,
-                          }}>
-                            {item.text}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <span style={{
+                              fontSize: '0.875rem', color: '#374151',
+                              fontFamily: 'DM Sans, sans-serif', lineHeight: 1.55,
+                            }}>
+                              {item.text}
+                            </span>
+                            {item.howTo && (
+                              <div style={{
+                                display: 'flex', alignItems: 'flex-start', gap: '0.4rem',
+                                background: '#f0f4ff',
+                                border: '1px solid rgba(52,97,190,0.15)',
+                                borderRadius: 8,
+                                padding: '0.45rem 0.65rem',
+                              }}>
+                                <Info size={13} style={{ color: '#3461BE', flexShrink: 0, marginTop: 2 }} />
+                                <span style={{
+                                  fontSize: '0.78rem', color: '#3461BE',
+                                  fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5,
+                                }}>
+                                  {item.howTo}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </li>
                       )
                     })}
