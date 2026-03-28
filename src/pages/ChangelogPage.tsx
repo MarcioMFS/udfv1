@@ -106,7 +106,7 @@ export function ChangelogPage() {
     )
     entryRefs.current.forEach(el => { if (el) observer.observe(el) })
     return () => observer.disconnect()
-  }, [])
+  }, [isAdmin])
 
   const scrollToChangelog = () => {
     changelogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
