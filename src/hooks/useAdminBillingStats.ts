@@ -267,7 +267,7 @@ export function useAdminBillingDetails(month: number, year: number) {
         }))
       )
 
-      const processed: BillingPlayer[] = ((playerData ?? []) as RawPlayer[]).map(p => {
+      const processed: BillingPlayer[] = ((playerData ?? []) as unknown as RawPlayer[]).map(p => {
         const enrollments = p.class_players ?? []
         const realEnrollment = enrollments.find(e => e.classes && !e.classes.is_test)
         const anyEnrollment = enrollments[0]
