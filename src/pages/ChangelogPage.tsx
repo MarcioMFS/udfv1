@@ -47,9 +47,8 @@ const CHANGELOG: ChangelogEntry[] = [
     items: [
       { type: 'feat',        text: 'Dashboard de faturamento com resumo mensal e histórico anual clicável', adminOnly: true },
       { type: 'feat',        text: 'Geração de PDF do demonstrativo de uso', adminOnly: true },
-      { type: 'improvement', text: 'Novo visual: fontes Syne + DM Sans, azul vibrante e bordas mais orgânicas' },
-      { type: 'improvement', text: 'Cards com animação de entrada escalonada e contadores animados' },
-      { type: 'improvement', text: 'Loader padronizado com a logo do Ignição e anel orbital' },
+      { type: 'improvement', text: 'Visual do sistema renovado — novo estilo, cores e animações' },
+      { type: 'improvement', text: 'Tela de carregamento com a identidade visual do Ignição' },
     ],
   },
   {
@@ -69,7 +68,7 @@ const CHANGELOG: ChangelogEntry[] = [
     items: [
       { type: 'feat',        text: 'Gestão de turmas, eventos e alunos' },
       { type: 'feat',        text: 'Ranking de alunos por turma e evento' },
-      { type: 'feat',        text: 'Integração com o app Unity via webhook seguro' },
+      { type: 'feat',        text: 'Partidas do app UDF chegam automaticamente ao sistema' },
       { type: 'feat',        text: 'Acesso por instrutor com visão das próprias turmas' },
       { type: 'feat',        text: 'Painel administrativo completo', adminOnly: true },
     ],
