@@ -22,6 +22,7 @@ import { AdminBillingPage } from './pages/admin/AdminBillingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import { TermsPage } from './pages/TermsPage'
+import { ChangelogPage } from './pages/ChangelogPage'
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/events/:id" element={<EventDetailsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/changelog" element={<ChangelogPage />} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={

@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Mail,
   Receipt,
+  Rocket,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
@@ -64,7 +65,8 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
       disabled: true,
       title: 'Essa funcionalidade será desbloqueada em breve 🕹️'
     },
-    { href: '/profile', icon: User, label: 'Perfil' }
+    { href: '/profile', icon: User, label: 'Perfil' },
+    { href: '/changelog', icon: Rocket, label: 'Atualizações', badge: 'Novo' },
   ]
 
   const isActive = (href: string) => {
@@ -144,7 +146,12 @@ export function Sidebar({ isSidebarOpen, toggleSidebar }: SidebarProps) {
                 <span className="absolute left-0 w-0.5 h-5 rounded-r bg-blue-400 -ml-3" />
               )}
               <item.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${active ? 'text-blue-300' : 'text-white/40 group-hover:text-white/60'}`} />
-              <span className={`text-sm font-body font-medium ${active ? 'text-white' : ''}`}>{item.label}</span>
+              <span className={`text-sm font-body font-medium flex-1 ${active ? 'text-white' : ''}`}>{item.label}</span>
+              {'badge' in item && item.badge && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 leading-none">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           )
         })}
