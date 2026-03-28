@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown, Rocket } from 'lucide-react'
 import Logo from '../assets/logo.png'
 
@@ -83,9 +83,35 @@ const TYPE_CONFIG: Record<ItemType, { label: string; dot: string; badge: string 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+const LOCK_DURATION = 3000 // ms
+
 export function ChangelogPage() {
   const entryRefs = useRef<(HTMLDivElement | null)[]>([])
   const changelogRef = useRef<HTMLDivElement>(null)
+  const [scrollUnlocked, setScrollUnlocked] = useState(false)
+
+  // Força o topo imediatamente antes do primeiro paint
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
+  // Trava o scroll por LOCK_DURATION e depois libera
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    const timer = setTimeout(() => {
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
+      setScrollUnlocked(true)
+    }, LOCK_DURATION)
+
+    return () => {
+      clearTimeout(timer)
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
+    }
+  }, [])
 
   // Scroll-reveal via IntersectionObserver
   useEffect(() => {
@@ -127,6 +153,14 @@ export function ChangelogPage() {
         @keyframes cl-bounce {
           0%, 100% { transform: translateY(0);    opacity: 0.45; }
           50%      { transform: translateY(10px);  opacity: 1; }
+        }
+        @keyframes cl-progress {
+          from { width: 0%; }
+          to   { width: 100%; }
+        }
+        @keyframes cl-unlock {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes cl-fade-in {
           from { opacity: 0; transform: translateY(16px); }
@@ -294,22 +328,50 @@ export function ChangelogPage() {
           </p>
         </div>
 
-        {/* Scroll cue */}
-        <button
-          onClick={scrollToChangelog}
-          className="cl-bounce"
-          style={{
-            position: 'absolute', bottom: '2.5rem',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'rgba(255,255,255,0.4)',
-          }}
-        >
-          <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-            Notas de atualização
-          </span>
-          <ChevronDown size={18} />
-        </button>
+        {/* Barra de progresso — desaparece após 3s */}
+        {!scrollUnlocked && (
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
+            background: 'rgba(255,255,255,0.08)',
+          }}>
+            <div style={{
+              height: '100%',
+              background: 'linear-gradient(to right, #3461BE, #60a5fa)',
+              animation: `cl-progress ${LOCK_DURATION}ms linear forwards`,
+            }} />
+          </div>
+        )}
+
+        {/* Scroll cue — aparece após 3s */}
+        <div style={{
+          position: 'absolute', bottom: '2rem',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+        }}>
+          {!scrollUnlocked ? (
+            <span style={{
+              fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em',
+              textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
+            }}>
+              carregando...
+            </span>
+          ) : (
+            <button
+              onClick={scrollToChangelog}
+              className="cl-bounce"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'rgba(255,255,255,0.55)',
+                animation: 'cl-unlock 0.5s ease both, cl-bounce 2s ease-in-out 0.5s infinite',
+              }}
+            >
+              <span style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                Notas de atualização
+              </span>
+              <ChevronDown size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
