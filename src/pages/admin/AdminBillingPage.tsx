@@ -309,15 +309,19 @@ export function AdminBillingPage() {
           body * { visibility: hidden !important; }
           #billing-print-area, #billing-print-area * { visibility: visible !important; }
           #billing-print-area {
-            position: fixed !important; inset: 0 !important;
-            padding: 40px !important; background: white !important;
+            position: absolute !important;
+            left: 0 !important; top: 0 !important;
+            width: 100% !important;
+            background: white !important;
           }
           body.print-details-only #billing-print-area { visibility: hidden !important; }
           body.print-details-only #billing-print-details,
           body.print-details-only #billing-print-details * { visibility: visible !important; }
           body.print-details-only #billing-print-details {
-            position: fixed !important; inset: 0 !important;
-            padding: 40px !important; background: white !important;
+            position: absolute !important;
+            left: 0 !important; top: 0 !important;
+            width: 100% !important;
+            background: white !important;
           }
           @page { margin: 1.5cm; size: A4; }
         }
