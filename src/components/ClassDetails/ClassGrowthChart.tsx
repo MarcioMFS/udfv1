@@ -381,42 +381,65 @@ export default function StudentGrowth({ students, matchResults, teams = [] }: St
 
   const renderUnifiedChart = (data: GrowthData[]) => {
     const dataKeys = Object.keys(data[0] || {}).filter(key => key !== 'match_number')
-    
+    // Satisfação fica no eixo direito (0–10); lucro e bônus ficam no eixo esquerdo (R$)
+    const isSatisfacao = (key: string) => key.toLowerCase().includes('satisfa')
+
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <LayoutGrid className="w-4 h-4" />
           Evolução Geral - Todos os Indicadores
         </h3>
+        {/* Legenda dos eixos */}
+        <div className="flex gap-4 text-xs text-gray-500 mb-3">
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-0.5 bg-gray-400"></span>
+            Eixo esquerdo: Lucro / Bônus (R$)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-0.5 bg-green-500"></span>
+            Eixo direito: Satisfação (0–10)
+          </span>
+        </div>
         <div className="h-64 sm:h-80 lg:h-96 w-full overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+            <LineChart data={data} margin={{ top: 5, right: 60, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="match_number" 
+              <XAxis
+                dataKey="match_number"
                 label={{ value: 'Partida', position: 'insideBottom', offset: -5 }}
                 tick={{ fontSize: 12 }}
               />
-              <YAxis 
-                label={{ value: 'Valores', angle: -90, position: 'insideLeft' }}
-                tickFormatter={(value) => {
-                  // Para o gráfico unificado, formatamos apenas valores altos como monetários
-                  // assumindo que valores > 100 são monetários
-                  return value > 100 ? formatCurrency(value) : value
-                }}
-                tick={{ fontSize: 12 }}
+              {/* Eixo esquerdo: valores monetários (lucro + bônus) */}
+              <YAxis
+                yAxisId="money"
+                orientation="left"
+                tickFormatter={(value) => formatCurrency(value)}
+                tick={{ fontSize: 11 }}
+                label={{ value: 'R$', angle: -90, position: 'insideLeft', offset: 10, style: { fontSize: 11 } }}
+              />
+              {/* Eixo direito: satisfação (0–10) */}
+              <YAxis
+                yAxisId="satisfacao"
+                orientation="right"
+                domain={[0, 10]}
+                tickFormatter={(value) => value.toFixed(1)}
+                tick={{ fontSize: 11 }}
+                label={{ value: 'Satisfação', angle: 90, position: 'insideRight', offset: 10, style: { fontSize: 11 } }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
               {dataKeys.map((dataKey, index) => {
                 const isAverage = dataKey.includes('Média da Turma')
+                const useSatisfacaoAxis = isSatisfacao(dataKey)
                 return (
                   <Line
                     key={dataKey}
+                    yAxisId={useSatisfacaoAxis ? 'satisfacao' : 'money'}
                     type="monotone"
                     dataKey={dataKey}
                     stroke={getLineColor(dataKey, index)}
-                    strokeWidth={isAverage ? 2 : 2}
+                    strokeWidth={2}
                     strokeDasharray={isAverage ? "5 5" : "0"}
                     dot={{ r: isAverage ? 3 : 4 }}
                     connectNulls={false}
