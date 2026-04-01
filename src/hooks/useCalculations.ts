@@ -239,20 +239,25 @@ export function useCalculations({ students, matchResults, teams }: UseCalculatio
 
     const activeStudents = studentStats.filter(student => student.matches > 0)
     const activeTeams = teamStats.filter(team => team.matches > 0)
+
+    // Posições calculadas separadamente: alunos vs alunos, times vs times
+    // (Iuri: ranking é entre todos os alunos da turma, não por propósito)
+    const assignRankingScores = (entities: typeof activeStudents) => {
+      const lucroRanked = [...entities].sort((a, b) => b.avgLucro - a.avgLucro)
+      const satisfacaoRanked = [...entities].sort((a, b) => b.avgSatisfacao - a.avgSatisfacao)
+      const bonusRanked = [...entities].sort((a, b) => b.avgBonus - a.avgBonus)
+      entities.forEach(entity => {
+        const lucroPos = lucroRanked.findIndex(e => e.id === entity.id) + 1
+        const satisfacaoPos = satisfacaoRanked.findIndex(e => e.id === entity.id) + 1
+        const bonusPos = bonusRanked.findIndex(e => e.id === entity.id) + 1
+        entity.rankingScore = lucroPos + satisfacaoPos + bonusPos
+      })
+    }
+
+    assignRankingScores(activeStudents)
+    assignRankingScores(activeTeams)
+
     const allEntities = [...activeStudents, ...activeTeams]
-
-    // Calculate ranking positions for each metric
-    const lucroRanked = [...allEntities].sort((a, b) => b.avgLucro - a.avgLucro)
-    const satisfacaoRanked = [...allEntities].sort((a, b) => b.avgSatisfacao - a.avgSatisfacao)
-    const bonusRanked = [...allEntities].sort((a, b) => b.avgBonus - a.avgBonus)
-
-    // Assign position scores to each entity
-    allEntities.forEach(entity => {
-      const lucroPos = lucroRanked.findIndex(e => e.id === entity.id) + 1
-      const satisfacaoPos = satisfacaoRanked.findIndex(e => e.id === entity.id) + 1
-      const bonusPos = bonusRanked.findIndex(e => e.id === entity.id) + 1
-      entity.rankingScore = lucroPos + satisfacaoPos + bonusPos
-    })
 
     // Sort by ranking score (lower is better - like golf)
     const finalRanking = [...allEntities].sort((a, b) => {
