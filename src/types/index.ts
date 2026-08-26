@@ -192,7 +192,8 @@ export interface BaseComponentProps extends LoadingState, ErrorState {
 export type TabType = 'overview' | 'ranking' | 'indicators' | 'growth' | 'detailed-report'
 
 export interface ExcelClassImport {
-  classCode: string
+  /** Só preenchido quando a planilha traz um código explícito (padrão T000XXXX). */
+  classCode: string | null
   className: string
   instructorName: string
   instructorEmail: string
@@ -218,18 +219,30 @@ export interface ClassImportResult {
   errors: string[]
 }
 
+export interface ExistingClassMatch {
+  id: string
+  code: string
+  description: string
+  studentsCount: number
+  eventsCount: number
+  createdAt: string | null
+}
+
 export interface ClassImportPreview {
   classExists: boolean
-  classCode: string
+  classCode: string | null
   className: string
   instructorName: string
   instructorEmail: string
   studentsCount: number
   eventsCount: number
+  /** Turma sugerida para atualização (a mais recente entre as encontradas). */
   existingClass?: {
     id: string
     description: string
     studentsCount: number
     eventsCount: number
   }
+  /** Todas as turmas do instrutor que batem com a planilha. */
+  matchingClasses: ExistingClassMatch[]
 }

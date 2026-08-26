@@ -36,10 +36,20 @@ serve(async (req)=>{
       throw new Error('Campos obrigatórios ausentes: nome, email, udf-id, class-code');
     }
     // Buscar turma
-    const { data: turmaData, error: turmaError } = await supabaseClient.from('classes').select('id').eq('code', codigoTurma).single();
-    if (turmaError || !turmaData) {
-      throw new Error(`Turma com código ${codigoTurma} não encontrada: ${turmaError?.message}`);
+    // Busca sem .single(): se houver mais de uma turma com o mesmo código, o
+    // .single() falhava com um erro genérico de "turma não encontrada",
+    // escondendo a causa real (códigos duplicados).
+    const { data: turmasData, error: turmaError } = await supabaseClient.from('classes').select('id, code').eq('code', codigoTurma);
+    if (turmaError) {
+      throw new Error(`Erro ao buscar turma com código ${codigoTurma}: ${turmaError.message}`);
     }
+    if (!turmasData || turmasData.length === 0) {
+      throw new Error(`Turma com código ${codigoTurma} não encontrada`);
+    }
+    if (turmasData.length > 1) {
+      throw new Error(`Código de turma ${codigoTurma} está duplicado em ${turmasData.length} turmas. Corrija os códigos antes de cadastrar alunos.`);
+    }
+    const turmaData = turmasData[0];
 
     // Verificar se o player já existe (para saber se deve enviar email de primeiro acesso)
     const { data: existingPlayer } = await supabaseClient

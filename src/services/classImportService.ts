@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabase'
-import type { ExcelClassImport, ExcelStudentImport, ExcelEventImport, ClassImportResult, ClassImportPreview } from '../types'
+import { extractExplicitClassCode, generateUniqueClassCode } from '../utils/classCodeUtils'
+import type { ExcelClassImport, ExcelStudentImport, ExcelEventImport, ClassImportResult, ClassImportPreview, ExistingClassMatch } from '../types'
 
 interface ProcessedExcelData {
   classInfo: ExcelClassImport | null
@@ -115,13 +116,10 @@ function processInstructorSheet(workbook: XLSX.WorkBook): ExcelClassImport | nul
 
   console.log('Dados extraídos:', { className, instructorName, instructorEmail })
 
-  const classCode = generateClassCode(className)
-
-  // Validar que o código tem exatamente 8 caracteres
-  if (classCode.length !== 8) {
-    console.error('Código da turma deve ter exatamente 8 caracteres:', { classCode, length: classCode.length })
-    return null
-  }
+  // O código NÃO é derivado do nome. Só é aproveitado quando a própria
+  // planilha traz um código explícito; caso contrário fica null e um código
+  // novo é sorteado na hora de criar a turma.
+  const classCode = extractExplicitClassCode(className)
 
   if (!className || !instructorEmail) {
     console.error('Dados incompletos:', { className, instructorEmail })
@@ -330,96 +328,6 @@ function parseExcelDate(value: any): string | null {
   return null
 }
 
-/**
- * Gera código único para a turma baseado no nome com EXATAMENTE 8 caracteres
- * IMPORTANTE: Não gera aleatório para evitar duplicações!
- * GARANTIA: Sempre retorna string com exatamente 8 caracteres alfanuméricos
- */
-function generateClassCode(className: string): string {
-  // 1. Tentar extrair código existente no formato T000XXXX (T + 3 dígitos + 4 caracteres)
-  const t000Match = className.match(/T\d{3}[A-Z0-9]{4}/i)
-  if (t000Match) {
-    const code = t000Match[0].toUpperCase()
-    console.log('Código extraído (T000):', code, '- Length:', code.length)
-    return code // Já tem 8 caracteres garantidos pelo regex
-  }
-
-  // 2. Tentar extrair qualquer código de exatamente 8 caracteres alfanuméricos
-  const codeMatch = className.match(/\b[A-Z0-9]{8}\b/i)
-  if (codeMatch) {
-    const code = codeMatch[0].toUpperCase()
-    console.log('Código extraído (8 chars):', code, '- Length:', code.length)
-    return code // Já tem 8 caracteres garantidos pelo regex
-  }
-
-  // 3. Criar código baseado no nome da turma (DETERMINÍSTICO)
-  // Remove caracteres especiais e pega primeiras letras/palavras
-  const words = className
-    .toUpperCase()
-    .replace(/[^A-Z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter(w => w.length > 0)
-
-  let code = ''
-
-  if (words.length === 0) {
-    // Fallback: usar apenas hash do nome completo (garantir 8 chars)
-    const hash = simpleHash(className)
-    code = hash.padEnd(8, '0').substring(0, 8)
-    console.log('Código gerado (hash):', code, '- Length:', code.length)
-    return code.toUpperCase()
-  }
-
-  // Estratégia: Iniciais (até 3 chars) + Hash (5 chars) = 8 chars exatos
-  // Pegar primeiras letras de cada palavra (máximo 3)
-  for (let i = 0; i < Math.min(words.length, 3); i++) {
-    code += words[i][0]
-  }
-
-  // Gerar hash determinístico e pegar caracteres necessários
-  const hash = simpleHash(className)
-  const remainingChars = 8 - code.length
-
-  // Adicionar hash para completar 8 caracteres
-  code += hash.padEnd(remainingChars, '0').substring(0, remainingChars)
-
-  // Garantir que tem exatamente 8 caracteres
-  const finalCode = code.toUpperCase().padEnd(8, '0').substring(0, 8)
-
-  console.log('Código gerado (determinístico):', {
-    input: className,
-    words: words.join(','),
-    initials: code.substring(0, Math.min(words.length, 3)),
-    hash: hash.substring(0, 5),
-    finalCode: finalCode,
-    length: finalCode.length
-  })
-
-  // Validação final: DEVE ter exatamente 8 caracteres
-  if (finalCode.length !== 8) {
-    console.error('ERRO: Código não tem 8 caracteres!', { finalCode, length: finalCode.length })
-    // Fallback de emergência: hash do nome todo
-    return simpleHash(className).padEnd(8, '0').substring(0, 8).toUpperCase()
-  }
-
-  return finalCode
-}
-
-/**
- * Hash simples para gerar código determinístico
- * Retorna string base36 (0-9, A-Z) de tamanho variável
- */
-function simpleHash(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
-  }
-  // Base36 sempre retorna string, mas tamanho varia
-  // Garantir que tenha pelo menos 8 caracteres
-  return Math.abs(hash).toString(36).toUpperCase().padEnd(8, '0')
-}
 
 /**
  * Converte horário "8 as 12" para formato de schedule com data ISO completa
@@ -481,61 +389,81 @@ export async function previewClassImport(
       console.log('[PREVIEW] Instrutor encontrado:', instructorId)
     }
 
-    // ✅ FIXED: Verificar se turma já existe ESCOPADA por (code, instructor_id)
-    let existingClass = null
-    let error = null
+    // Procurar turmas candidatas a "atualizar" em vez de criar uma nova.
+    //
+    // Não existe chave natural confiável aqui: várias planilhas chegam com o
+    // nome genérico "TURMA", então o mesmo instrutor pode ter duas turmas
+    // legítimas com o mesmo nome (semestres diferentes). Por isso o preview
+    // devolve TODAS as candidatas e quem decide é o usuário no modal.
+    let matchingClasses: ExistingClassMatch[] = []
 
     if (instructorId) {
-      const result = await supabase
+      let query = supabase
         .from('classes')
-        .select('id, code, description, instructor_id')
-        .eq('code', classInfo.classCode)
-        .eq('instructor_id', instructorId)  // ✅ ADDED: Scoping by instructor
-        .maybeSingle()
+        .select('id, code, description, instructor_id, created_at')
 
-      existingClass = result.data
-      error = result.error
+      if (classInfo.classCode) {
+        // A planilha trouxe um código explícito: ele é único no sistema todo.
+        query = query.eq('code', classInfo.classCode)
+      } else {
+        query = query
+          .eq('instructor_id', instructorId)
+          .eq('description', classInfo.className)
+      }
 
-      console.log('[PREVIEW] Turma existente para este instrutor:', existingClass ? 'SIM' : 'NÃO')
+      const { data: candidates, error } = await query.order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Erro ao verificar turmas existentes:', error)
+      }
+
+      matchingClasses = await Promise.all(
+        (candidates || []).map(async (candidate) => {
+          const { count: studentsCount } = await supabase
+            .from('class_players')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', candidate.id)
+
+          const { count: eventsCount } = await supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', candidate.id)
+
+          return {
+            id: candidate.id,
+            code: candidate.code,
+            description: candidate.description || candidate.code,
+            studentsCount: studentsCount || 0,
+            eventsCount: eventsCount || 0,
+            createdAt: candidate.created_at || null
+          }
+        })
+      )
+
+      console.log(`[PREVIEW] Turmas candidatas encontradas: ${matchingClasses.length}`)
     } else {
       console.log('[PREVIEW] Instrutor não encontrado, turma será criada como nova')
     }
 
-    if (error) {
-      console.error('Erro ao verificar turma existente:', error)
-    }
-
-    let existingClassInfo
-    if (existingClass) {
-      // Contar alunos existentes
-      const { count: studentsCount } = await supabase
-        .from('class_players')
-        .select('*', { count: 'exact', head: true })
-        .eq('class_id', existingClass.id)
-
-      // Contar eventos existentes
-      const { count: eventsCount } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .eq('class_id', existingClass.id)
-
-      existingClassInfo = {
-        id: existingClass.id,
-        description: existingClass.description || existingClass.code,
-        studentsCount: studentsCount || 0,
-        eventsCount: eventsCount || 0
-      }
-    }
+    const suggested = matchingClasses[0]
 
     return {
-      classExists: !!existingClass,
+      classExists: matchingClasses.length > 0,
       classCode: classInfo.classCode,
       className: classInfo.className,
       instructorName: classInfo.instructorName,
       instructorEmail: classInfo.instructorEmail,
       studentsCount: students.length,
       eventsCount: events.length,
-      existingClass: existingClassInfo
+      existingClass: suggested
+        ? {
+            id: suggested.id,
+            description: suggested.description,
+            studentsCount: suggested.studentsCount,
+            eventsCount: suggested.eventsCount
+          }
+        : undefined,
+      matchingClasses
     }
   } catch (error) {
     console.error('Erro ao fazer preview:', error)
@@ -550,10 +478,16 @@ export async function importClassFromExcel(
   classInfo: ExcelClassImport,
   students: ExcelStudentImport[],
   events: ExcelEventImport[],
-  loggedInUserId?: string
+  loggedInUserId?: string,
+  /**
+   * Turma que o usuario escolheu atualizar no preview. Sem isso, a importacao
+   * SEMPRE cria uma turma nova com codigo proprio - nunca sobrescreve uma
+   * turma existente por adivinhacao.
+   */
+  targetClassId?: string
 ): Promise<ClassImportResult> {
   console.log('🚀 INICIANDO IMPORTAÇÃO')
-  console.log('📋 Turma:', classInfo.className, `(${classInfo.classCode})`)
+  console.log('📋 Turma:', classInfo.className, classInfo.classCode ? `(${classInfo.classCode})` : '(código será gerado)')
   console.log('👥 Alunos para importar:', students.length)
   console.log('📅 Eventos para importar:', events.length)
   console.log('👨‍🏫 Email do instrutor da planilha:', classInfo.instructorEmail)
@@ -598,30 +532,56 @@ export async function importClassFromExcel(
       console.log('   ID:', instructorId)
     }
 
-    // 2. Criar turma (SCOPED by instructor_id)
-    console.log('🏫 Criando/atualizando turma...')
-    console.log(`   📌 Escopo: código="${classInfo.classCode}" + instructor_id="${instructorId}"`)
+    // 2. Criar turma NOVA, ou atualizar a turma que o usuário escolheu.
+    let classCode: string
 
-    const { data: classData, error: classError } = await supabase
-      .from('classes')
-      .upsert({
-        code: classInfo.classCode,
-        description: classInfo.className,
-        instructor_id: instructorId,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'code,instructor_id'  // ✅ FIXED: Composite key scoping
-      })
-      .select()
-      .single()
+    if (targetClassId) {
+      console.log('🏫 Atualizando turma escolhida pelo usuário:', targetClassId)
 
-    if (classError || !classData) {
-      errors.push(`Erro ao criar turma: ${classError?.message}`)
-      return { success: false, studentsImported: 0, eventsImported: 0, errors }
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .update({
+          description: classInfo.className,
+          instructor_id: instructorId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', targetClassId)
+        .select()
+        .single()
+
+      if (classError || !classData) {
+        errors.push(`Erro ao atualizar turma: ${classError?.message}`)
+        return { success: false, studentsImported: 0, eventsImported: 0, errors }
+      }
+
+      classId = classData.id
+      classCode = classData.code  // o código NUNCA muda numa atualização
+      console.log(`✅ Turma atualizada: ${classCode} (ID: ${classId})`)
+    } else {
+      // Código explicito da planilha, se houver; senão sorteia um livre.
+      classCode = classInfo.classCode || (await generateUniqueClassCode())
+      console.log('🏫 Criando turma nova com código:', classCode)
+
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .insert({
+          code: classCode,
+          description: classInfo.className,
+          instructor_id: instructorId,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (classError || !classData) {
+        errors.push(`Erro ao criar turma: ${classError?.message}`)
+        return { success: false, studentsImported: 0, eventsImported: 0, errors }
+      }
+
+      classId = classData.id
+      console.log(`✅ Turma criada: ${classCode} (ID: ${classId})`)
     }
 
-    classId = classData.id
-    console.log(`✅ Turma criada/atualizada com sucesso: ${classInfo.classCode} (ID: ${classId})`)
     console.log(`   🔒 Esta turma pertence ao instrutor: ${instructorId}`)
     console.log(`📋 Iniciando importação de ${students.length} alunos...`)
 
@@ -666,7 +626,7 @@ export async function importClassFromExcel(
           }
         } else {
           // Aluno não existe - criar novo
-          const udfId = `${classInfo.classCode}-${student.email.split('@')[0]}`
+          const udfId = `${classCode}-${student.email.split('@')[0]}`
 
           const { data: newPlayer, error: createError } = await supabase
             .from('players')
@@ -707,7 +667,7 @@ export async function importClassFromExcel(
           continue
         }
 
-        console.log(`   🔗 Aluno vinculado à turma ${classInfo.classCode}`)
+        console.log(`   🔗 Aluno vinculado à turma ${classCode}`)
         studentsImported++
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -793,7 +753,7 @@ export async function importClassFromExcel(
 
     console.log('\n✨ IMPORTAÇÃO CONCLUÍDA!')
     console.log('📊 RESUMO:')
-    console.log(`   Turma: ${classInfo.className} (${classInfo.classCode})`)
+    console.log(`   Turma: ${classInfo.className} (${classCode})`)
     console.log(`   Alunos importados: ${studentsImported}/${students.length}`)
     console.log(`   Eventos importados: ${eventsImported}/${events.length}`)
     if (errors.length > 0) {
