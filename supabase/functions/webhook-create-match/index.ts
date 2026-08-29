@@ -304,14 +304,38 @@ serve(async (req)=>{
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 
-    // Buscar evento com informações da turma
+    // Registra uma tentativa REJEITADA para o admin gerenciar depois
+    // (corrigir email + reprocessar, ou marcar como burla). Nunca derruba o
+    // fluxo: se o log falhar, apenas avisa no console.
+    const logAttempt = async (reason: string, ctx: { classId?: string | null; instructorId?: string | null; eventId?: string | null } = {}) => {
+      try {
+        await supabase.from('match_attempts').insert({
+          player_email: playerEmail,
+          event_code: eventCode,
+          app_serial: appSerial ?? null,
+          match_number: matchNumber ?? null,
+          lucro: lucroFromApi ?? null,
+          satisfacao: satisfacaoFromApi ?? null,
+          bonus_money: bonusMoneyFromApi ?? null,
+          event_id: ctx.eventId ?? null,
+          class_id: ctx.classId ?? null,
+          instructor_id: ctx.instructorId ?? null,
+          reason
+        });
+      } catch (e) {
+        console.error('Falha ao registrar match_attempt:', e);
+      }
+    };
+
+    // Buscar evento com informações da turma (inclui instrutor da turma)
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('id, class_id')
+      .select('id, class_id, classes(instructor_id)')
       .eq('code', eventCode)
       .single();
 
     if (eventError || !eventData) {
+      await logAttempt('event_not_found');
       return new Response(JSON.stringify({
         success: false,
         error: `Evento com código '${eventCode}' não encontrado.`
@@ -323,6 +347,11 @@ serve(async (req)=>{
         status: 404
       });
     }
+
+    // instructor_id da turma (relacao classes pode vir como objeto ou array)
+    const classRel: any = (eventData as any).classes;
+    const instructorId = Array.isArray(classRel) ? classRel[0]?.instructor_id : classRel?.instructor_id;
+    const attemptCtx = { classId: eventData.class_id, instructorId, eventId: eventData.id };
 
     // Buscar todos os players com esse email (pega o mais recente).
     // ilike (sem wildcard) = match exato porém case-insensitive, para casar com
@@ -336,6 +365,7 @@ serve(async (req)=>{
 
     if (playerError || !players || players.length === 0) {
       // Alerta: email não existe no sistema
+      await logAttempt('email_not_found', attemptCtx);
       sendAdminAlert('Email de jogador não encontrado', [
         `Email: ${playerEmail}`,
         `Evento: ${eventCode} | App Serial: ${appSerial}`,
@@ -371,6 +401,7 @@ serve(async (req)=>{
 
     if (!player) {
       // Alerta: jogador existe no sistema mas não está inscrito nesta turma
+      await logAttempt('not_enrolled', attemptCtx);
       sendAdminAlert('Jogador não inscrito na turma', [
         `Email: ${playerEmail}`,
         `Evento: ${eventCode} | Turma ID: ${eventData.class_id}`,
