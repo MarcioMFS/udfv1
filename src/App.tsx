@@ -15,6 +15,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminRoute } from './components/AdminRoute'
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
+import { AdminUnidentifiedPlayersPage } from './pages/admin/AdminUnidentifiedPlayersPage'
 import { AdminEventsPage } from './pages/admin/AdminEventsPage'
 import { AdminClassesPage } from './pages/admin/AdminClassesPage'
 import { AdminEmailsPage } from './pages/admin/AdminEmailsPage'
@@ -66,6 +67,11 @@ function App() {
                   <Route path="/admin/events" element={
                     <AdminRoute>
                       <AdminEventsPage />
+                    </AdminRoute>
+                  } />
+                  <Route path="/admin/jogadores-nao-identificados" element={
+                    <AdminRoute>
+                      <AdminUnidentifiedPlayersPage />
                     </AdminRoute>
                   } />
                   <Route path="/admin/emails" element={

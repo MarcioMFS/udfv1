@@ -14,6 +14,7 @@ import {
   Mail,
   Receipt,
   Rocket,
+  UserX,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useIsAdmin } from '../hooks/useIsAdmin'
@@ -31,6 +32,7 @@ const adminSubItems = [
   { href: '/admin/users',        icon: Users,           label: 'Usuários' },
   { href: '/admin/classes',      icon: GraduationCap,   label: 'Turmas' },
   { href: '/admin/events',       icon: Calendar,        label: 'Eventos' },
+  { href: '/admin/jogadores-nao-identificados', icon: UserX, label: 'Não identificados' },
   { href: '/admin/emails',       icon: Mail,            label: 'Emails' },
   { href: '/admin/faturamento',  icon: Receipt,         label: 'Faturamento' },
 ]
