@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, Search, Flag, Check, EyeOff, RotateCcw, Users } from 'lucide-react'
+import { AlertTriangle, Search, Flag, Check, EyeOff, RotateCcw, Users, UserCheck, X } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useMatchAttempts, MatchAttempt, MatchAttemptStatus } from '../../hooks/useMatchAttempts'
+import { useMatchAttempts, MatchAttempt, MatchAttemptStatus, ClassStudent } from '../../hooks/useMatchAttempts'
 import { SectionLoading } from '../../components/ui/LoadingSpinner'
 import { EmptyState, ErrorMessage } from '../../components/ui'
 
@@ -34,10 +34,42 @@ const STATUS_LABEL: Record<MatchAttemptStatus, string> = {
 type Filter = 'pending' | 'flagged' | 'all'
 
 export function AdminUnidentifiedPlayersPage() {
-  const { attempts, isLoading, error, refresh, updateStatus } = useMatchAttempts()
+  const { attempts, isLoading, error, refresh, updateStatus, fetchClassStudents, reprocess } = useMatchAttempts()
   const [filter, setFilter] = useState<Filter>('pending')
   const [search, setSearch] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  // Modal de reprocessamento
+  const [reprocessing, setReprocessing] = useState<MatchAttempt | null>(null)
+  const [students, setStudents] = useState<ClassStudent[]>([])
+  const [studentsLoading, setStudentsLoading] = useState(false)
+  const [selectedEmail, setSelectedEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const openReprocess = async (a: MatchAttempt) => {
+    setReprocessing(a)
+    setSelectedEmail('')
+    setStudents([])
+    if (a.class_id) {
+      setStudentsLoading(true)
+      const list = await fetchClassStudents(a.class_id)
+      setStudents(list)
+      setStudentsLoading(false)
+    }
+  }
+
+  const confirmReprocess = async () => {
+    if (!reprocessing || !selectedEmail) return
+    setSubmitting(true)
+    const res = await reprocess(reprocessing.id, selectedEmail)
+    setSubmitting(false)
+    if (res.success) {
+      toast.success(res.message)
+      setReprocessing(null)
+    } else {
+      toast.error(res.message)
+    }
+  }
 
   const counts = useMemo(() => ({
     pending: attempts.filter(a => a.status === 'pending').length,
@@ -187,6 +219,16 @@ export function AdminUnidentifiedPlayersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        {a.status !== 'resolved' && a.app_serial && a.class_id && (
+                          <button
+                            onClick={() => openReprocess(a)}
+                            disabled={busyId === a.id}
+                            title="Reprocessar: atribuir a partida ao aluno certo"
+                            className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 disabled:opacity-40"
+                          >
+                            <UserCheck size={16} />
+                          </button>
+                        )}
                         {a.status !== 'flagged' && (
                           <button
                             onClick={() => act(a, 'flagged')}
@@ -241,6 +283,71 @@ export function AdminUnidentifiedPlayersPage() {
         <Users size={13} />
         Dica: "Não inscrito na turma" costuma ser aluno jogando fora do cadastro — marque como burla para cobrança.
       </p>
+
+      {/* Modal de reprocessamento */}
+      {reprocessing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <UserCheck size={18} className="text-blue-600" />
+                Reprocessar partida
+              </h3>
+              <button onClick={() => setReprocessing(null)} className="p-1 rounded hover:bg-gray-100">
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              <p className="text-sm text-gray-600">
+                O jogador digitou <span className="font-mono text-gray-800">{reprocessing.player_email}</span>.
+                Escolha o aluno correto da turma <strong>{reprocessing.classes?.description || ''}</strong> para
+                atribuir esta partida. Os dados da partida serão lançados no nome dele.
+              </p>
+
+              {studentsLoading ? (
+                <p className="text-sm text-gray-400">Carregando alunos da turma...</p>
+              ) : students.length === 0 ? (
+                <p className="text-sm text-red-500">
+                  Nenhum aluno inscrito nesta turma. Inscreva o aluno primeiro para poder reprocessar.
+                </p>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Aluno correto</label>
+                  <select
+                    value={selectedEmail}
+                    onChange={e => setSelectedEmail(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  >
+                    <option value="">Selecione...</option>
+                    {students.map(s => (
+                      <option key={s.id} value={s.email || ''}>
+                        {s.name || '(sem nome)'} — {s.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 px-5 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setReprocessing(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmReprocess}
+                disabled={!selectedEmail || submitting}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Reprocessando...' : 'Reprocessar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

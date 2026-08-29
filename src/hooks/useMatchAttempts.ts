@@ -29,12 +29,25 @@ export interface MatchAttempt {
   events?: { name: string | null; code: string | null } | null
 }
 
+export interface ClassStudent {
+  id: string
+  name: string | null
+  email: string | null
+}
+
+interface ReprocessResult {
+  success: boolean
+  message: string
+}
+
 interface UseMatchAttemptsReturn {
   attempts: MatchAttempt[]
   isLoading: boolean
   error: string | null
   refresh: () => Promise<void>
   updateStatus: (id: string, status: MatchAttemptStatus, note?: string) => Promise<boolean>
+  fetchClassStudents: (classId: string) => Promise<ClassStudent[]>
+  reprocess: (attemptId: string, targetEmail: string) => Promise<ReprocessResult>
 }
 
 /**
@@ -109,5 +122,49 @@ export function useMatchAttempts(): UseMatchAttemptsReturn {
     []
   )
 
-  return { attempts, isLoading, error, refresh: fetchAttempts, updateStatus }
+  // Alunos inscritos na turma da tentativa — para o admin escolher o dono da partida.
+  const fetchClassStudents = useCallback(async (classId: string): Promise<ClassStudent[]> => {
+    const { data, error: fetchError } = await supabase
+      .from('class_players')
+      .select('players ( id, name, email )')
+      .eq('class_id', classId)
+
+    if (fetchError) {
+      console.error('Erro ao buscar alunos da turma:', fetchError)
+      return []
+    }
+    return (data || [])
+      .map((row: any) => row.players)
+      .filter((p: any): p is ClassStudent => !!p)
+      .sort((a: ClassStudent, b: ClassStudent) => (a.name || '').localeCompare(b.name || ''))
+  }, [])
+
+  // Reenvia a partida guardada ao create-match com o email do aluno certo.
+  const reprocess = useCallback(async (attemptId: string, targetEmail: string): Promise<ReprocessResult> => {
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('admin-reprocess-attempt', {
+        body: { attempt_id: attemptId, target_email: targetEmail }
+      })
+      if (fnError) {
+        // erros de negocio vem no corpo (data.error) mesmo com status != 2xx
+        const msg = (data && (data.error as string)) || fnError.message || 'Falha ao reprocessar.'
+        return { success: false, message: msg }
+      }
+      if (!data?.success) {
+        return { success: false, message: data?.error || 'Falha ao reprocessar.' }
+      }
+      setAttempts(prev =>
+        prev.map(a =>
+          a.id === attemptId
+            ? { ...a, status: 'resolved', resolved_at: new Date().toISOString() }
+            : a
+        )
+      )
+      return { success: true, message: data.message || 'Partida reprocessada.' }
+    } catch (err) {
+      return { success: false, message: err instanceof Error ? err.message : 'Erro inesperado.' }
+    }
+  }, [])
+
+  return { attempts, isLoading, error, refresh: fetchAttempts, updateStatus, fetchClassStudents, reprocess }
 }
