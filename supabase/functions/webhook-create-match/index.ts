@@ -324,11 +324,14 @@ serve(async (req)=>{
       });
     }
 
-    // Buscar todos os players com esse email (pega o mais recente)
+    // Buscar todos os players com esse email (pega o mais recente).
+    // ilike (sem wildcard) = match exato porém case-insensitive, para casar com
+    // a validacao de entrada (webhook-validate-player) e evitar que "X@Y.com" e
+    // "x@y.com" sejam tratados como jogadores diferentes.
     const { data: players, error: playerError } = await supabase
       .from('players')
       .select('id, email')
-      .eq('email', playerEmail)
+      .ilike('email', playerEmail.trim())
       .order('created_at', { ascending: false });
 
     if (playerError || !players || players.length === 0) {
