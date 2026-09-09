@@ -590,18 +590,24 @@ export async function importClassFromExcel(
       try {
         let playerId: string | undefined
 
-        // Primeiro, buscar se o aluno já existe por EMAIL
-        const { data: existingPlayer, error: searchError } = await supabase
+        // Primeiro, buscar se o aluno já existe por EMAIL.
+        // NÃO usar .maybeSingle(): há players legados com email duplicado, e o
+        // maybeSingle() ERRA com "multiple rows" — o que fazia o aluno ser
+        // pulado (não recadastrava NEM vinculava à turma). Buscamos a lista e
+        // usamos o mais antigo, de forma determinística.
+        const { data: existingPlayers, error: searchError } = await supabase
           .from('players')
           .select('id, name, email, udf_id')
           .eq('email', student.email)
-          .maybeSingle()
+          .order('created_at', { ascending: true })
 
         if (searchError) {
           console.error(`Erro ao buscar aluno ${student.email}:`, searchError)
           errors.push(`Erro ao buscar aluno ${student.name}: ${searchError.message}`)
           continue
         }
+
+        const existingPlayer = existingPlayers && existingPlayers.length > 0 ? existingPlayers[0] : null
 
         if (existingPlayer) {
           // Aluno já existe - usar o ID dele

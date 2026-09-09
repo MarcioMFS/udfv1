@@ -255,13 +255,17 @@ async function generateUniqueUdfId(baseId: string, table: 'players' | 'instructo
  * Verifica se email já existe na tabela
  */
 async function checkEmailExists(email: string, table: 'players' | 'instructors'): Promise<{ exists: boolean; id?: string }> {
+  // limit(1) em vez de maybeSingle(): há registros legados com email duplicado,
+  // e maybeSingle() ERRA com "multiple rows".
   const { data } = await supabase
     .from(table)
     .select('id')
     .eq('email', email)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
+    .limit(1)
 
-  return { exists: !!data, id: data?.id }
+  const row = data && data.length > 0 ? data[0] : null
+  return { exists: !!row, id: row?.id }
 }
 
 /**
