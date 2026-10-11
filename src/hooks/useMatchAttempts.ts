@@ -67,7 +67,7 @@ export function useMatchAttempts(): UseMatchAttemptsReturn {
         .from('match_attempts')
         .select(`
           *,
-          instructors ( name, email ),
+          instructors:match_attempts_instructor_id_fkey ( name, email ),
           classes ( code, description ),
           events ( name, code )
         `)
